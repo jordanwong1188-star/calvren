@@ -1,0 +1,23 @@
+{
+  "name": "calvren",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "npm run check",
+    "check": "tsc --noEmit && node --check public/app.js && node --check public/admin.js && node --test tests/demo.test.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^9.1.0",
+    "@netlify/functions": "^4.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "netlify-cli": "^20.0.0"
+  }
+}
