@@ -1,0 +1,135 @@
+name: Check published Calvren
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'netlify/**'
+      - 'netlify.toml'
+      - '.github/workflows/site-check.yml'
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test tools
+        run: npm install --no-save --package-lock=false playwright@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Check the published site
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import {mkdir,readFile} from "node:fs/promises";
+          import {chromium} from "playwright";
+          
+          const site="https://calvren.netlify.app";
+          await mkdir("artifacts",{recursive:true});
+          const browser=await chromium.launch();
+          const context=await browser.newContext({viewport:{width:1440,height:1000},permissions:["clipboard-read","clipboard-write"],acceptDownloads:true});
+          const page=await context.newPage();
+          const errors=[];
+          page.on("pageerror",error=>errors.push(error.message));
+          try{
+            const response=await page.goto(site,{waitUntil:"networkidle",timeout:30000});
+            assert.equal(response.status(),200);
+            await page.evaluate(()=>document.fonts.ready);
+            assert.match(await page.title(),/Calvren/);
+            assert.equal(await page.locator("#demo-empty").isVisible(),true);
+            const desktop=await page.screenshot({path:"artifacts/desktop.jpeg",type:"jpeg",quality:65});
+            console.log("CALVREN_IMAGE_DESKTOP:"+desktop.toString("base64"));
+          
+            await page.locator("#run-demo").click();
+            assert.match(await page.locator("#lead-intent").textContent(),/Buyer/);
+            assert.match(await page.locator("#reply-draft").textContent(),/Hi Jamie/);
+            await page.locator("#copy-reply").click();
+            assert.match(await page.evaluate(()=>navigator.clipboard.readText()),/Hi Jamie/);
+            const downloadEvent=page.waitForEvent("download");
+            await page.locator("#download-result").click();
+            const download=await downloadEvent;
+            await download.saveAs("artifacts/example-record.json");
+            assert.equal(JSON.parse(await readFile("artifacts/example-record.json","utf8")).mode,"example");
+          
+            for(const [scenario,intent] of [["local-services",/quote/i],["professional",/Professional/i],["real-estate",/Buyer/i]]){
+              await page.locator('[data-scenario="'+scenario+'"]').click();
+              assert.equal(await page.locator("#demo-results").isVisible(),false);
+              await page.locator("#run-demo").click();
+              assert.match(await page.locator("#lead-intent").textContent(),intent);
+            }
+            await page.locator("#enquiry").fill("I want to sell my property and arrange a valuation.");
+            assert.equal(await page.locator("#demo-results").isVisible(),false);
+            await page.locator("#run-demo").click();
+            assert.match(await page.locator("#lead-intent").textContent(),/Seller/);
+            await page.locator("#reset-example").click();
+            assert.equal(await page.locator("#demo-results").isVisible(),false);
+            await page.locator("#run-demo").click();
+            const demo=await page.locator("#demo").screenshot({path:"artifacts/demo.jpeg",type:"jpeg",quality:65});
+            console.log("CALVREN_IMAGE_DEMO:"+demo.toString("base64"));
+          
+            const oldHours=await page.locator("#hours-result").textContent();
+            await page.locator("#monthly-tasks").focus();
+            await page.locator("#monthly-tasks").press("ArrowRight");
+            assert.notEqual(await page.locator("#hours-result").textContent(),oldHours);
+          
+            await page.route(site+"/",route=>route.request().method()==="POST"?route.fulfill({status:503,body:"Test response: temporarily unavailable"}):route.continue());
+            await page.locator("#contact-name").fill("Calvren QA");
+            await page.locator("#contact-email").fill("qa@example.com");
+            await page.locator("#contact-business").fill("Synthetic browser test");
+            await page.locator("#contact-industry").selectOption({label:"Real estate"});
+            await page.locator("#contact-message").fill("Testing error handling without submitting a real enquiry.");
+            await page.locator('#contact-form input[type="checkbox"]').check();
+            await page.locator('#contact-form button[type="submit"]').click();
+            await page.locator("#contact-error").waitFor({state:"visible"});
+            assert.equal(await page.locator("#contact-name").inputValue(),"Calvren QA");
+            assert.equal(await page.locator('#contact-form button[type="submit"]').isEnabled(),true);
+            await page.unroute(site+"/");
+          
+            for(const width of [320,375,768,1440]){
+              await page.setViewportSize({width,height:1000});
+              await page.goto(site,{waitUntil:"networkidle"});
+              const layout=await page.evaluate(()=>({width:innerWidth,body:document.body.scrollWidth,document:document.documentElement.scrollWidth}));
+              assert.ok(layout.body<=width+1&&layout.document<=width+1,"Horizontal overflow at "+width+"px: "+JSON.stringify(layout));
+              if(width===375){
+                await page.evaluate(()=>scrollTo(0,0));
+                const mobile=await page.screenshot({path:"artifacts/mobile.jpeg",type:"jpeg",quality:65});
+                console.log("CALVREN_IMAGE_MOBILE:"+mobile.toString("base64"));
+              }
+            }
+            for(const path of ["/privacy.html","/thanks.html","/404.html","/app.js","/styles.css"]){
+              const asset=await context.request.get(site+path);
+              assert.equal(asset.status(),200,path+" must load");
+            }
+            const missing=await context.request.get(site+"/this-page-does-not-exist");
+            assert.equal(missing.status(),404);
+            for(const [path,method] of [["/api/leads","GET"],["/api/workflow","POST"]]){
+              const api=await context.request.fetch(site+path,{method,...(method==="POST"?{data:{}}:{})});
+              assert.ok([401,503].includes(api.status()),path+" must require configuration/authentication");
+              const json=await api.json();
+              assert.equal(typeof json.error,"string");
+              assert.ok(!("leads" in json)&&!("lead" in json));
+              console.log("CALVREN_API_CHECK "+path+" "+api.status());
+            }
+            await page.goto(site+"/admin.html",{waitUntil:"networkidle"});
+            assert.equal(await page.locator("#workspace").isVisible(),false);
+            await page.locator("#admin-token").fill("x".repeat(64));
+            await page.locator('#auth-form button[type="submit"]').click();
+            await page.waitForFunction(()=>!/Connecting/.test(document.getElementById("auth-status").textContent));
+            assert.equal(await page.locator("#workspace").isVisible(),false);
+            assert.deepEqual(errors,[]);
+            console.log("CALVREN_LIVE_CHECKS_PASSED: desktop/mobile layout, all demo scenarios, stale result clearing, clipboard, record download, calculator, form failure preservation, page/assets, 404, protected APIs and admin failure handling.");
+          }finally{await browser.close();}
+          
+          NODE
+      - name: Save browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calvren-browser-review
+          path: artifacts/
+          retention-days: 7

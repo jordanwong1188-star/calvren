@@ -13,7 +13,7 @@ function renderLeads(leads) {
   for (const lead of leads) {
     const card=document.createElement("article");card.className="lead-card";
     const statusLabel={draft:"Awaiting review",approved:"Reviewed · not sent",archived:"Archived"}[lead.status] || "Unknown status";
-    card.append(textNode("h3",lead.name + " · " + lead.automation.category),textNode("span",statusLabel,"tag"),textNode("p",lead.email),textNode("p",lead.automation.summary),textNode("p","Priority: " + lead.automation.priority),textNode("p","Reply draft\n" + lead.automation.replyDraft),textNode("p","Next action\n" + lead.automation.nextAction));
+    card.append(textNode("h3",lead.name + " · " + lead.automation.category),textNode("span",statusLabel,"tag"),textNode("p",lead.email),textNode("p","Original enquiry\n" + lead.enquiry),textNode("p",lead.automation.summary),textNode("p","Priority: " + lead.automation.priority),textNode("p","Reply draft\n" + lead.automation.replyDraft),textNode("p","Next action\n" + lead.automation.nextAction));
     const actions=document.createElement("div");actions.className="admin-actions";
     const copy=document.createElement("button");copy.type="button";copy.className="button button-outline";copy.textContent="Copy draft";
     copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(lead.automation.replyDraft);copy.textContent="Copied";}catch{copy.textContent="Select draft text to copy";}});
