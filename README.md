@@ -20,7 +20,7 @@ Calvren is a working brand name. Wider web, domain and trademark availability ha
 - Site ID: 9357eb4a-405e-417e-af9a-f5998d88f2ba
 - Intended URL after a successful deployment: https://calvren.netlify.app
 - Forms have been enabled.
-- CALVREN_DATA_ENV=production has been set with functions scope in the production context only.
+- Set CALVREN_DATA_ENV=production in Netlify's production context only, and verify it appears in the saved environment variables.
 - Public visitor access is configured for the Calvren site only. The protected lead API is separately token authenticated.
 
 The Netlify project has public visitor access and forms enabled. A successful source deployment is still required before the reserved URL serves this website.
@@ -86,7 +86,7 @@ Trusted intake tools can call this API server to server. Never embed its token i
 - Nineteen mocked backend behavior checks passed in a JavaScript adaptation prepared by the backend agent, covering authentication, body validation, AI errors, persistence, review updates and preview isolation.
 - The source includes Node tests for the browser engine and a TypeScript build check.
 
-Full TypeScript compilation, installed dependency resolution, browser rendering, live Netlify execution and live OpenAI calls have not been performed in this session. No shell or browser execution tools were available. A deployment is still required.
+Installed dependency resolution, full TypeScript compilation, JavaScript syntax checks and all nine browser-engine tests passed in GitHub Actions: https://github.com/jordanwong1188-star/calvren/actions/runs/36841456997 . Browser rendering, live Netlify execution and live OpenAI calls remain unverified. A deployment is still required.
 
 ## Starter-system limits
 
