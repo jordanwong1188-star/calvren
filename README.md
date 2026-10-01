@@ -18,21 +18,21 @@ Calvren is a working brand name. Wider web, domain and trademark availability ha
 
 - Project dashboard: https://app.netlify.com/projects/calvren
 - Site ID: 9357eb4a-405e-417e-af9a-f5998d88f2ba
-- Intended URL after a successful deployment: https://calvren.netlify.app
+- Live website: https://calvren.netlify.app
 - Forms have been enabled.
 - Set CALVREN_DATA_ENV=production in Netlify's production context only, and verify it appears in the saved environment variables.
 - Public visitor access is configured for the Calvren site only. The protected lead API is separately token authenticated.
 
-The Netlify project has public visitor access and forms enabled. A successful source deployment is still required before the reserved URL serves this website.
+The website is live at https://calvren.netlify.app . GitHub is linked to Netlify and automatic deployments are enabled. Netlify recognised the enquiry form and deployed the protected workflow function. Live AI still requires the environment variables described below.
 
 ## Deploy
 
 1. Source repository: https://github.com/jordanwong1188-star/calvren. The website and protected workflow are committed together on main.
-2. Check the latest GitHub Actions result before deploying: https://github.com/jordanwong1188-star/calvren/actions.
-3. In the existing Calvren Netlify project, connect the GitHub repository through Project configuration > Build & deploy > Continuous deployment > Repository. The connected tool cannot perform this repository-link step.
+2. GitHub is connected to Netlify. Pushes to main trigger automatic builds and deployments.
+3. Check GitHub Actions for build and published-site browser check results: https://github.com/jordanwong1188-star/calvren/actions.
 4. Build settings are supplied in netlify.toml: command npm run build, publish directory public, functions directory netlify/functions, Node 22.
-5. Add the function environment variables below. The public example does not need an AI key.
-6. Trigger a deployment and verify its status. Resolve any dependency/typecheck/build errors before treating the deployment as complete.
+5. Add the environment variables below directly in Netlify. The public example does not need an AI key. Choose the production context; use the platform's default scopes if your plan does not support individual function scopes.
+6. After changing runtime credentials, redeploy the site from Netlify's Deploys page so the function receives the new values.
 7. Public visitor access is already configured for Calvren. Verify the deployed pitch pages open for visitors and that unauthenticated lead API requests are rejected.
 
 ## Function environment variables
@@ -86,7 +86,7 @@ Trusted intake tools can call this API server to server. Never embed its token i
 - Nineteen mocked backend behavior checks passed in a JavaScript adaptation prepared by the backend agent, covering authentication, body validation, AI errors, persistence, review updates and preview isolation.
 - The source includes Node tests for the browser engine and a TypeScript build check.
 
-Installed dependency resolution, full TypeScript compilation, JavaScript syntax checks and all nine browser-engine tests passed in GitHub Actions: https://github.com/jordanwong1188-star/calvren/actions/runs/36841456997 . Browser rendering, live Netlify execution and live OpenAI calls remain unverified. A deployment is still required.
+Installed dependency resolution, full TypeScript compilation, JavaScript syntax checks and all nine browser-engine tests passed in GitHub Actions: https://github.com/jordanwong1188-star/calvren/actions/runs/36841456997 . The production deployment is published. Chromium browser checks passed against the live site, including desktop/mobile layout at 320/375/768/1440px, all demo scenarios, stale output clearing, clipboard copy, downloaded JSON records, calculator updates, form failure data preservation, public pages/assets, 404 handling, and rejection by the protected APIs. Browser check run: https://github.com/jordanwong1188-star/calvren/actions/runs/36843989060 . Netlify recognised the contact form; no real enquiry was submitted during the browser check. Live OpenAI execution remains unverified because credentials are not configured.
 
 ## Starter-system limits
 
