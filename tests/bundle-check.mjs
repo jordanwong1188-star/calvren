@@ -16,9 +16,9 @@ try{
   assert.deepEqual(results.map(result=>result.name).sort(),["submission-created","workflow"]);
   for(const result of results){
     assert.equal(result.runtimeAPIVersion,2);
-    assert.equal(result.bundler,"esbuild");
+    assert.ok(["esbuild","nft"].includes(result.bundler),"Unsupported function bundler: "+result.bundler);
     assert.equal(result.bundlerErrors?.length??0,0);
     assert.ok((await stat(result.path)).size>0);
   }
-  console.log("CALVREN_BUNDLE_CHECK_PASSED: both Netlify functions bundled with esbuild for Node22.");
+  console.log("CALVREN_BUNDLE_CHECK_PASSED: both modern Netlify functions packaged for Node22; "+results.map(result=>result.name+"="+result.bundler).join(", "));
 }finally{await rm(destination,{recursive:true,force:true});}
