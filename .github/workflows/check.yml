@@ -14,3 +14,5 @@ jobs:
           node-version: "22"
       - run: npm install
       - run: npm run check
+      - name: Bundle the Netlify functions offline
+        run: node tests/bundle-check.mjs
