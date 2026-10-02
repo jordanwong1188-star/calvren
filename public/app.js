@@ -50,15 +50,6 @@ function updateEstimate() {
 }
 $("monthly-tasks").addEventListener("input", updateEstimate);
 $("minutes-per-task").addEventListener("input", updateEstimate);
-$("year").textContent = String(new Date().getFullYear()); updateCount(); updateEstimate();
-$("contact-form").addEventListener("submit", async (event) => {
-  event.preventDefault(); const form = event.currentTarget, button = form.querySelector("button[type=submit]");
-  const body = new URLSearchParams();
-  for (const [key,value] of new FormData(form)) body.append(key,String(value));
-  button.disabled = true; $("contact-error").hidden = true;
-  try {
-    const response = await fetch("/", {method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
-    if (!response.ok) throw new Error("The enquiry could not be submitted.");
-    window.location.assign("/thanks.html");
-  } catch { $("contact-error").textContent = "We couldn’t submit your enquiry. Please try again in a moment."; $("contact-error").hidden = false; button.disabled = false; }
-});
+updateCount(); updateEstimate();
+const initialScenario=new URLSearchParams(location.search).get("scenario");
+if(Object.hasOwn(scenarios,initialScenario))document.querySelector('[data-scenario="'+initialScenario+'"]')?.click();

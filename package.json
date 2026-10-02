@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "netlify dev",
     "build": "npm run check",
-    "check": "tsc --noEmit && node --check public/app.js && node --check public/admin.js && node --test tests/demo.test.mjs"
+    "check": "tsc --noEmit && node --check public/app.js && node --check public/admin.js && node --check public/shared.js && node --check tests/site-check.mjs && node --test tests/demo.test.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^9.1.0",
