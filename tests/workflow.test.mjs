@@ -325,3 +325,28 @@ test("an AI outage during website intake retains a retryable record", async () =
   assert.ok(record.processingError);
   assert.equal(record.automation, null);
 });
+
+test("signed form redelivery cannot recreate a permanently deleted record", async () => {
+  const f = fixture();
+  const first = await submission(f);
+  assert.equal((await call(f, "/api/leads/" + first.body.id, "DELETE")).response.status, 200);
+  const result = await submission(f);
+  assert.equal(result.body.accepted, false);
+  assert.equal(result.body.deleted, true);
+  assert.equal((await call(f, "/api/leads")).body.leads.length, 0);
+  assert.equal(f.calls.length, 1);
+  const tombstone = await f.blobs.get("tombstones/" + first.body.id);
+  assert.deepEqual(tombstone, { deleted: true, deletedAt: "2026-10-02T12:00:00.000Z" });
+});
+test("a deletion marker arriving during intake creation prevents processing and removes the new copy", async () => {
+  const f = fixture();
+  const write = f.blobs.setJSON;
+  f.blobs.setJSON = async (key, data, conditions) => {
+    if (key.startsWith("leads/")) await write("tombstones/" + key.slice(6), { deleted: true });
+    return write(key, data, conditions);
+  };
+  const result = await submission(f);
+  assert.equal(result.body.accepted, false);
+  assert.equal(f.calls.length, 0);
+  assert.equal((await call(f, "/api/leads")).body.leads.length, 0);
+});

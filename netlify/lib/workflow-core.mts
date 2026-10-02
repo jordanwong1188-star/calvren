@@ -212,7 +212,13 @@ async function create(data: Input, source: Lead["source"], id: string, deps: Dep
   const time = now(deps), saved: Lead = { ...data, id, source, status: "new", createdAt: time,
     updatedAt: time, automation: null, processingError: null };
   const blobs = deps.storage(), key = "leads/" + id;
+  if (await blobs.get("tombstones/" + id, { type: "json" }) !== null)
+    fail(409, "This record was permanently deleted.");
   const result = await blobs.setJSON(key, saved, { onlyIfNew: true });
+  if (await blobs.get("tombstones/" + id, { type: "json" }) !== null) {
+    await blobs.delete(key);
+    fail(409, "This record was permanently deleted.");
+  }
   if (!result.modified) {
     const existing = await blobs.get(key, { type: "json" });
     if (existing === null) fail(409, "The existing record changed. Refresh the inbox.");
@@ -263,6 +269,8 @@ export async function handleWorkflow(request: Request, deps: Dependencies): Prom
       if (!entry) fail(404, "Lead not found.");
       const saved = savedLead(entry.data);
       if (request.method === "DELETE") {
+        // Keep no enquiry or contact fields: a minimal marker blocks platform redelivery.
+        await blobs.setJSON("tombstones/" + id, { deleted: true, deletedAt: now(deps) });
         await blobs.delete(key);
         return json({ deleted: true, id });
       }
@@ -314,6 +322,8 @@ export async function handleSubmission(request: Request, deps: Dependencies): Pr
     const result = await create(parsed, "website", id, deps);
     return json({ accepted: true, id: result.lead.id, duplicate: result.duplicate === true }, 202);
   } catch (error) {
+    if (record(error) && error.calvren === true && error.status === 409 &&
+      error.error === "This record was permanently deleted.") return json({ accepted: false, deleted: true }, 202);
     if (record(error) && error.calvren === true && typeof error.status === "number" && typeof error.error === "string")
       return json({ error: error.error }, error.status);
     return json({ error: "The form event could not be saved." }, 500);
