@@ -10,10 +10,11 @@ export type Lead = Input & {
   createdAt: string; updatedAt: string; automation: Draft | null;
   processingError: string | null; source: "manual" | "website";
 };
+export type WriteConditions = { onlyIfNew?: boolean; onlyIfMatch?: never } | { onlyIfNew?: never; onlyIfMatch?: string };
 export interface Storage {
   get(key: string, options: { type: "json" }): Promise<unknown>;
   getWithMetadata(key: string, options: { type: "json" }): Promise<{ data: unknown; etag: string } | null>;
-  setJSON(key: string, data: unknown, options?: { onlyIfNew?: boolean; onlyIfMatch?: string }): Promise<{ modified: boolean; etag?: string }>;
+  setJSON(key: string, data: unknown, options?: WriteConditions): Promise<{ modified: boolean; etag?: string }>;
   delete(key: string): Promise<void>;
   list(options: { prefix: string; paginate: true }): AsyncIterable<{ blobs: { key: string }[] }>;
 }
