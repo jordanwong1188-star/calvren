@@ -6,7 +6,7 @@ on:
       - 'public/**'
       - 'netlify/**'
       - 'netlify.toml'
-      - 'tests/site-check.mjs'
+      - 'tests/**'
       - '.github/workflows/site-check.yml'
 permissions:
   contents: read

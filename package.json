@@ -4,16 +4,16 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "dev": "netlify dev",
     "build": "npm run check",
-    "check": "tsc --noEmit && node --check public/app.js && node --check public/admin.js && node --check public/shared.js && node --check tests/site-check.mjs && node --test tests/demo.test.mjs"
+    "check": "tsc --noEmit && node --check public/app.js && node --check public/admin.js && node --check public/shared.js && node --check tests/site-check.mjs && node --check tests/admin-browser-check.mjs && node --test tests/demo.test.mjs tests/workflow.test.mjs"
   },
   "dependencies": {
-    "@netlify/blobs": "^9.1.0",
-    "@netlify/functions": "^4.2.6"
+    "@netlify/blobs": "^11.1.3",
+    "@netlify/functions": "^6.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

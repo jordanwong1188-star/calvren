@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import {mkdir,readFile} from "node:fs/promises";
 import {setTimeout as delay} from "node:timers/promises";
 import {chromium} from "playwright";
+import {checkOwnerWorkspace} from "./admin-browser-check.mjs";
 
 const site="https://calvren.netlify.app";
-const version="customer-proof-v3";
+const version="operations-v1";
 const normalisePath=path=>path.endsWith(".html")?path.slice(0,-5):path.endsWith("/")?path.slice(0,-1):path;
 await mkdir("artifacts",{recursive:true});
 const browser=await chromium.launch();
@@ -29,7 +30,7 @@ try{
   // GitHub and Netlify start independently. Check the new deployment, not the previous live site.
   let ready=false;
   for(let attempt=0;attempt<32;attempt++){
-    const responses=await Promise.all(["/","/contact.html","/case-studies.html"].map(path=>context.request.get(site+path)));
+    const responses=await Promise.all(["/","/contact.html","/case-studies.html","/admin.html"].map(path=>context.request.get(site+path)));
     const html=await Promise.all(responses.map(response=>response.text()));
     if(responses.every(response=>response.status()===200)&&html.every(body=>body.includes('name="calvren-version" content="'+version+'"'))){ready=true;break;}
     await delay(15000);
@@ -201,7 +202,7 @@ try{
   }
   const missing=await context.request.get(site+"/this-page-does-not-exist");
   assert.equal(missing.status(),404);
-  for(const [path,method] of [["/api/leads","GET"],["/api/workflow","POST"]]){
+  for(const [path,method] of [["/api/status","GET"],["/api/leads","GET"],["/api/workflow","POST"]]){
     const api=await context.request.fetch(site+path,{method,...(method==="POST"?{data:{}}:{})});
     assert.ok([401,503].includes(api.status()),path+" must require configuration/authentication");
     const json=await api.json();
@@ -209,12 +210,16 @@ try{
     assert.ok(!("leads" in json)&&!("lead" in json));
     console.log("CALVREN_API_CHECK "+path+" "+api.status());
   }
+  const eventProbe=await context.request.post(site+"/.netlify/functions/submission-created",{data:{payload:{id:"qa-auth-boundary-check",form_name:"not-a-lead",data:{}}}});
+  assert.ok([401,403,404].includes(eventProbe.status()),"Native form event must reject external HTTP invocation; received "+eventProbe.status());
+  console.log("CALVREN_EVENT_BOUNDARY_CHECK "+eventProbe.status());
   await visit("/admin.html");
   assert.equal(await page.locator("#workspace").isVisible(),false);
   await page.locator("#admin-token").fill("x".repeat(64));
   await page.locator('#auth-form button[type="submit"]').click();
   await page.waitForFunction(()=>!/Connecting/.test(document.getElementById("auth-status").textContent));
   assert.equal(await page.locator("#workspace").isVisible(),false);
+  await checkOwnerWorkspace({page,site,screenshot});
   assert.deepEqual(errors,[]);
-  console.log("CALVREN_LIVE_CHECKS_PASSED: three public pages at four screen widths; demo scenarios, clipboard and download; navigation and keyboard focus; workflow prefills and study filters; three mocked form success/failure paths with no duplicate requests; consent controls; reduced motion and no-JavaScript navigation; page assets, 404 and protected APIs.");
+  console.log("CALVREN_LIVE_CHECKS_PASSED: three public pages at four screen widths; demo scenarios, clipboard and download; navigation and keyboard focus; workflow prefills and study filters; three mocked form success/failure paths with no duplicate requests; consent controls; reduced motion and no-JavaScript navigation; page assets, 404 and protected APIs; private workspace readiness, search/filter, save-before-draft warnings, retry/review, email handoff, export/delete and disconnect.");
 }finally{await browser.close();}
