@@ -4,7 +4,8 @@ import {setTimeout as delay} from "node:timers/promises";
 import {chromium} from "playwright";
 
 const site="https://calvren.netlify.app";
-const version="customer-proof-v2";
+const version="customer-proof-v3";
+const normalisePath=path=>path.endsWith(".html")?path.slice(0,-5):path.endsWith("/")?path.slice(0,-1):path;
 await mkdir("artifacts",{recursive:true});
 const browser=await chromium.launch();
 const context=await browser.newContext({viewport:{width:1440,height:1000},permissions:["clipboard-read","clipboard-write"],acceptDownloads:true});
@@ -101,11 +102,19 @@ try{
   await page.setViewportSize({width:375,height:1000});
   await visit();
   await page.locator(".menu-toggle").click();
-  await page.locator('#site-navigation a[href="/contact.html"]').click();
-  await page.waitForURL(site+"/contact.html");
+  const contactLink=page.locator("#site-navigation").getByRole("link",{name:"Contact",exact:true});
+  console.log("CALVREN_CONTACT_NAV_HREF "+await contactLink.getAttribute("href"));
+  await contactLink.click();
+  await page.waitForURL(url=>normalisePath(url.pathname)==="/contact");
   assert.equal(await page.locator(".menu-toggle").getAttribute("aria-expanded"),"false");
   assert.equal(await page.locator('#site-navigation a[aria-current="page"]').textContent(),"Contact");
 
+  await visit("/case-studies.html");
+  await page.getByRole("link",{name:/Explore the studies/}).click();
+  await page.waitForFunction(()=>{
+    const target=document.getElementById("workflow-studies").getBoundingClientRect();
+    return target.top>=document.querySelector(".header").getBoundingClientRect().bottom&&target.top<150;
+  });
   await page.setViewportSize({width:1440,height:1000});
   await visit("/contact.html");
   await screenshot("CONTACT");
@@ -162,7 +171,7 @@ try{
     assert.match(await form.locator("[data-form-error]").textContent(),/Jordan.wong1177@gmail.com/);
     postStatus=200;
     await form.locator('button[type="submit"]').click();
-    await page.waitForURL(site+config.action);
+    await page.waitForURL(url=>normalisePath(url.pathname)===normalisePath(config.action));
     assert.equal(postCount,2);
     const values=new URLSearchParams(lastBody);
     assert.equal(values.get("form-name"),config.formName);
