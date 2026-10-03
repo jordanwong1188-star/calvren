@@ -32,7 +32,7 @@ async function databaseTransport(input,options={}){
     const filter=url.searchParams.get("id");
     assert.ok(!filter||filter.startsWith("eq."));
     const where=filter?" WHERE id="+quote(filter.slice(3)):"";
-    return Response.json(await sql("SELECT coalesce(jsonb_agg(q.config),'[]'::jsonb) FROM (SELECT config FROM public.calvren_clients"+where+" ORDER BY id LIMIT 200) q;"));
+    return Response.json(await sql("SELECT coalesce(jsonb_agg(jsonb_build_object('config',q.config)),'[]'::jsonb) FROM (SELECT config FROM public.calvren_clients"+where+" ORDER BY id LIMIT 200) q;"));
   }catch(error){
     console.error("CALVREN_DATABASE_ENGINE_QUERY_FAILED:",error.stderr||error.message);
     return Response.json({code:"22023"},{status:409});
