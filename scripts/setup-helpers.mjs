@@ -187,6 +187,7 @@ export async function syncNetlifyEnvironment(env, token, fetchImpl = fetch) {
     if (key === "CALVREN_AUTOMATION_MODE") {
       // Setup never activates live delivery and does not disable an existing live service.
       if (currentMode === "live") { result.skipped.push(key); continue; }
+      if (typeof value !== "string" || !value.trim()) continue;
       value = "demo";
     }
     if (key === "CALVREN_PUBLIC_URL") {
