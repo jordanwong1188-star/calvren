@@ -10,6 +10,7 @@ let leads = [];
 let selected = null;
 let editorClientId = "";
 let readiness = null;
+let keyRotationPending = false;
 const controllers = new Set();
 
 function element(tag, text, className) {
@@ -311,10 +312,13 @@ $("operator-client-form").addEventListener("submit", event => {
   });
 });
 $("operator-key-rotate").addEventListener("click", () => {
+  if (keyRotationPending) return;
   if (!editorClientId || !$("operator-key-confirm").checked) {
     status("operator-key-status", "Select a saved client and acknowledge that its previous key will be replaced.", true);
     return;
   }
+  keyRotationPending = true;
+  $("operator-key-rotate").disabled = true;
   action("operator-key-status", async () => {
     const keyClientId = editorClientId;
     const data = await request(`/clients/${encodeURIComponent(keyClientId)}/key`, {method:"POST",body:{}});
@@ -323,6 +327,9 @@ $("operator-key-rotate").addEventListener("click", () => {
     $("operator-key-box").hidden = false;
     $("operator-key-confirm").checked = false;
     status("operator-key-status", "New key generated. Copy it to the client's server, then clear it from this page.");
+  }).finally(() => {
+    keyRotationPending = false;
+    $("operator-key-rotate").disabled = false;
   });
 });
 $("operator-key-hide").addEventListener("click", clearKey);

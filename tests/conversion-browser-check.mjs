@@ -129,6 +129,10 @@ export async function checkConversionOperator(page, url = baseUrl) {
   let client = newDemoClient();
   let bundle = makeBundle(client);
   let rejectAccess = false;
+  let keyRequestCount = 0;
+  let releaseKeyResponse;
+  let resolveKeySeen;
+  const keySeen = new Promise(resolve => { resolveKeySeen = resolve; });
   page.on("pageerror", error => failures.push(error.message));
   await page.route("**/api/conversion/**", async route => {
     const request = route.request();
@@ -146,7 +150,11 @@ export async function checkConversionOperator(page, url = baseUrl) {
     } else if (path === "/clients" && method === "GET") data = {ok:true,clients:[client]};
     else if (path === "/clients" && method === "POST") {client = request.postDataJSON();data = {ok:true,client};}
     else if (path === "/clients/" + client.id && method === "PUT") {client = request.postDataJSON();data = {ok:true,client};}
-    else if (path === "/clients/" + client.id + "/key") data = {ok:true,key:"fixture-intake-key-show-once-only",client_id:client.id};
+    else if (path === "/clients/" + client.id + "/key") {
+      keyRequestCount++;
+      await new Promise(resolve => { releaseKeyResponse = resolve; resolveKeySeen(); });
+      data = {ok:true,key:"fixture-intake-key-show-once-only",client_id:client.id};
+    }
     else if (path === "/leads" && method === "GET") data = {ok:true,leads:[bundle]};
     else if (path === "/leads/" + bundle.lead.id && method === "GET") data = {ok:true,bundle};
     else if (path === "/leads/" + bundle.lead.id + "/handoff") {
@@ -197,8 +205,14 @@ export async function checkConversionOperator(page, url = baseUrl) {
   await page.locator("#operator-key-controls").evaluate(node => node.open = true);
   await page.locator("#operator-key-confirm").check();
   await page.locator("#operator-key-rotate").click();
+  await keySeen;
+  assert.equal(await page.locator("#operator-key-rotate").isEnabled(), false);
+  await page.locator("#operator-key-rotate").evaluate(button => button.dispatchEvent(new MouseEvent("click", {bubbles:true})));
+  assert.equal(keyRequestCount, 1, "A repeated key-rotation click cannot invalidate the key that is still being returned.");
+  releaseKeyResponse();
   await page.locator("#operator-key-box").waitFor({state:"visible"});
   assert.equal(await page.locator("#operator-key-value").innerText(), "fixture-intake-key-show-once-only");
+  assert.equal(await page.locator("#operator-key-rotate").isEnabled(), true);
   await page.locator("#operator-key-hide").click();
   assert.equal(await page.locator("#operator-key-value").innerText(), "");
   await assertNoOverflow(page,320);
