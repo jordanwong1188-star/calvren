@@ -331,12 +331,20 @@ test("availability applies local business hours, provider busy time and appointm
 });
 test("availability respects DST and never offers nonexistent wall-clock times", async () => {
   const f = calendarFixture(), service = createGoogleCalendarService(f.options);
-  const special = { ...client, business_hours: { "0": { open: "01:00", close: "04:00" } },
+  // Use a timezone with an actual spring gap in current tzdata. British Columbia
+  // changed its DST policy in 2026, so Vancouver is not a reliable future-gap fixture.
+  const special = { ...client, timezone: "America/New_York",
+    business_hours: { "0": { open: "01:00", close: "04:00" } },
     calendar: { ...client.calendar, horizon_days: 1, buffer_minutes: 0 } };
-  const slots = await service.available({ client: special, lead, now: "2027-03-14T08:00:00.000Z" });
-  assert.ok(slots.some(slot => /3:00/.test(slot.label)));
-  assert.ok(slots.every(slot => !/\s2:/.test(slot.label)));
+  const slots = await service.available({ client: special, lead, now: "2027-03-14T05:00:00.000Z" });
+  const clock = new Intl.DateTimeFormat("en-US", { timeZone: special.timezone,
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const hours = slots.map(slot => Number(clock.formatToParts(new Date(slot.start))
+    .find(part => part.type === "hour").value));
+  assert.ok(hours.includes(1) && hours.includes(3));
+  assert.ok(hours.every(hour => hour !== 2));
   assert.ok(slots.every(slot => Date.parse(slot.end) - Date.parse(slot.start) === 30 * 60_000));
+  assert.ok(slots.every(slot => slot.start.startsWith("2027-03-14")));
 });
 test("calendar permission errors fail closed instead of returning apparently free time", async () => {
   const f = fixture((url) => url.includes("oauth2") ? json({ access_token: "token", expires_in: 3600 })
