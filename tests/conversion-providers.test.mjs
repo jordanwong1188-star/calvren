@@ -14,6 +14,8 @@ function compile(source) {
 }
 const contracts = compile(await readFile(new URL("../src/conversion/contracts.mts", import.meta.url), "utf8"));
 const contractsUrl = "data:text/javascript;base64," + Buffer.from(contracts).toString("base64");
+const demoSource = await readFile(new URL("../src/conversion/demo-config.mts", import.meta.url), "utf8");
+const { newDemoClient } = await import("data:text/javascript;base64," + Buffer.from(compile(demoSource)).toString("base64"));
 const providerSource = await readFile(new URL("../netlify/lib/conversion-providers.mts", import.meta.url), "utf8");
 const providerCode = compile(providerSource).replace('"../../src/conversion/contracts.mjs"', JSON.stringify(contractsUrl));
 const {
@@ -29,7 +31,7 @@ const client = {
   id: "abc-plumbing", business_name: "ABC Plumbing", industry: "Plumbing",
   description: "Local plumbing services.", services: ["Leak repair", "Drain cleaning"],
   phone_number: "+16045550100", email: "business@example.com", timezone: "America/Vancouver",
-  business_hours: Object.fromEntries(["monday", "tuesday", "wednesday", "thursday", "friday"]
+  business_hours: Object.fromEntries(["1", "2", "3", "4", "5"]
     .map(day => [day, { open: "09:00", close: "17:00" }])),
   ai_tone: "Friendly and concise", system_prompt: "Help our plumbing customers.",
   qualifying_questions: [
@@ -329,7 +331,7 @@ test("availability applies local business hours, provider busy time and appointm
 });
 test("availability respects DST and never offers nonexistent wall-clock times", async () => {
   const f = calendarFixture(), service = createGoogleCalendarService(f.options);
-  const special = { ...client, business_hours: { sunday: { open: "01:00", close: "04:00" } },
+  const special = { ...client, business_hours: { "0": { open: "01:00", close: "04:00" } },
     calendar: { ...client.calendar, horizon_days: 1, buffer_minutes: 0 } };
   const slots = await service.available({ client: special, lead, now: "2027-03-14T08:00:00.000Z" });
   assert.ok(slots.some(slot => /3:00/.test(slot.label)));
@@ -431,4 +433,30 @@ test("Twilio status signature binds the message ID query and rejects extra or du
       body: new URLSearchParams(fields).toString() });
     await assert.rejects(validateTwilioWebhook({ request: req, env: f.options.env, path }), errorCode(code));
   }
+});
+
+test("live Google adapter uses canonical numeric hours from the shared demo client", async () => {
+  const shared = newDemoClient({ id: client.id, mode: "live",
+    calendar: { ...client.calendar, horizon_days: 60 } });
+  const f = calendarFixture();
+  const slots = await createGoogleCalendarService(f.options).available({ client: shared, lead, now: NOW });
+  assert.ok(slots.length > 0);
+  assert.equal(slots[0].start, "2026-10-05T15:30:00.000Z"); // Shared hours start 8 AM; 30-minute duration, next slot.
+  assert.ok(slots.every(slot => Date.parse(slot.start) > Date.parse(NOW)));
+});
+test("AI schema accepts shared safe uppercase/dash/numeric question IDs and rejects oversized answers", async () => {
+  const shared = newDemoClient({ id: client.id, mode: "live",
+    qualifying_questions: [{ id: "Service-1", prompt: "Which service?", required: true }],
+    calendar: { ...client.calendar } });
+  const good = { ...defaultAction, answers: { "Service-1": "Leak repair" } };
+  const f = fixture(() => json(aiPayload(good)));
+  const result = await createOpenAIService(f.options).analyze({ client: shared, bundle: bundle(), reason: "inbound" });
+  assert.equal(result.answers["Service-1"], "Leak repair");
+  const oversized = fixture(() => json(aiPayload({ ...good, answers: { "Service-1": "x".repeat(501) } })));
+  await assert.rejects(createOpenAIService(oversized.options).analyze({ client: shared, bundle: bundle(), reason: "inbound" }),
+    errorCode("AI_INVALID_RESPONSE"));
+});
+test("per-client SMS sender makes the global fallback number optional", () => {
+  const f = fixture(); delete f.values.TWILIO_PHONE_NUMBER;
+  assert.doesNotThrow(() => createLiveProviders(f.options));
 });

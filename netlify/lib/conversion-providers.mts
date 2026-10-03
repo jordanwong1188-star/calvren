@@ -92,8 +92,9 @@ async function request(
 function responseSchema(client: ClientConfig): JsonRecord {
   const properties: JsonRecord = {};
   for (const question of client.qualifying_questions) {
-    if (!/^[a-z][a-z0-9_]{0,63}$/.test(question.id) || Object.hasOwn(properties, question.id))
-      failure("CONFIGURATION_INVALID", "Qualifying question IDs must be unique lowercase identifiers.", 503);
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(question.id) ||
+      ["constructor", "prototype", "__proto__"].includes(question.id) || Object.hasOwn(properties, question.id))
+      failure("CONFIGURATION_INVALID", "Qualifying question IDs must be unique safe identifiers.", 503);
     properties[question.id] = { type: "string" };
   }
   return {
@@ -128,7 +129,7 @@ function parseAction(value: unknown, client: ClientConfig, lead: Lead): AIResult
   const answers: Record<string, string> = {};
   for (const question of client.qualifying_questions) {
     const answer = parsed.answers[question.id];
-    if (!safeText(answer, 1000, 0)) failure("AI_INVALID_RESPONSE", "The AI returned an invalid answer.");
+    if (!safeText(answer, 500, 0)) failure("AI_INVALID_RESPONSE", "The AI returned an invalid answer.");
     if (answer.trim()) answers[question.id] = answer.trim();
   }
   if (parsed.selected_slot_id !== null && !lead.offered_slots.some(slot => slot.id === parsed.selected_slot_id))
@@ -336,11 +337,11 @@ interface Busy { start: number; end: number; }
 function calendarConfig(client: ClientConfig): void {
   if (!client.booking_enabled || client.calendar.provider !== "google" ||
     !safeText(client.calendar.calendar_id, 300) || client.calendar.calendar_id === "primary" ||
-    !Number.isInteger(client.calendar.duration_minutes) || client.calendar.duration_minutes < 5 ||
+    !Number.isInteger(client.calendar.duration_minutes) || client.calendar.duration_minutes < 15 ||
     client.calendar.duration_minutes > 240 || !Number.isInteger(client.calendar.horizon_days) ||
-    client.calendar.horizon_days < 1 || client.calendar.horizon_days > 30 ||
+    client.calendar.horizon_days < 1 || client.calendar.horizon_days > 60 ||
     !Number.isInteger(client.calendar.buffer_minutes) || client.calendar.buffer_minutes < 0 ||
-    client.calendar.buffer_minutes > 180)
+    client.calendar.buffer_minutes > 120)
     failure("CALENDAR_NOT_CONFIGURED", "Configure a shared Google calendar and valid booking rules.", 503);
   try { new Intl.DateTimeFormat("en-US", { timeZone: client.timezone }).format(); }
   catch { failure("CONFIGURATION_INVALID", "The business timezone is invalid.", 503); }
@@ -374,7 +375,9 @@ const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "frida
 function hoursFor(client: ClientConfig, weekday: string): { open: number; close: number } | null {
   const aliases: Record<string, string> = { sunday: "sun", monday: "mon", tuesday: "tue", wednesday: "wed",
     thursday: "thu", friday: "fri", saturday: "sat" };
-  const hours = client.business_hours[weekday] ?? client.business_hours[aliases[weekday]] ?? null;
+  const canonicalDay = String(weekdays.indexOf(weekday));
+  const hours = client.business_hours[canonicalDay] ?? client.business_hours[weekday] ??
+    client.business_hours[aliases[weekday]] ?? null;
   if (hours === null) return null;
   const open = clock(hours.open), close = clock(hours.close);
   if (close <= open) failure("CONFIGURATION_INVALID", "Business hours must close later on the same day.", 503);
@@ -575,7 +578,7 @@ export function createResendNotificationService(options: ProviderOptions): Notif
 export function createLiveProviders(options: ProviderOptions): {
   ai: AIService; messaging: MessagingService; calendar: CalendarService; notifications: NotificationService;
 } {
-  const required = ["OPENAI_API_KEY", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_PHONE_NUMBER",
+  const required = ["OPENAI_API_KEY", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN",
     "GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY", "RESEND_API_KEY",
     "NOTIFICATION_FROM_EMAIL", "CALVREN_PUBLIC_URL"];
   const missing = required.filter(name => !options.env(name)?.trim());
