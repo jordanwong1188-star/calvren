@@ -1,5 +1,11 @@
 # Calvren
 
+Calvren now includes a reusable Lead Conversion MVP alongside the existing marketing site. Read [the setup, demo and customer onboarding guide](docs/lead-conversion-mvp.md).
+
+- Full conversation demo: `/lead-demo.html` (credential-free simulation)
+- Client/lead operator workspace: `/operator.html` (protected; Supabase required for persistence)
+
+
 A live B2B AI automation website and single-owner enquiry workspace for Jordan Wong.
 
 - Website: https://calvren.netlify.app

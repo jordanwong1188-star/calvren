@@ -15,6 +15,7 @@
     ]
   },
   "include": [
-    "netlify/functions/**/*.mts"
+    "netlify/**/*.mts",
+    "src/conversion/**/*.mts"
   ]
 }

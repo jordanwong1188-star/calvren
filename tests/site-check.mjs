@@ -4,8 +4,9 @@ import {setTimeout as delay} from "node:timers/promises";
 import {chromium} from "playwright";
 import {checkOwnerWorkspace} from "./admin-browser-check.mjs";
 
-const site="https://calvren.netlify.app";
-const version="operations-v1";
+const site=process.env.CALVREN_TEST_SITE || "https://calvren.netlify.app";
+const sourcePreview=Boolean(process.env.CALVREN_TEST_SITE);
+const version="conversion-v1";
 const normalisePath=path=>path.endsWith(".html")?path.slice(0,-5):path.endsWith("/")?path.slice(0,-1):path;
 await mkdir("artifacts",{recursive:true});
 const browser=await chromium.launch();
@@ -29,11 +30,11 @@ async function noOverflow(label,width){
 try{
   // GitHub and Netlify start independently. Check the new deployment, not the previous live site.
   let ready=false;
-  for(let attempt=0;attempt<32;attempt++){
+  for(let attempt=0;attempt<(sourcePreview?1:32);attempt++){
     const responses=await Promise.all(["/","/contact.html","/case-studies.html","/admin.html"].map(path=>context.request.get(site+path)));
     const html=await Promise.all(responses.map(response=>response.text()));
     if(responses.every(response=>response.status()===200)&&html.every(body=>body.includes('name="calvren-version" content="'+version+'"'))){ready=true;break;}
-    await delay(15000);
+    if(!sourcePreview)await delay(15000);
   }
   assert.ok(ready,"New Netlify deployment was not published within eight minutes.");
   await visit();
@@ -202,6 +203,7 @@ try{
   }
   const missing=await context.request.get(site+"/this-page-does-not-exist");
   assert.equal(missing.status(),404);
+  if(!sourcePreview){
   for(const [path,method] of [["/api/status","GET"],["/api/leads","GET"],["/api/workflow","POST"]]){
     const api=await context.request.fetch(site+path,{method,...(method==="POST"?{data:{}}:{})});
     assert.ok([401,503].includes(api.status()),path+" must require configuration/authentication");
@@ -219,7 +221,8 @@ try{
   await page.locator('#auth-form button[type="submit"]').click();
   await page.waitForFunction(()=>!/Connecting/.test(document.getElementById("auth-status").textContent));
   assert.equal(await page.locator("#workspace").isVisible(),false);
+  }
   await checkOwnerWorkspace({page,site,screenshot});
   assert.deepEqual(errors,[]);
-  console.log("CALVREN_LIVE_CHECKS_PASSED: three public pages at four screen widths; demo scenarios, clipboard and download; navigation and keyboard focus; workflow prefills and study filters; three mocked form success/failure paths with no duplicate requests; consent controls; reduced motion and no-JavaScript navigation; page assets, 404 and protected APIs; private workspace readiness, search/filter, save-before-draft warnings, retry/review, email handoff, export/delete and disconnect.");
+  console.log(sourcePreview ? "CALVREN_SOURCE_CHECKS_PASSED: existing marketing pages, forms, examples and protected inbox checked against current source." : "CALVREN_LIVE_CHECKS_PASSED: existing marketing pages, forms, examples and protected inbox checked on the published site.");
 }finally{await browser.close();}

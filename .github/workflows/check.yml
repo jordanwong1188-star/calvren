@@ -13,6 +13,61 @@ jobs:
         with:
           node-version: "22"
       - run: npm install
-      - run: npm run check
+      - run: npm run build
       - name: Bundle the Netlify functions offline
         run: node tests/bundle-check.mjs
+  source-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - run: node scripts/build-demo.mjs
+      - run: npx playwright install --with-deps chromium
+      - name: Start current source preview
+        run: python3 -m http.server 8080 --directory public > /tmp/calvren-mvp-preview.log 2>&1 &
+      - name: Check existing marketing pages and private inbox
+        run: node tests/site-check.mjs
+        env:
+          CALVREN_TEST_SITE: http://127.0.0.1:8080
+      - name: Check lead conversion demo and operator workspace
+        run: node tests/conversion-browser-check.mjs
+      - name: Save browser review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calvren-source-browser-${{ github.run_id }}
+          path: artifacts/
+          retention-days: 7
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: calvren_test
+          POSTGRES_PASSWORD: calvren-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d calvren_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: calvren-ci-only
+      PGDATABASE: calvren_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create disposable API roles
+        run: psql -v ON_ERROR_STOP=1 -f tests/database-bootstrap.sql
+      - name: Apply the Calvren migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610030001_calvren_conversion.sql
+      - name: Check transactional storage and security
+        run: psql -v ON_ERROR_STOP=1 -f tests/conversion-database.sql
