@@ -73,12 +73,12 @@ function render() {
   $("demo-reset").disabled = busy;
   $("demo-slots").replaceChildren();
   if (lead?.automation_active && lead.appointment_status === "offered") {
-    for (const slot of lead.offered_slots) {
+    for (const [index, slot] of lead.offered_slots.entries()) {
       const button = element("button", slot.label);
       button.type = "button";
       button.dataset.slotId = slot.id;
       button.disabled = busy;
-      button.addEventListener("click", () => reply(slot.id));
+      button.addEventListener("click", () => reply(String(index + 1)));
       $("demo-slots").append(button);
     }
   }

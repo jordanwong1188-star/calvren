@@ -231,10 +231,10 @@ function renderDetail() {
   $("operator-reply").hidden = lead.mode !== "demo";
   $("operator-slots").replaceChildren();
   if (lead.mode === "demo" && lead.automation_active && lead.appointment_status === "offered") {
-    for (const slot of lead.offered_slots) {
+    for (const [index, slot] of lead.offered_slots.entries()) {
       const button = element("button", slot.label);
       button.type = "button";
-      button.addEventListener("click", () => reply(slot.id));
+      button.addEventListener("click", () => reply(String(index + 1)));
       $("operator-slots").append(button);
     }
   }
