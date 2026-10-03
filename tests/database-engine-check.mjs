@@ -93,6 +93,6 @@ try{
   assert.equal(bundle.notifications.find(n=>n.event==="needs_human")?.status,"sent");
   console.log("CALVREN_DATABASE_ENGINE_PASSED: actual shared engine and Supabase adapter payloads through real PostgreSQL RPCs; intake, replay, qualification, booking, notifications, immutable history, terminal replies and STOP.");
 }finally{
-  if(clientId)await execute("psql",["-X","-q","-v","ON_ERROR_STOP=1","-c","DELETE FROM public.calvren_clients WHERE id="+quote(clientId)+";"]).catch(()=>{});
+  // The disposable CI database is destroyed by Actions; production retention rules are not changed here.
   await rm(temporary,{recursive:true,force:true});
 }
