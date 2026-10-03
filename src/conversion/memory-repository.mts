@@ -49,7 +49,7 @@ export class MemoryRepository implements Repository {
     bundle.messages.push(copy(message)); bundle.lead.version++;
     bundle.lead.last_inbound_at = message.timestamp; bundle.lead.updated_at = message.timestamp;
     bundle.lead.next_follow_up_at = null; bundle.lead.follow_up_attempts = 0;
-    if (bundle.lead.automation_active && bundle.lead.status !== "booked") bundle.lead.status = "responding";
+    if (bundle.lead.automation_active && !["booked", "won", "lost", "needs_human"].includes(bundle.lead.status)) bundle.lead.status = "responding";
     return { created: true, bundle: copy(bundle) };
   }
   async acquireLease(clientId: string, leadId: string, now: string, ttlSeconds: number): Promise<Lease | null> {
@@ -99,6 +99,7 @@ export class MemoryRepository implements Repository {
   }
   async resumeLead(clientId: string, leadId: string, now: string): Promise<LeadBundle | null> {
     const leadKey = key(clientId, leadId); const bundle = this.bundles.get(leadKey); if (!bundle) return null;
+    if (["won", "lost"].includes(bundle.lead.status)) throw new ConversionError("terminal_lead", "Closed leads cannot be resumed. Start a new intake.", 409);
     if (bundle.lead.opted_out || (bundle.lead.channel === "sms" && !bundle.lead.consent_sms)) throw new ConversionError("consent_required", "An opted-out lead cannot be resumed. Obtain fresh consent in a new intake.", 409);
     if (bundle.messages.some(m => m.status === "pending" || m.status === "unknown") || bundle.appointments.some(a => a.status === "pending")) throw new ConversionError("reconcile_required", "Reconcile uncertain messages and appointments before resuming.", 409);
     this.leases.delete(leadKey); bundle.lead.version++; bundle.lead.updated_at = now;

@@ -484,3 +484,57 @@ test("live configuration requires a dedicated SMS number and a notification emai
   assert.throws(() => validateClient({ ...live, phone_number: "" }), /dedicated international/);
   assert.throws(() => validateClient({ ...live, notification_email: "" }), /notification email/);
 });
+
+
+test("booked lead replying thanks remains booked with one appointment and no new offers", async () => {
+  const f = fixture();
+  let bundle = await qualify(f);
+  bundle = await f.reply(bundle, "1");
+  bundle = await f.reply(bundle, "Thank you!");
+  assert.equal(bundle.lead.status, "booked");
+  assert.equal(bundle.lead.appointment_status, "booked");
+  assert.equal(bundle.appointments.length, 1);
+  assert.equal(f.calls.bookings.length, 1);
+  assert.equal(bundle.lead.next_follow_up_at, null);
+  assert.match(bundle.messages.at(-1).message, /already|recorded/);
+});
+test("an AI attempt to reoffer booking after booking cannot create another appointment", async () => {
+  const f = fixture();
+  let bundle = await qualify(f);
+  bundle = await f.reply(bundle, "1");
+  f.services.ai.analyze = async () => ({
+    message: "Choose a new time", intent: "offer_booking", lead_status: "booking", qualified: true,
+    ready_to_book: true, needs_human: false, answers: bundle.lead.answers, selected_slot_id: null, handoff_reason: null
+  });
+  bundle = await f.reply(bundle, "Thanks");
+  assert.equal(bundle.lead.status, "booked");
+  assert.equal(bundle.appointments.length, 1);
+  assert.equal(f.calls.bookings.length, 1);
+  assert.match(bundle.messages.at(-1).message, /already recorded/);
+});
+test("rescheduling a booked appointment hands off without creating or changing events", async () => {
+  const f = fixture();
+  let bundle = await qualify(f);
+  bundle = await f.reply(bundle, "1");
+  const original = bundle.appointments[0];
+  bundle = await f.reply(bundle, "Can I reschedule?");
+  assert.equal(bundle.lead.status, "needs_human");
+  assert.equal(bundle.lead.appointment_status, "booked");
+  assert.deepEqual(bundle.appointments[0], original);
+  assert.equal(f.calls.bookings.length, 1);
+});
+test("won or lost leads retain terminal state and cannot be automatically resumed", async () => {
+  for (const status of ["won", "lost"]) {
+    const f = fixture();
+    const bundle = await f.engine.intake(f.input());
+    const lease = await f.repository.acquireLease(f.client.id, bundle.lead.id, f.now(), 180);
+    lease.bundle.lead.status = status; lease.bundle.lead.automation_active = false;
+    await f.repository.saveBundle(lease.bundle, lease.token, f.now());
+    await f.repository.releaseLease(f.client.id, bundle.lead.id, lease.token);
+    const sent = f.calls.sms.length;
+    const result = await f.reply(bundle, "Hello again");
+    assert.equal(result.lead.status, status);
+    assert.equal(f.calls.sms.length, sent);
+    await assert.rejects(f.engine.resume(f.client.id, bundle.lead.id), /Closed leads/);
+  }
+});

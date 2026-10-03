@@ -222,6 +222,7 @@ export class ConversionEngine {
     const work: Work = { bundle: lease.bundle, token: lease.token, client };
     try {
       await this.valid(work);
+      if (["won", "lost"].includes(work.bundle.lead.status)) return "skipped";
       if (work.bundle.messages.some(m => m.status === "pending" || m.status === "unknown") ||
         work.bundle.appointments.some(a => a.status === "pending")) throw new ConversionError("reconcile_required", "A previous provider operation is uncertain; human review is required.", 409);
       const latestInbound = work.bundle.messages.filter(m => m.sender === "lead").at(-1)!;
@@ -271,6 +272,15 @@ export class ConversionEngine {
         work.bundle.lead.follow_up_attempts++;
         await this.save(work);
         await this.deliver(work, result.message, responseKey); return "processed";
+      }
+      if (work.bundle.lead.appointment_status === "booked") {
+        work.bundle.lead.status = "booked"; work.bundle.lead.next_follow_up_at = null;
+        await this.save(work);
+        const existing = work.bundle.appointments.find(a => a.status === "booked");
+        const text = result.intent === "book" || result.intent === "offer_booking" || result.ready_to_book
+          ? "Your appointment is already recorded" + (existing ? " for " + existing.slot.label : "") + ". Ask for a person if you need to change it."
+          : result.message;
+        await this.deliver(work, text, responseKey); return "processed";
       }
       const slot = allRequired && client.booking_enabled ? this.chosenSlot(work.bundle, result) : null;
       if (result.intent === "book" && !slot) throw new ConversionError("invalid_slot_choice", "The customer must explicitly choose a stored appointment option.", 409);

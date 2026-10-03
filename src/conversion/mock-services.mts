@@ -67,9 +67,17 @@ export class DemoAIService implements AIService {
     }
     const missing = client.qualifying_questions.find(q => q.required && !answers[q.id]);
     if (missing) return result((inbound.length === 1 ? "Thanks for contacting " + client.business_name + ". " : "Thanks. ") + missing.prompt);
-    if (bundle.lead.appointment_status === "booked") return result("Your appointment is already recorded. A person can help with any change.", {
-      intent: "handoff", needs_human: true, qualified: true, handoff_reason: "The customer requested help after booking."
-    });
+    if (bundle.lead.appointment_status === "booked") {
+      if (/\b(?:cancel|change|reschedul\w*|different|another appointment|move.*appointment)\b/i.test(latest)) {
+        return result("A person can help change your existing appointment.", {
+          intent: "handoff", needs_human: true, qualified: true, handoff_reason: "The customer requested a booking change."
+        });
+      }
+      const appointment = bundle.appointments.find(a => a.status === "booked");
+      return result("You're welcome. Your simulated appointment is recorded" + (appointment ? " for " + appointment.slot.label : "") + ". Ask for a person if you need to change it.", {
+        intent: "answer", lead_status: "booked", qualified: true, ready_to_book: false
+      });
+    }
     const selected = demoSelectedSlot(bundle, latest);
     if (selected) return result("I'll request the appointment you selected.", {
       intent: "book", lead_status: "booking", qualified: true, ready_to_book: true, selected_slot_id: selected
