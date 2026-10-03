@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
 import {
-  SITE_ID, PUBLIC_URL, SetupError, serializeEnv, writePrivateEnv, googleAccountFromFile,
+  SITE_ID, PUBLIC_URL, SetupError, ownedPublicURL, serializeEnv, writePrivateEnv, googleAccountFromFile,
   netlifyURL, createNetlifyRequest, envMutation, syncNetlifyEnvironment,
   checkSupabaseSchema, supabaseProjectURL, setupDefaults, generateAdminToken
 } from "../scripts/setup-helpers.mjs";
@@ -130,4 +130,19 @@ test("Supabase keys are restricted to the canonical project host and schema chec
     return json([]);
   });
   assert.equal(result.ready, true); assert.equal(calls, 1);
+});
+
+test("existing owned public URL is preserved and arbitrary origins are rejected", () => {
+  const site = { custom_domain: "calvren.example", domain_aliases: ["www.calvren.example"] };
+  assert.equal(ownedPublicURL("https://calvren.example", site), true);
+  assert.equal(ownedPublicURL(PUBLIC_URL, site), true);
+  assert.equal(ownedPublicURL("https://attacker.example", site), false);
+  assert.equal(ownedPublicURL("https://calvren.example/path", site), false);
+  assert.equal(ownedPublicURL("https://owner:secret@calvren.example", site), false);
+});
+test("secret conversion never corrupts a readable inherited all-context value", () => {
+  const old = { is_secret: false, scopes: ["functions","builds"], values: [{ context: "all", value: "KEEP_DEFAULT" }] };
+  const mutation = envMutation(old, "OPENAI_API_KEY", "NEW_PRIVATE");
+  assert.equal(mutation.method, "PATCH"); assert.equal(mutation.metadataPreserved, true);
+  assert.deepEqual(mutation.body, { context: "production", value: "NEW_PRIVATE" });
 });

@@ -231,6 +231,7 @@ async function main() {
   if (!token) throw new SetupError("NETLIFY_LOGIN", "Netlify browser login must finish before deployment.");
   await ensureLinked(cli.bin);
   const sync = await syncNetlifyEnvironment(env, token);
+  if (sync.preservedPublicURL) log("The existing owned Calvren public URL was preserved for webhook signatures.");
   if (sync.preservedLiveMode) log("An existing deployed live mode was preserved. The verification still uses a demo client.");
   if (sync.defaultScopes.length) log("Netlify plan uses its default scopes for: " + sync.defaultScopes.join(", ") + ". Values remain server environment variables in Production.");
   if (sync.metadataPreserved.length) log("Existing masked context values and their metadata were preserved for: " + sync.metadataPreserved.join(", ") + ".");

@@ -120,6 +120,20 @@ export function createNetlifyRequest(token, fetchImpl = fetch) {
 function readableValue(value) {
   return typeof value === "string" && !/^(?:\*{3,}|\[redacted\]|<redacted>|\(redacted\))$/i.test(value);
 }
+export function ownedPublicURL(value, site) {
+  let candidate;
+  try { candidate = new URL(value); } catch { return false; }
+  if (candidate.protocol !== "https:" || candidate.username || candidate.password || candidate.port ||
+      (candidate.pathname !== "/" && candidate.pathname !== "") || candidate.search || candidate.hash) return false;
+  const allowed = new Set([new URL(PUBLIC_URL).hostname]);
+  for (const url of [site.ssl_url, site.url]) {
+    try { if (url) allowed.add(new URL(url).hostname); } catch { /* Skip invalid provider metadata. */ }
+  }
+  for (const domain of [site.custom_domain, ...(Array.isArray(site.domain_aliases) ? site.domain_aliases : [])]) {
+    if (typeof domain === "string" && /^[A-Za-z0-9.-]+$/.test(domain)) allowed.add(domain.toLowerCase());
+  }
+  return allowed.has(candidate.hostname);
+}
 export function envMutation(existing, key, value) {
   const secret = SECRET_KEYS.has(key);
   const production = { context: "production", value };
@@ -129,7 +143,7 @@ export function envMutation(existing, key, value) {
   const correctScope = Array.isArray(existing.scopes) && existing.scopes.length === 1 && existing.scopes[0] === "functions";
   if (correctSecret && correctScope) return { method: "PATCH", body: production, repaired: false };
   const others = (existing.values ?? []).filter(v => v.context !== "production");
-  if (existing.is_secret && others.length) {
+  if ((existing.is_secret && others.length) || (secret && others.some(v => v.context === "all"))) {
     // Secret values in other contexts are masked. A PUT would corrupt them.
     return { method: "PATCH", body: production, metadataPreserved: true, repaired: false };
   }
@@ -155,13 +169,17 @@ export async function syncNetlifyEnvironment(env, token, fetchImpl = fetch) {
   const mode = current.get("CALVREN_AUTOMATION_MODE");
   const currentMode = mode?.values?.find(v => v.context === "production")?.value ??
     mode?.values?.find(v => v.context === "all")?.value;
-  const result = { uploaded: [], skipped: [], metadataPreserved: [], defaultScopes: [], preservedLiveMode: currentMode === "live" };
+  const result = { uploaded: [], skipped: [], metadataPreserved: [], defaultScopes: [], preservedLiveMode: currentMode === "live", preservedPublicURL: false };
   for (const key of ENV_KEYS) {
     let value = env[key];
     if (key === "CALVREN_AUTOMATION_MODE") {
       // Setup never activates live delivery and does not disable an existing live service.
       if (currentMode === "live") { result.skipped.push(key); continue; }
       value = "demo";
+    }
+    if (key === "CALVREN_PUBLIC_URL") {
+      const previous = current.get(key)?.values?.find(v => v.context === "production")?.value ?? current.get(key)?.values?.find(v => v.context === "all")?.value;
+      if (previous && ownedPublicURL(previous, site)) { result.skipped.push(key); result.preservedPublicURL = true; continue; }
     }
     if (typeof value !== "string" || !value.trim()) continue;
     const old = current.get(key);
