@@ -160,3 +160,13 @@ test("a signed callback passes stable message identity for timeout reconciliatio
   assert.equal(update.at(-1), "message-test-001");
   assert.ok(!f.events.some(value => Array.isArray(value) && value[0] === "resume"));
 });
+
+test("natural-language opt-outs and human requests bypass an exhausted ordinary SMS limit", async () => {
+  for (const message of ["Stop texting me", "Do not contact me", "I need a real person"]) {
+    const f = fixture({ mode: "live" }); f.repo.consumeRateLimit = async () => { throw new Error("Safety handoff must bypass normal SMS throttle"); };
+    const data = new URLSearchParams({ To: f.client.phone_number, From: f.current.lead.phone, MessageSid: "SM" + "e".repeat(32), Body: message });
+    const response = await handleConversion(new Request("https://calvren.netlify.app/api/conversion/twilio/inbound", { method: "POST", body: data }), f.deps);
+    assert.equal(response.status, 200);
+    assert.equal(f.events.find(value => Array.isArray(value) && value[0] === "receive")[1].message, message);
+  }
+});

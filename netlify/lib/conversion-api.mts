@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { ConversionError, type ClientConfig, type IntakeInput, type LeadBundle, type Repository } from "../../src/conversion/contracts.mjs";
 import { validateClient } from "../../src/conversion/validation.mjs";
+import { safetyHandoff } from "../../src/conversion/engine.mjs";
 
 export interface OperatorRepository extends Repository {
   consumeRateLimit(key: string, limit: number, windowSeconds: number, now: string): Promise<boolean>;
@@ -101,14 +102,14 @@ async function twilio(request: Request, deps: ConversionAPIDependencies, path: "
   const businessPhone = inbound ? form.To : form.From;
   const customerPhone = inbound ? form.From : form.To;
   if (!/^\+[1-9]\d{7,14}$/.test(businessPhone || "") || !/^\+[1-9]\d{7,14}$/.test(customerPhone || "") || !/^SM[0-9a-fA-F]{32}$/.test(form.MessageSid || "")) throw new ConversionError("INVALID_WEBHOOK", "Invalid messaging event.");
-  const clients = (await repo.listClients()).filter(c => c.mode === "live" && c.phone_number === businessPhone);
+  const clients = (await repo.listClients()).filter(c => c.mode === "live" && c.active && c.phone_number === businessPhone);
   // Unknown/ambiguous destinations or unknown senders never create an unconsented lead.
   if (clients.length !== 1) return twiml();
   const client = clients[0]; const lead = await repo.findLeadByPhone(client.id, customerPhone);
   if (!lead || lead.lead.mode !== "live") return twiml();
   if (inbound) {
     const message = text(form.Body, 2000);
-    if (!/^(stop|stopall|unsubscribe|cancel|end|quit)\s*[.!]?$/i.test(message)) await limit(deps, "sms:" + client.id, 120);
+    if (!safetyHandoff(message)) await limit(deps, "sms:" + client.id, 120);
     await deps.engine().receive({ client_id: client.id, lead_id: lead.lead.id, message, channel: "sms", event_key: "twilio:" + form.MessageSid });
   } else {
     const providerStatus = form.MessageStatus || form.SmsStatus || "";
