@@ -17,6 +17,8 @@ jobs:
           node-version: "22"
       - run: npm install
       - run: npm run build
+      - name: Check owner setup tools without credentials
+        run: npm run setup -- --check
       - name: Bundle the Netlify functions offline
         run: node tests/bundle-check.mjs
       - name: Run the project with Netlify Dev

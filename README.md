@@ -1,6 +1,6 @@
 # Calvren
 
-Calvren now includes a reusable Lead Conversion MVP alongside the existing marketing site. Read [the setup, demo and customer onboarding guide](docs/lead-conversion-mvp.md).
+Calvren now includes a reusable Lead Conversion MVP alongside the existing marketing site. Run the guided owner setup with `npm install` then `npm run setup`. It collects credentials privately, generates an operator token, configures the existing Netlify site and deploys the build. Read [the quick setup guide](docs/setup-now.md) and [the complete demo and customer onboarding guide](docs/lead-conversion-mvp.md).
 
 - Full conversation demo: `/lead-demo.html` (credential-free simulation)
 - Client/lead operator workspace: `/operator.html` (protected; Supabase required for persistence)
@@ -55,15 +55,15 @@ Provider failures return the retained record with a safe processing note. Archiv
 
 ## Build and verification
 
-Use Node 22.12 or newer:
+Use Node 22.13 or newer:
 
     npm install
     npm run check
     npm run dev
 
-Use Netlify Dev for platform features. Keep production credentials and the storage marker unset in local development and deploy previews.
+Use Netlify Dev for platform features. The guided setup keeps credentials in ignored private `.env` files and configures hosted Production variables. Local development and deploy previews cannot run the new live client providers; use a demo client for local tests.
 
-Pushes to main automatically deploy through Netlify. Build settings are in netlify.toml. [GitHub Actions](https://github.com/jordanwong1188-star/calvren/actions) checks TypeScript, JavaScript syntax, browser-demo behavior, backend behavior and the published website. Live browser tests use mocked form success/failure paths, so ordinary checks do not create real enquiries.
+Build settings are in netlify.toml. Automatic publication requires linking this repository to the existing Netlify project on branch `main`; it has not been verified. The guided setup can publish directly through your authenticated Netlify CLI session. [GitHub Actions](https://github.com/jordanwong1188-star/calvren/actions) checks TypeScript, JavaScript syntax, browser-demo behavior, backend behavior and the published website. Live browser tests use mocked form success/failure paths, so ordinary checks do not create real enquiries.
 
 Production OpenAI execution and notification delivery must be verified with the controlled smoke tests in the owner guide after account configuration. No fabricated customer reviews or performance results are published.
 

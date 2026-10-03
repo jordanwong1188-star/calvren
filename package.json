@@ -9,9 +9,10 @@
   "scripts": {
     "dev": "netlify dev",
     "build": "npm run check && node scripts/build-demo.mjs",
-    "check": "tsc --noEmit && node --check public/app.js && node --check public/admin.js && node --check public/shared.js && node --check public/lead-demo.js && node --check public/operator.js && node --check scripts/build-demo.mjs && node --check tests/site-check.mjs && node --check tests/admin-browser-check.mjs && node --check tests/owner-preview-check.mjs && node --check tests/conversion-browser-check.mjs && node --test tests/*.test.mjs",
+    "check": "tsc --noEmit && node --check public/app.js && node --check public/admin.js && node --check public/shared.js && node --check public/lead-demo.js && node --check public/operator.js && node --check scripts/build-demo.mjs && node --check scripts/setup-calvren.mjs && node --check scripts/setup-helpers.mjs && node --check tests/site-check.mjs && node --check tests/admin-browser-check.mjs && node --check tests/owner-preview-check.mjs && node --check tests/conversion-browser-check.mjs && node --test tests/*.test.mjs",
     "test:conversion": "node --test tests/conversion-*.test.mjs",
-    "predev": "node scripts/build-demo.mjs"
+    "predev": "node scripts/build-demo.mjs",
+    "setup": "node scripts/setup-calvren.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^11.1.3",
