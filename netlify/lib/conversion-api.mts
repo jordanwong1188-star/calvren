@@ -6,7 +6,7 @@ export interface OperatorRepository extends Repository {
   consumeRateLimit(key: string, limit: number, windowSeconds: number, now: string): Promise<boolean>;
   verifyClientKey(clientId: string, keyHash: string): Promise<boolean>;
   rotateClientKey(clientId: string, keyHash: string | null): Promise<void>;
-  updateMessageStatus(clientId: string, leadId: string, providerId: string, status: "sent" | "failed" | "unknown", eventKey: string): Promise<boolean>;
+  updateMessageStatus(clientId: string, leadId: string, providerId: string, status: "sent" | "failed" | "unknown", eventKey: string, messageId?: string): Promise<boolean>;
 }
 export interface ConversionEngineAPI {
   intake(input: IntakeInput): Promise<LeadBundle>;
@@ -46,7 +46,7 @@ function object(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 function id(value: unknown): string {
-  if (typeof value !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_-]{2,79}$/.test(value)) throw new ConversionError("INVALID_INPUT", "A valid client or lead ID is required.");
+  if (typeof value !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(value) || ["__proto__", "constructor", "prototype"].includes(value)) throw new ConversionError("INVALID_INPUT", "A valid client or lead ID is required.");
   return value;
 }
 function text(value: unknown, max: number, required = true): string {
@@ -114,7 +114,7 @@ async function twilio(request: Request, deps: ConversionAPIDependencies, path: "
     const providerStatus = form.MessageStatus || form.SmsStatus || "";
     const status = ["delivered", "sent", "read"].includes(providerStatus) ? "sent" : ["failed", "undelivered", "canceled"].includes(providerStatus) ? "failed" : null;
     if (status) {
-      const changed = await repo.updateMessageStatus(client.id, lead.lead.id, form.MessageSid, status, "twilio-status:" + form.MessageSid + ":" + providerStatus);
+      const changed = await repo.updateMessageStatus(client.id, lead.lead.id, form.MessageSid, status, "twilio-status:" + form.MessageSid + ":" + providerStatus, id(new URL(request.url).searchParams.get("message_id")));
       if (changed && status === "failed") await deps.engine().handoff(client.id, lead.lead.id, "SMS delivery failed; contact this lead manually.");
     }
   }
@@ -140,11 +140,12 @@ export async function handleConversion(request: Request, deps: ConversionAPIDepe
       if (!client || !client.active) throw new ConversionError("CLIENT_INACTIVE", "This client is not accepting leads.", 404);
       if (!admin && client.mode !== "live") throw new ConversionError("DEMO_REQUIRES_OPERATOR", "Use the browser demo or an operator token for simulated leads.", 403);
       if (input.channel !== undefined && input.channel !== "website" && input.channel !== "sms") throw new ConversionError("INVALID_INPUT", "Use website or sms.");
+      if (client.mode === "live" && input.channel !== undefined && input.channel !== "sms") throw new ConversionError("LIVE_SMS_REQUIRED", "Live website submissions must continue by SMS with a phone number and explicit consent.");
       if (input.consent_sms !== undefined && typeof input.consent_sms !== "boolean") throw new ConversionError("INVALID_INPUT", "SMS consent must be true or false.");
       const result = await deps.engine().intake({
         client_id: clientId, name: text(input.name, 120), phone: text(input.phone, 24, false), email: text(input.email, 254, false),
         message: text(input.message, 2000), source: text(input.source, 80, false) || "website",
-        channel: input.channel === "sms" ? "sms" : "website", consent_sms: input.consent_sms === true,
+        channel: input.channel === "sms" || client.mode === "live" ? "sms" : "website", consent_sms: input.consent_sms === true,
         idempotency_key: text(input.idempotency_key, 120),
       });
       return json({ ok: true, bundle: result }, 201);

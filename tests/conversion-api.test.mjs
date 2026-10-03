@@ -136,9 +136,27 @@ test("verified STOP reaches the core even if a normal SMS rate budget is exhaust
 test("SMS status callback scopes updates to verified tenant, customer and provider SID", async () => {
   const f = fixture({ mode: "live" });
   const data = new URLSearchParams({ From: f.client.phone_number, To: f.current.lead.phone, MessageSid: "SM" + "c".repeat(32), MessageStatus: "undelivered" });
-  const response = await handleConversion(new Request("https://calvren.netlify.app/api/conversion/twilio/status", { method: "POST", body: data }), f.deps);
+  const response = await handleConversion(new Request("https://calvren.netlify.app/api/conversion/twilio/status?message_id=message-test-001", { method: "POST", body: data }), f.deps);
   assert.equal(response.status, 200);
   const update = f.events.find(value => Array.isArray(value) && value[0] === "status");
   assert.deepEqual(update.slice(1, 5), [f.client.id, leadId, "SM" + "c".repeat(32), "failed"]);
   assert.ok(f.events.some(value => Array.isArray(value) && value[0] === "handoff"));
+});
+
+test("live website submissions use SMS rather than starting an unreachable website conversation", async () => {
+  const f = fixture({ mode: "live" });
+  const input = intake(); delete input.channel;
+  const response = await handleConversion(request("/api/leads", { method: "POST", token: CLIENT_KEY, data: input }), f.deps);
+  assert.equal(response.status, 201);
+  assert.equal(f.events.find(value => Array.isArray(value) && value[0] === "intake")[1].channel, "sms");
+  assert.equal((await handleConversion(request("/api/leads", { method: "POST", token: CLIENT_KEY, data: { ...input, channel: "website" } }), f.deps)).status, 400);
+});
+test("a signed callback passes stable message identity for timeout reconciliation", async () => {
+  const f = fixture({ mode: "live" });
+  const data = new URLSearchParams({ From: f.client.phone_number, To: f.current.lead.phone, MessageSid: "SM" + "d".repeat(32), MessageStatus: "delivered" });
+  const response = await handleConversion(new Request("https://calvren.netlify.app/api/conversion/twilio/status?message_id=message-test-001", { method: "POST", body: data }), f.deps);
+  assert.equal(response.status, 200);
+  const update = f.events.find(value => Array.isArray(value) && value[0] === "status");
+  assert.equal(update.at(-1), "message-test-001");
+  assert.ok(!f.events.some(value => Array.isArray(value) && value[0] === "resume"));
 });
