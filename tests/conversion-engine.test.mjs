@@ -584,3 +584,18 @@ test("inbound arriving during failure CAS cannot be overwritten by the old failu
   assert.equal(f.calls.sms.length, 1);
   assert.equal(result.messages.filter(m => m.sender === "lead").length, 2);
 });
+
+
+test("outbound message creation timestamp remains immutable when delivery completes later", async () => {
+  const f = fixture();
+  const send = f.services.messaging.send;
+  f.services.messaging.send = async input => {
+    f.advance("2026-10-05T16:01:00.000Z");
+    return send(input);
+  };
+  const bundle = await f.engine.intake(f.input());
+  const outbound = bundle.messages.find(message => message.sender === "assistant");
+  assert.equal(outbound.status, "sent");
+  assert.equal(outbound.timestamp, "2026-10-05T16:00:00.000Z");
+  assert.equal(bundle.lead.last_contacted_at, "2026-10-05T16:01:00.000Z");
+});

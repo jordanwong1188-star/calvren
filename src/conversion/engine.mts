@@ -160,7 +160,7 @@ export class ConversionEngine {
       const sent = await this.deps.messaging.send({ client: work.client, lead: work.bundle.lead, message });
       await this.valid(work);
       const stored = work.bundle.messages.find(m => m.id === message.id)!;
-      stored.status = sent.status; stored.provider_id = sent.provider_id; stored.timestamp = this.now();
+      stored.status = sent.status; stored.provider_id = sent.provider_id;
       work.bundle.lead.last_contacted_at = this.now();
       if (["new", "responding"].includes(work.bundle.lead.status)) work.bundle.lead.status = work.bundle.messages.filter(m => m.sender === "lead").length === 1 ? "contacted" : "responding";
       work.bundle.lead.next_follow_up_at = this.canFollowUp(work.bundle, work.client) ? scheduleFollowUp(work.client, this.clock(), work.bundle.lead.follow_up_attempts) : null;
