@@ -138,15 +138,18 @@ begin
     end if;
     insert into public.calvren_messages(id,client_id,lead_id,data)
       values((item->>'id')::uuid,p_client_id,p_lead_id,item)
-      on conflict(id) do update set data = case when public.calvren_messages.data->>'status'='sent' and excluded.data->>'status'='pending'
+      on conflict(id) do update set data = case when public.calvren_messages.data->>'status'='sent' and excluded.data->>'status' in ('pending','unknown')
         then public.calvren_messages.data else public.calvren_messages.data ||
-        jsonb_build_object('status',excluded.data->'status','provider_id',excluded.data->'provider_id') end
+        jsonb_build_object('status',excluded.data->'status','provider_id',case when public.calvren_messages.data->>'provider_id' is not null
+          and excluded.data->>'provider_id' is null then public.calvren_messages.data->'provider_id' else excluded.data->'provider_id' end) end
       where public.calvren_messages.client_id=p_client_id and public.calvren_messages.lead_id=p_lead_id
         and public.calvren_messages.data->>'message' = excluded.data->>'message'
         and public.calvren_messages.data->>'idempotency_key' = excluded.data->>'idempotency_key'
         and public.calvren_messages.data->>'sender' = excluded.data->>'sender'
         and public.calvren_messages.data->>'channel' = excluded.data->>'channel'
-        and public.calvren_messages.data->>'timestamp' = excluded.data->>'timestamp';
+        and public.calvren_messages.data->>'timestamp' = excluded.data->>'timestamp'
+        and (public.calvren_messages.data->>'provider_id' is null or excluded.data->>'provider_id' is null
+          or public.calvren_messages.data->>'provider_id' = excluded.data->>'provider_id');
     get diagnostics affected=row_count;
     if affected<>1 then raise exception 'Message identity conflict' using errcode='23505'; end if;
   end loop;
@@ -248,7 +251,7 @@ begin
   insert into public.calvren_messages(id,client_id,lead_id,data)
     values((p_message->>'id')::uuid,p_client_id,p_lead_id,p_message);
   saved:=saved||jsonb_build_object('version',(saved->>'version')::integer+1,
-    'last_inbound_at',p_message->>'timestamp','updated_at',p_message->>'timestamp','next_follow_up_at',null,
+    'last_inbound_at',p_message->>'timestamp','updated_at',p_message->>'timestamp','next_follow_up_at',null,'follow_up_attempts',0,
     'status',case when saved->>'automation_active'='true' and saved->>'opted_out'='false'
       and saved->>'status' not in ('won','lost','booked') then 'responding' else saved->>'status' end);
   update public.calvren_leads set data=saved,lease_token=null,lease_expires_at=null where client_id=p_client_id and id=p_lead_id;
@@ -338,13 +341,13 @@ begin
   end if;
   if exists(select 1 from public.calvren_appointments a where a.calendar_key=calendar and a.id<>appointment_id
     and a.data->>'status' in ('pending','booked')
-    and a.starts_at<ends+make_interval(mins=>buffer)
-    and a.ends_at+make_interval(mins=>a.buffer_minutes)>starts) then return null; end if;
+    and a.starts_at<ends+make_interval(mins=>greatest(buffer,a.buffer_minutes))
+    and a.ends_at+make_interval(mins=>greatest(buffer,a.buffer_minutes))>starts) then return null; end if;
   insert into public.calvren_appointments(id,client_id,lead_id,calendar_key,starts_at,ends_at,buffer_minutes,data)
     values(appointment_id,client,lead_id,calendar,starts,ends,buffer,p_appointment)
     on conflict(id) do update set data=case when public.calvren_appointments.data->>'status'='booked'
       then public.calvren_appointments.data else excluded.data end;
-  result:=public.calvren_save_bundle(p_bundle,p_token,p_now);
+  result:=public.calvren_save_bundle(jsonb_set(p_bundle,'{lead,appointment_status}','"pending"'::jsonb),p_token,p_now);
   if result is null then raise exception 'Lead changed during reservation' using errcode='40001'; end if;
   return result;
 end;
@@ -372,6 +375,7 @@ begin
   update public.calvren_leads set data=saved||jsonb_build_object(
     'status','needs_human','automation_active',false,'next_follow_up_at',null,
     'handoff_reason',left(p_reason,500),'opted_out',(saved->>'opted_out')::boolean or p_opted_out,
+    'consent_sms',(saved->>'consent_sms')::boolean and not p_opted_out,
     'updated_at',p_now,'version',(saved->>'version')::integer+1),lease_token=null,lease_expires_at=null
     where client_id=p_client_id and id=p_lead_id;
   update public.calvren_messages set data=data||jsonb_build_object('status','unknown')
@@ -386,6 +390,9 @@ begin
   select l.data into saved from public.calvren_leads l
     where l.client_id=p_client_id and l.id=p_lead_id and l.data->>'opted_out'='false'
       and l.data->>'status' not in ('won','lost','booked')
+      and (l.data->>'channel'<>'sms' or l.data->>'consent_sms'='true')
+      and not exists(select 1 from public.calvren_appointments a where a.client_id=p_client_id and a.lead_id=p_lead_id
+        and a.data->>'status'='pending')
       and not exists(select 1 from public.calvren_messages m where m.client_id=p_client_id and m.lead_id=p_lead_id
         and m.data->>'sender'='assistant' and m.data->>'status' in ('pending','unknown'))
       and exists(select 1 from public.calvren_clients c where c.id=p_client_id and c.config->>'active'='true') for update;
@@ -471,14 +478,16 @@ begin
   update public.calvren_messages set data=data||jsonb_build_object('status',p_status,'provider_id',p_provider_id)
     where id=message_id and client_id=p_client_id and lead_id=p_lead_id;
   get diagnostics affected=row_count;
-  -- Invalidate an in-flight snapshot so it cannot overwrite callback delivery information.
-  saved:=saved||jsonb_build_object('version',(saved->>'version')::integer+1);
+  -- Accepted/delivered callbacks can arrive before send() returns. Keep that worker's
+  -- lease/version so it can finish contact/follow-up/booking notification side effects.
+  -- sync_children preserves confirmed metadata against pending/unknown snapshots.
   if p_status='failed' then
-    saved:=saved||jsonb_build_object('status','needs_human','automation_active',false,'next_follow_up_at',null,
+    saved:=saved||jsonb_build_object('version',(saved->>'version')::integer+1,
+      'status','needs_human','automation_active',false,'next_follow_up_at',null,
       'handoff_reason','SMS delivery failed; review the conversation before resuming.');
+    update public.calvren_leads set data=saved,lease_token=null,lease_expires_at=null
+      where client_id=p_client_id and id=p_lead_id;
   end if;
-  update public.calvren_leads set data=saved,lease_token=null,lease_expires_at=null
-    where client_id=p_client_id and id=p_lead_id;
   return affected>0;
 end;
 $$;
