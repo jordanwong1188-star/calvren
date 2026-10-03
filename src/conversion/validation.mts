@@ -89,6 +89,8 @@ export function validateClient(value: unknown): ClientConfig {
     !Number.isInteger(calendar.horizon_days) || calendar.horizon_days < 1 || calendar.horizon_days > 60) return fail("Calendar duration, buffer or horizon is invalid.");
   if (cfg.mode === "demo" && calendar.provider !== "demo") return fail("Demo clients must use the demo calendar.");
   if (cfg.mode === "live" && calendar.provider !== "google" && cfg.booking_enabled) return fail("Live booking requires a connected Google calendar.");
+  const phone_number = normalizePhone(cfg.phone_number);
+  if (cfg.mode === "live" && !phone_number) return fail("A live client needs a dedicated international SMS phone number.");
   const notification_email = normalizeEmail(cfg.notification_email);
   if (cfg.mode === "live" && !notification_email) return fail("A live client needs a notification email.");
   if (!Array.isArray(cfg.service_areas) || cfg.service_areas.length > 100) return fail("Service areas must be a list.");
@@ -96,7 +98,7 @@ export function validateClient(value: unknown): ClientConfig {
     id: ident(cfg.id, "client id"), business_name: bounded(cfg.business_name, "business_name", 160),
     industry: bounded(cfg.industry, "industry", 100), description: bounded(cfg.description, "description", 2000),
     services: cfg.services.map(s => bounded(s, "service", 160)),
-    phone_number: normalizePhone(cfg.phone_number), email: normalizeEmail(cfg.email), timezone,
+    phone_number, email: normalizeEmail(cfg.email), timezone,
     business_hours, ai_tone: bounded(cfg.ai_tone, "ai_tone", 300),
     system_prompt: bounded(cfg.system_prompt, "system_prompt", 5000, false),
     qualifying_questions: questions, booking_enabled: cfg.booking_enabled, follow_up_enabled: cfg.follow_up_enabled,

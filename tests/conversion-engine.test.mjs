@@ -417,3 +417,70 @@ test("all credential-free demo providers make zero network calls even when a net
     assert.equal(networkCalls, 0);
   } finally { globalThis.fetch = original; }
 });
+
+
+test("complete answers plus an AI unsuitable verdict cannot qualify or offer booking", async () => {
+  const f = fixture({ services: { ai: { async analyze() { return {
+    message: "I cannot confirm we can help.", intent: "answer", lead_status: "responding",
+    qualified: false, ready_to_book: false, needs_human: false,
+    answers: { service: "Roof replacement", emergency: "No", area: "Outside service area", timing: "Tomorrow" },
+    selected_slot_id: null, handoff_reason: null
+  }; } } } });
+  const bundle = await f.engine.intake(f.input());
+  assert.equal(bundle.lead.status, "needs_human");
+  assert.equal(bundle.lead.qualification_status, "unqualified");
+  assert.equal(bundle.appointments.length, 0);
+  assert.ok(!bundle.notifications.some(n => n.event === "qualified"));
+  assert.equal(f.calls.sms.length, 0);
+});
+test("an older AI failure after newer inbound succeeds cannot hand off the healthy lead", async () => {
+  const gate = deferred(); const started = deferred();
+  const f = fixture();
+  let invocation = 0;
+  f.services.ai.analyze = async input => {
+    if (++invocation === 1) { started.resolve(); await gate.promise; throw new Error("Old provider failure"); }
+    return f.mock.ai.analyze(input);
+  };
+  const pending = f.engine.intake(f.input());
+  await started.promise;
+  let current = (await f.repository.listLeads())[0];
+  current = await f.reply(current, "It is not an emergency.");
+  assert.equal(current.lead.automation_active, true);
+  gate.resolve();
+  const result = await pending;
+  assert.equal(result.lead.automation_active, true);
+  assert.notEqual(result.lead.status, "needs_human");
+  assert.equal(result.notifications.length, 0);
+  assert.equal(f.calls.sms.length, 1);
+});
+test("an older provider rejection after STOP preserves opt-out and does not duplicate notification", async () => {
+  const gate = deferred(); const started = deferred();
+  const f = fixture();
+  f.services.ai.analyze = async () => { started.resolve(); await gate.promise; throw new Error("Old provider failure"); };
+  const pending = f.engine.intake(f.input());
+  await started.promise;
+  const current = (await f.repository.listLeads())[0];
+  await f.reply(current, "STOP");
+  gate.resolve();
+  const result = await pending;
+  assert.equal(result.lead.opted_out, true);
+  assert.equal(result.lead.automation_active, false);
+  assert.equal(result.notifications.length, 1);
+  assert.equal(result.notifications[0].event, "needs_human");
+});
+test("duplicate STOP delivery applies opt-out when the first handler stopped after inbound persistence", async () => {
+  const f = fixture();
+  const bundle = await f.engine.intake(f.input({ channel: "sms", phone: "+16045550100", consent_sms: true }));
+  const message = { ...bundle.messages[0], id: "stored-stop", message: "STOP", idempotency_key: "stop-event", timestamp: f.now() };
+  await f.repository.appendInbound(f.client.id, bundle.lead.id, message, "stop-event");
+  const result = await f.reply(bundle, "STOP", "stop-event");
+  assert.equal(result.lead.opted_out, true);
+  assert.equal(result.lead.automation_active, false);
+  assert.equal(result.lead.consent_sms, false);
+  assert.equal(result.messages.filter(m => m.sender === "lead" && m.message === "STOP").length, 1);
+});
+test("live configuration requires a dedicated SMS number and a notification email", () => {
+  const live = { ...newDemoClient(), mode: "live", calendar: { ...newDemoClient().calendar, provider: "google" } };
+  assert.throws(() => validateClient({ ...live, phone_number: "" }), /dedicated international/);
+  assert.throws(() => validateClient({ ...live, notification_email: "" }), /notification email/);
+});

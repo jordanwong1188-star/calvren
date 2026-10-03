@@ -69,10 +69,12 @@ export class ConversionEngine {
     if ((input.channel ?? "website") !== existing.lead.channel) throw new ConversionError("channel_mismatch", "Reply channel does not match this lead.", 409);
     const inbound = this.message(existing, input.message, "lead", input.event_key);
     const saved = await this.deps.repository.appendInbound(input.client_id, input.lead_id, inbound, input.event_key);
-    if (!saved.created) return saved.bundle;
     const safety = safetyHandoff(input.message);
-    if (safety) {
+    // Replay safety commands even when the original handler stopped after persisting the webhook.
+    if (safety && (saved.bundle.lead.automation_active || (safety.optedOut && !saved.bundle.lead.opted_out))) {
       await this.stopAndNotify(input.client_id, input.lead_id, safety.reason, safety.optedOut);
+    } else if (!saved.created) {
+      return saved.bundle;
     } else if (saved.bundle.lead.automation_active && !saved.bundle.lead.opted_out) {
       await this.process(input.client_id, input.lead_id, "inbound");
     }
@@ -249,7 +251,14 @@ export class ConversionEngine {
       }
       const allRequired = client.qualifying_questions.every(q => !q.required || !!work.bundle.lead.answers[q.id]);
       const wasQualified = work.bundle.lead.qualification_status === "qualified";
-      if (allRequired) {
+      if (allRequired && !result.qualified) {
+        work.bundle.lead.qualification_status = "unqualified";
+        await this.save(work);
+        await this.deps.repository.releaseLease(clientId, leadId, work.token);
+        await this.stopAndNotify(clientId, leadId, "Required answers are present, but AI could not confirm this is a suitable lead. A person must review.", false);
+        return "processed";
+      }
+      if (allRequired && result.qualified) {
         work.bundle.lead.qualification_status = "qualified";
         if (work.bundle.lead.status !== "booked") work.bundle.lead.status = "qualified";
       }
@@ -283,6 +292,9 @@ export class ConversionEngine {
       return "processed";
     } catch (error) {
       if (error instanceof StaleWork) return "skipped";
+      // A rejected provider request can resolve after another inbound worker took over.
+      // Its old error must never pause or overwrite that newer conversation.
+      if (!await this.deps.repository.leaseValid(clientId, leadId, work.token, work.bundle.lead.version, this.now())) return "skipped";
       await this.deps.repository.releaseLease(clientId, leadId, work.token);
       await this.stopAndNotify(clientId, leadId, error instanceof ConversionError ? error.message : "Automation failed safely. A person must review this lead.", false, true);
       return "failed";
