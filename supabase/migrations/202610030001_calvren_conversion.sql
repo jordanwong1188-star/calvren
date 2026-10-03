@@ -445,7 +445,7 @@ end;
 $$;
 
 create function public.calvren_update_message_status(p_client_id text,p_lead_id uuid,p_provider_id text,p_status text,p_event_key text,p_message_id uuid default null) returns boolean
-language plpgsql security invoker set search_path = '' as $
+language plpgsql security invoker set search_path = '' as $$
 declare saved jsonb; inserted integer; affected integer; message_id uuid; message_data jsonb;
 begin
   if p_status not in ('sent','failed','unknown') or length(p_event_key) not between 1 and 200
@@ -481,7 +481,7 @@ begin
     where client_id=p_client_id and id=p_lead_id;
   return affected>0;
 end;
-$;
+$$;
 
 -- Deny direct browser access, including authenticated Supabase users.
 alter table public.calvren_clients enable row level security;
