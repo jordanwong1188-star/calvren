@@ -17,6 +17,16 @@ The public demo runs the same engine in the browser with simulated AI, messaging
 
 The operator page is `/operator.html`. It requires your admin token and a configured Supabase database to manage persistent clients and leads. Without a database its setup panel reports what is missing. The existing `/admin.html` marketing enquiry inbox remains separate.
 
+## Publish the website and demo
+
+The public demo can be published before adding provider credentials. In [Netlify's Calvren project](https://app.netlify.com/projects/calvren), link the repository `jordanwong1188-star/calvren` under **Project configuration → Build & deploy → Continuous deployment** if no repository is connected. Use production branch `main`, build command `npm run build`, publish directory `public` and functions directory `netlify/functions`; the existing `netlify.toml` contains these settings.
+
+Then open **Deploys → Trigger deploy → Deploy site**. Confirm the resulting deploy uses the latest main commit. The new page is `https://calvren.netlify.app/lead-demo.html`, and the operator page is `https://calvren.netlify.app/operator.html`.
+
+If using your own terminal instead, sign in with `npx netlify login`, run `npx netlify link --id 9357eb4a-405e-417e-af9a-f5998d88f2ba`, then `npx netlify deploy --build --prod` from the project root. Credentials stay in your local Netlify session; do not put deployment tokens in GitHub code.
+
+Publishing the demo does not activate real client processing. Complete the dedicated database, production environment variables and consenting live test before enabling a production client.
+
 ## Set up persistent storage
 
 Create a **dedicated Calvren Supabase project**. Existing unrelated projects are not used.
