@@ -100,7 +100,7 @@ function renderReadiness() {
   if (!readiness) return;
   const checks = [
     ["Mode", readiness.mode === "live" ? "Live · check client rules" : "Demo · mock delivery", true],
-    ["Database", readiness.database ? "Connected" : "Setup required", readiness.database],
+    ["Database", readiness.database ? "Configured" : "Setup required", readiness.database],
     ["OpenAI", readiness.providers?.openai ? "Configured" : "Not configured", readiness.providers?.openai],
     ["Twilio SMS", readiness.providers?.twilio ? "Configured" : "Not configured", readiness.providers?.twilio],
     ["Google Calendar", readiness.providers?.google ? "Configured" : "Not configured", readiness.providers?.google],
