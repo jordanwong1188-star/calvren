@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
 import {
-  SITE_ID, PUBLIC_URL, SetupError, ownedPublicURL, serializeEnv, writePrivateEnv, googleAccountFromFile,
+  SITE_ID, PUBLIC_URL, SetupError, validateAdminToken, ownedPublicURL, serializeEnv, writePrivateEnv, googleAccountFromFile,
   netlifyURL, createNetlifyRequest, envMutation, syncNetlifyEnvironment,
   checkSupabaseSchema, supabaseProjectURL, setupDefaults, generateAdminToken
 } from "../scripts/setup-helpers.mjs";
@@ -145,4 +145,16 @@ test("secret conversion never corrupts a readable inherited all-context value", 
   const mutation = envMutation(old, "OPENAI_API_KEY", "NEW_PRIVATE");
   assert.equal(mutation.method, "PATCH"); assert.equal(mutation.metadataPreserved, true);
   assert.deepEqual(mutation.body, { context: "production", value: "NEW_PRIVATE" });
+});
+
+test("operator token validation matches protected API boundaries without exposing malformed values", () => {
+  assert.equal(validateAdminToken("x".repeat(32)), "x".repeat(32));
+  for (const value of ["short", "x".repeat(1025), "x".repeat(32) + "\nPRIVATE", "x".repeat(32) + " SPACE"]) {
+    assert.throws(() => validateAdminToken(value), error => error instanceof SetupError && !error.message.includes(value));
+  }
+});
+test("apostrophe plus literal backslash-n is preserved or rejected before the original env changes", () => {
+  const env = { COMPLEX: "owner's literal\\nvalue" };
+  try { assert.deepEqual(parseEnv(serializeEnv(env)), env); }
+  catch (error) { assert.ok(error instanceof SetupError); assert.equal(error.code, "ENV_ROUNDTRIP"); }
 });

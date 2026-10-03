@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { parseEnv } from "node:util";
 import { chmod, lstat, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
@@ -25,13 +26,19 @@ export function setupDefaults(existing = {}) {
     CALVREN_DATA_ENV: "production", ...existing };
 }
 export function generateAdminToken() { return randomBytes(32).toString("base64url"); }
+export function validateAdminToken(token) {
+  if (typeof token !== "string" || token.length < 32 || token.length > 1024 || /\s/.test(token)) {
+    throw new SetupError("ADMIN_TOKEN", "The existing operator token must contain 32–1024 characters without whitespace.");
+  }
+  return token;
+}
 export function missingLiveKeys(env) {
   return ["SUPABASE_URL", "SUPABASE_SECRET_KEY", "OPENAI_API_KEY", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN",
     "GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY", "RESEND_API_KEY", "NOTIFICATION_FROM_EMAIL"]
     .filter(key => !env[key]?.trim());
 }
 export function serializeEnv(env) {
-  return Object.entries(env).map(([key, value]) => {
+  const serialized = Object.entries(env).map(([key, value]) => {
     if (!/^[A-Z_a-z][A-Z_a-z0-9]*$/.test(key) || typeof value !== "string" || value.includes("\0")) {
       throw new SetupError("INVALID_ENV", "A local environment entry cannot be saved safely.");
     }
@@ -41,6 +48,11 @@ export function serializeEnv(env) {
     if (!quote) throw new SetupError("INVALID_ENV", "An environment value contains unsupported quotation marks.");
     return key + "=" + quote + value + quote;
   }).join("\n") + "\n";
+  const parsed = parseEnv(serialized);
+  if (Object.keys(parsed).length !== Object.keys(env).length || Object.entries(env).some(([key, value]) => parsed[key] !== value)) {
+    throw new SetupError("ENV_ROUNDTRIP", "A local environment value could not be preserved safely. The existing .env was not replaced.");
+  }
+  return serialized;
 }
 async function rejectSymlink(path) {
   try {

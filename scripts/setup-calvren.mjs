@@ -8,7 +8,7 @@ import { createInterface } from "node:readline/promises";
 import { parseEnv } from "node:util";
 import {
   SITE_ID, PUBLIC_URL, SetupError, setupDefaults, generateAdminToken, missingLiveKeys,
-  writePrivateEnv, googleAccountFromFile, syncNetlifyEnvironment, checkSupabaseSchema
+  validateAdminToken, writePrivateEnv, googleAccountFromFile, syncNetlifyEnvironment, checkSupabaseSchema
 } from "./setup-helpers.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -216,7 +216,7 @@ async function main() {
   // Live mode is never selected by this wizard. Netlify synchronization preserves an existing deployed live service.
   env.CALVREN_AUTOMATION_MODE = "demo"; env.CALVREN_PUBLIC_URL = PUBLIC_URL;
   if (!env.CALVREN_ADMIN_TOKEN) env.CALVREN_ADMIN_TOKEN = generateAdminToken();
-  if (env.CALVREN_ADMIN_TOKEN.length < 32) throw new SetupError("ADMIN_TOKEN", "The existing operator token must contain at least 32 characters.");
+  validateAdminToken(env.CALVREN_ADMIN_TOKEN);
   env = await collect(env);
   await writePrivateEnv(root, env);
   log("\nCredentials saved privately in .env. The operator token is there; it is not printed.");
