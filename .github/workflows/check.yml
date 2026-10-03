@@ -2,6 +2,9 @@ name: Check Calvren
 on:
   push:
   pull_request:
+concurrency:
+  group: calvren-check-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

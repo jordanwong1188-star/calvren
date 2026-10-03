@@ -100,6 +100,7 @@ export async function checkLeadDemo(page, url = baseUrl) {
   assert.equal(await page.locator('[data-question-id="goal"]').count(), 1);
   await page.locator("#demo-config").fill(JSON.stringify(newDemoClient()));
   await page.locator("#demo-config-form button").click();
+  await page.locator("#demo-message").fill("Hi, my kitchen sink is leaking and I need someone to look at it.");
   await startLead(page);
   for (const id of ["emergency","area","timing"]) await reply(page, responses[id]);
   await page.locator("#demo-slots button").first().click();
