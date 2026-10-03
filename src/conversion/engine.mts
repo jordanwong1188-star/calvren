@@ -58,7 +58,13 @@ export class ConversionEngine {
     };
     bundle.messages.push(this.message(bundle, input.message, "lead", input.idempotency_key));
     const saved = await this.deps.repository.createLead(bundle, input.idempotency_key);
-    if (!saved.created) return saved.bundle;
+    if (!saved.created) {
+      if (saved.bundle.messages.some(message => message.idempotency_key === input.idempotency_key)) return saved.bundle;
+      // A second website/SMS intake from an existing phone is another inbound message,
+      // not another independent conversation. Preserve the original consent and channel.
+      return this.receive({ client_id: client.id, lead_id: saved.bundle.lead.id, message: input.message,
+        channel: saved.bundle.lead.channel, event_key: input.idempotency_key });
+    }
     await this.process(client.id, bundle.lead.id, "inbound");
     return (await this.deps.repository.getBundle(client.id, bundle.lead.id))!;
   }
@@ -124,6 +130,14 @@ export class ConversionEngine {
       }
       await this.save(work);
     }
+  }
+  private async pause(work: Work, reason: string, failed = false): Promise<void> {
+    // Worker-derived handoff is a CAS under the processing lease. An intervening
+    // inbound/owner action must make this write fail instead of pausing newer work.
+    work.bundle.lead.status = "needs_human"; work.bundle.lead.automation_active = false;
+    work.bundle.lead.handoff_reason = reason; work.bundle.lead.next_follow_up_at = null;
+    await this.save(work);
+    await this.notify(work, failed ? "automation_failed" : "needs_human", reason);
   }
   private async stopAndNotify(clientId: string, leadId: string, reason: string, optedOut: boolean, failed = false): Promise<void> {
     const stopped = await this.deps.repository.forceHandoff(clientId, leadId, reason, this.now(), optedOut);
@@ -246,17 +260,14 @@ export class ConversionEngine {
         if (typeof answer === "string" && answer.trim() && answer.length <= 500) work.bundle.lead.answers[question.id] = answer.trim();
       }
       if (result.needs_human || result.intent === "handoff") {
-        await this.save(work);
-        await this.deps.repository.releaseLease(clientId, leadId, work.token);
-        await this.stopAndNotify(clientId, leadId, result.handoff_reason?.slice(0, 500) || "AI could not confidently assist.", false); return "processed";
+        await this.pause(work, result.handoff_reason?.slice(0, 500) || "AI could not confidently assist.");
+        return "processed";
       }
       const allRequired = client.qualifying_questions.every(q => !q.required || !!work.bundle.lead.answers[q.id]);
       const wasQualified = work.bundle.lead.qualification_status === "qualified";
       if (allRequired && !result.qualified) {
         work.bundle.lead.qualification_status = "unqualified";
-        await this.save(work);
-        await this.deps.repository.releaseLease(clientId, leadId, work.token);
-        await this.stopAndNotify(clientId, leadId, "Required answers are present, but AI could not confirm this is a suitable lead. A person must review.", false);
+        await this.pause(work, "Required answers are present, but AI could not confirm this is a suitable lead. A person must review.");
         return "processed";
       }
       if (allRequired && result.qualified) {
@@ -303,11 +314,14 @@ export class ConversionEngine {
     } catch (error) {
       if (error instanceof StaleWork) return "skipped";
       // A rejected provider request can resolve after another inbound worker took over.
-      // Its old error must never pause or overwrite that newer conversation.
-      if (!await this.deps.repository.leaseValid(clientId, leadId, work.token, work.bundle.lead.version, this.now())) return "skipped";
-      await this.deps.repository.releaseLease(clientId, leadId, work.token);
-      await this.stopAndNotify(clientId, leadId, error instanceof ConversionError ? error.message : "Automation failed safely. A person must review this lead.", false, true);
-      return "failed";
+      // CAS the failure while holding the old lease; never use unconditional forceHandoff.
+      try {
+        await this.pause(work, error instanceof ConversionError ? error.message : "Automation failed safely. A person must review this lead.", true);
+        return "failed";
+      } catch (pauseError) {
+        if (pauseError instanceof StaleWork) return "skipped";
+        throw pauseError;
+      }
     } finally { await this.deps.repository.releaseLease(clientId, leadId, work.token); }
   }
   async followUps(limit = 25): Promise<{ processed: number; skipped: number; failed: number }> {

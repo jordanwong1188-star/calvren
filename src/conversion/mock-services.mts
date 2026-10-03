@@ -62,7 +62,7 @@ export class DemoAIService implements AIService {
     for (const question of client.qualifying_questions) {
       if (answers[question.id]) continue;
       if (questionKind(question) === "service") {
-        const match = serviceMatch(client, latest); if (match) answers[question.id] = match;
+        const match = serviceMatch(client, inbound.map(message => message.message).join("\n")); if (match) answers[question.id] = match;
       } else if (questionKind(question) === "emergency" && /\b(?:not an? emergency|not urgent|no emergency|can wait|routine)\b/i.test(latest)) answers[question.id] = "Routine / not an emergency";
     }
     const missing = client.qualifying_questions.find(q => q.required && !answers[q.id]);

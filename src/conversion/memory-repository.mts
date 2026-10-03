@@ -28,7 +28,10 @@ export class MemoryRepository implements Repository {
     if (this.bundles.has(leadKey)) throw new ConversionError("duplicate_lead", "Lead already exists.", 409);
     if (bundle.lead.phone && bundle.lead.channel === "sms") {
       const duplicate = [...this.bundles.values()].find(b => b.lead.client_id === bundle.lead.client_id && b.lead.phone === bundle.lead.phone && !["won", "lost"].includes(b.lead.status));
-      if (duplicate) throw new ConversionError("active_phone", "This phone number already has an active conversation for this business.", 409);
+      if (duplicate) {
+        this.intakeKeys.set(intakeKey, key(duplicate.lead.client_id, duplicate.lead.id));
+        return { created: false, bundle: copy(duplicate) };
+      }
     }
     this.bundles.set(leadKey, copy(bundle)); this.intakeKeys.set(intakeKey, leadKey);
     return { created: true, bundle: copy(bundle) };

@@ -538,3 +538,49 @@ test("won or lost leads retain terminal state and cannot be automatically resume
     await assert.rejects(f.engine.resume(f.client.id, bundle.lead.id), /Closed leads/);
   }
 });
+
+
+test("new intake key for an existing SMS phone adds a message without a duplicate lead or renewed consent", async () => {
+  const f = fixture();
+  const input = f.input({ channel: "sms", phone: "+16045550100", consent_sms: true });
+  const first = await f.engine.intake(input);
+  const next = await f.engine.intake({ ...input, message: "No, it can wait.", idempotency_key: "intake-2" });
+  assert.equal(next.lead.id, first.lead.id);
+  assert.equal((await f.repository.listLeads()).length, 1);
+  assert.equal(next.messages.filter(m => m.sender === "lead").length, 2);
+  assert.equal(next.lead.answers.emergency, "No, it can wait.");
+  const sent = f.calls.sms.length;
+  const replay = await f.engine.intake({ ...input, message: "Modified duplicate text", idempotency_key: "intake-2" });
+  assert.equal(replay.messages.filter(m => m.sender === "lead").length, 2);
+  assert.equal(f.calls.sms.length, sent);
+  const paused = await f.reply(next, "STOP");
+  const afterNewIntake = await f.engine.intake({ ...input, message: "Another form enquiry", idempotency_key: "intake-3" });
+  assert.equal(afterNewIntake.lead.id, paused.lead.id);
+  assert.equal(afterNewIntake.lead.opted_out, true);
+  assert.equal(afterNewIntake.lead.consent_sms, false);
+  assert.equal(afterNewIntake.lead.automation_active, false);
+  assert.equal(f.calls.sms.length, sent);
+});
+test("inbound arriving during failure CAS cannot be overwritten by the old failure handoff", async () => {
+  const f = fixture();
+  const save = f.repository.saveBundle.bind(f.repository);
+  const originalAI = f.mock.ai.analyze.bind(f.mock.ai);
+  let first = true; let injected = false;
+  f.services.ai.analyze = async input => {
+    if (first) { first = false; throw new Error("Initial provider failure"); }
+    return originalAI(input);
+  };
+  f.repository.saveBundle = async (bundle, token, now) => {
+    if (bundle.lead.status === "needs_human" && !injected) {
+      injected = true;
+      await f.reply(bundle, "It is not an emergency.", "racing-inbound");
+    }
+    return save(bundle, token, now);
+  };
+  const result = await f.engine.intake(f.input());
+  assert.equal(result.lead.automation_active, true);
+  assert.notEqual(result.lead.status, "needs_human");
+  assert.equal(result.notifications.length, 0);
+  assert.equal(f.calls.sms.length, 1);
+  assert.equal(result.messages.filter(m => m.sender === "lead").length, 2);
+});
