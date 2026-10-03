@@ -7,7 +7,7 @@ await rm(destination,{recursive:true,force:true});
 await mkdir(destination,{recursive:true});
 for(const filename of (await readdir(source)).filter(name=>name.endsWith(".mts")).sort()){
   const input=await readFile(join(source,filename),"utf8");
-  if(/(?:node:|@netlify\/|SUPABASE_SECRET_KEY|TWILIO_AUTH_TOKEN|OPENAI_API_KEY|GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY|RESEND_API_KEY)/.test(input)){
+  if(/(?:node:|@netlify\/|CALVREN_ADMIN_TOKEN|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|TWILIO_AUTH_TOKEN|OPENAI_API_KEY|GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY|RESEND_API_KEY)/.test(input)){
     throw new Error("Server-only code cannot enter the browser demo: "+filename);
   }
   const compiled=ts.transpileModule(input,{fileName:filename,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022},reportDiagnostics:true});

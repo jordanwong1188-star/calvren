@@ -599,3 +599,67 @@ test("outbound message creation timestamp remains immutable when delivery comple
   assert.equal(outbound.timestamp, "2026-10-05T16:00:00.000Z");
   assert.equal(bundle.lead.last_contacted_at, "2026-10-05T16:01:00.000Z");
 });
+
+
+test("retry recovers intake persisted immediately before its first worker was interrupted", async () => {
+  const f = fixture();
+  const create = f.repository.createLead.bind(f.repository);
+  let interrupted = true;
+  f.repository.createLead = async (...args) => {
+    const result = await create(...args);
+    if (interrupted) { interrupted = false; throw new Error("Synthetic interruption after durable intake"); }
+    return result;
+  };
+  await assert.rejects(f.engine.intake(f.input()), /interruption/);
+  const persisted = (await f.repository.listLeads())[0];
+  assert.equal(persisted.lead.status, "new");
+  assert.equal(persisted.messages.length, 1);
+  assert.equal(f.calls.sms.length, 0);
+  const recovered = await f.engine.intake(f.input());
+  assert.equal(recovered.lead.id, persisted.lead.id);
+  assert.equal(recovered.lead.status, "contacted");
+  assert.equal(f.calls.sms.length, 1);
+  await f.engine.intake(f.input());
+  assert.equal(f.calls.sms.length, 1);
+});
+test("retry applies initial STOP after intake persisted before worker interruption", async () => {
+  const f = fixture();
+  const input = f.input({ message: "STOP", channel: "sms", phone: "+16045550100", consent_sms: true });
+  const create = f.repository.createLead.bind(f.repository);
+  let interrupted = true;
+  f.repository.createLead = async (...args) => {
+    const result = await create(...args);
+    if (interrupted) { interrupted = false; throw new Error("Synthetic interruption"); }
+    return result;
+  };
+  await assert.rejects(f.engine.intake(input));
+  const recovered = await f.engine.intake(input);
+  assert.equal(recovered.lead.opted_out, true);
+  assert.equal(recovered.lead.consent_sms, false);
+  assert.equal(recovered.lead.automation_active, false);
+  assert.equal(f.calls.sms.length, 0);
+});
+test("rescheduling a closed-hours overdue lead prevents cron limit one from starving an open client", async () => {
+  const firstClient = newDemoClient({ id: "closed-demo", timezone: "UTC" });
+  const secondClient = newDemoClient({ id: "open-demo", timezone: "America/Vancouver" });
+  const repository = new MemoryRepository([firstClient, secondClient]);
+  let instant = new Date("2026-10-05T16:00:00.000Z"); let sequence = 0;
+  const engine = new ConversionEngine({ repository, ...createDemoServices(), now: () => new Date(instant), uuid: () => "fair-" + (++sequence) });
+  const input = (client, key) => ({ client_id: client.id, name: "Demo", message: "A sink is leaking", channel: "website", idempotency_key: key });
+  let closed = await engine.intake(input(firstClient, "closed-intake"));
+  let open = await engine.intake(input(secondClient, "open-intake"));
+  // Both were due before this late scheduler pass; UTC business is now closed while Vancouver remains open.
+  for (const [bundle, due] of [[closed, "2026-10-05T17:00:00.000Z"], [open, "2026-10-05T18:00:00.000Z"]]) {
+    const lease = await repository.acquireLease(bundle.lead.client_id, bundle.lead.id, instant.toISOString(), 180);
+    lease.bundle.lead.next_follow_up_at = due;
+    await repository.saveBundle(lease.bundle, lease.token, instant.toISOString());
+    await repository.releaseLease(bundle.lead.client_id, bundle.lead.id, lease.token);
+  }
+  instant = new Date("2026-10-05T19:00:00.000Z");
+  assert.equal((await engine.followUps(1)).skipped, 1);
+  closed = await repository.getBundle(firstClient.id, closed.lead.id);
+  assert.equal(closed.lead.next_follow_up_at, "2026-10-06T08:00:00.000Z");
+  assert.equal((await engine.followUps(1)).processed, 1);
+  open = await repository.getBundle(secondClient.id, open.lead.id);
+  assert.equal(open.lead.follow_up_attempts, 1);
+});

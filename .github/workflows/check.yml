@@ -16,6 +16,8 @@ jobs:
       - run: npm run build
       - name: Bundle the Netlify functions offline
         run: node tests/bundle-check.mjs
+      - name: Run the project with Netlify Dev
+        run: node tests/dev-server-check.mjs
   source-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -44,6 +46,7 @@ jobs:
           retention-days: 7
   database:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     services:
       postgres:
         image: postgres:16
@@ -65,9 +68,15 @@ jobs:
       PGDATABASE: calvren_test
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
       - name: Create disposable API roles
         run: psql -v ON_ERROR_STOP=1 -f tests/database-bootstrap.sql
       - name: Apply the Calvren migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610030001_calvren_conversion.sql
       - name: Check transactional storage and security
         run: psql -v ON_ERROR_STOP=1 -f tests/conversion-database.sql
+      - name: Check the conversion engine against real database functions
+        run: node tests/database-engine-check.mjs

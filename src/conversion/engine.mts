@@ -1,7 +1,7 @@
 import { ConversionError } from "./contracts.mjs";
 import type { AIResult, Appointment, ClientConfig, EngineDependencies, InboundInput, IntakeInput, LeadBundle, Message, Notification, Slot } from "./contracts.mjs";
 import { validateInbound, validateIntake } from "./validation.mjs";
-import { insideBusinessHours, scheduleFollowUp } from "./time.mjs";
+import { insideBusinessHours, nextBusinessTime, scheduleFollowUp } from "./time.mjs";
 
 export function safetyHandoff(message: string): { reason: string; optedOut: boolean } | null {
   const text = message.trim();
@@ -59,7 +59,18 @@ export class ConversionEngine {
     bundle.messages.push(this.message(bundle, input.message, "lead", input.idempotency_key));
     const saved = await this.deps.repository.createLead(bundle, input.idempotency_key);
     if (!saved.created) {
-      if (saved.bundle.messages.some(message => message.idempotency_key === input.idempotency_key)) return saved.bundle;
+      const original = saved.bundle.messages.find(message => message.sender === "lead" && message.idempotency_key === input.idempotency_key);
+      if (original) {
+        const safety = safetyHandoff(original.message);
+        if (safety && (saved.bundle.lead.automation_active || (safety.optedOut && !saved.bundle.lead.opted_out))) {
+          await this.stopAndNotify(client.id, saved.bundle.lead.id, safety.reason, safety.optedOut);
+        } else if (saved.bundle.lead.status === "new" && saved.bundle.lead.automation_active && !saved.bundle.lead.opted_out) {
+          // Persistence can succeed immediately before a worker is interrupted.
+          // Retry its guarded processing instead of leaving a permanently unanswered new lead.
+          await this.process(client.id, saved.bundle.lead.id, "inbound");
+        }
+        return (await this.deps.repository.getBundle(client.id, saved.bundle.lead.id))!;
+      }
       // A second website/SMS intake from an existing phone is another inbound message,
       // not another independent conversation. Preserve the original consent and channel.
       return this.receive({ client_id: client.id, lead_id: saved.bundle.lead.id, message: input.message,
@@ -250,7 +261,11 @@ export class ConversionEngine {
         }
       } else {
         if (!this.canFollowUp(work.bundle, client) || !work.bundle.lead.next_follow_up_at || work.bundle.lead.next_follow_up_at > this.now()) return "skipped";
-        if (!insideBusinessHours(client, this.clock())) return "skipped";
+        if (!insideBusinessHours(client, this.clock())) {
+          // A stale backlog outside local hours must not occupy the first cron slot forever.
+          work.bundle.lead.next_follow_up_at = nextBusinessTime(client, this.clock());
+          await this.save(work); return "skipped";
+        }
         // A newer inbound invalidates both version and lease; guards repeat after each provider call.
       }
       const result = await this.deps.ai.analyze({ client, bundle: structuredClone(work.bundle), reason });

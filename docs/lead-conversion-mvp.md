@@ -48,7 +48,7 @@ For hosting, use [Calvren's Netlify project](https://app.netlify.com/projects/ca
 
 Google uses the Calendar `calendar.events` and `calendar.freebusy` scopes. The MVP creates events on a shared calendar and sends confirmations through SMS; it does not add Google event attendees. Each client's calendar ID, hours, duration and booking rules belong in their configuration.
 
-Twilio inbound SMS webhook: `https://calvren.netlify.app/api/conversion/twilio/inbound` (**POST**). Delivery status callback: `https://calvren.netlify.app/api/conversion/twilio/status` (**POST**). Configure the exact URLs; request signatures are checked against the configured public origin. The number must support two-way SMS and meet the registration requirements applicable to your business and region. Test using an explicitly consenting recipient you control.
+Twilio inbound SMS webhook: `https://calvren.netlify.app/api/conversion/twilio/inbound` (**POST**). The adapter generates each delivery status callback as `https://calvren.netlify.app/api/conversion/twilio/status?message_id=<stored-message-id>` (**POST**); do not replace it with a static callback without that query. Configure the inbound URL exactly; request signatures are checked against the configured public origin. The number must support two-way SMS and meet the registration requirements applicable to your business and region. Test using an explicitly consenting recipient you control.
 
 Live operation requires a production Netlify deployment, explicit global `live` mode, an active client in `live` mode, persistent storage and all live provider credentials. Deployment previews cannot send live customer messages.
 

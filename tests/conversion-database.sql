@@ -117,9 +117,22 @@ begin
   if public.calvren_update_message_status(client_a,lead_a,'SM-synthetic','sent','status-event',outbound_message) then
     raise exception 'Duplicate status event updated twice';
   end if;
-  if public.calvren_lease_valid(client_a,lead_a,(lease->>'token')::uuid,2,fixed_now+interval '11 seconds') then
-    raise exception 'Callback did not invalidate stale worker';
+  if not public.calvren_lease_valid(client_a,lead_a,(lease->>'token')::uuid,2,fixed_now+interval '11 seconds') then
+    raise exception 'Early successful callback interrupted its owning worker';
   end if;
+  bundle:=result;
+  bundle:=jsonb_set(bundle,'{lead,last_contacted_at}',to_jsonb(fixed_now+interval '15 seconds'));
+  bundle:=jsonb_set(bundle,'{lead,next_follow_up_at}',to_jsonb(fixed_now+interval '2 hours'));
+  -- A stale pending/unknown snapshot must not drop the callback's confirmed status/SID.
+  result:=public.calvren_save_bundle(bundle,(lease->>'token')::uuid,fixed_now+interval '15 seconds');
+  if result is null or result->'lead'->>'last_contacted_at' is null or result->'lead'->>'next_follow_up_at' is null then
+    raise exception 'Worker could not complete contact/follow-up after early callback';
+  end if;
+  if not exists(select 1 from public.calvren_messages m where m.id=outbound_message and m.client_id=client_a
+    and m.data->>'status'='sent' and m.data->>'provider_id'='SM-synthetic') then
+    raise exception 'Pending worker snapshot erased successful callback metadata';
+  end if;
+  perform public.calvren_release_lease(client_a,lead_a,(lease->>'token')::uuid);
 
   -- Reserve Client A's appointment, then attempt an overlapping booking for Client B.
   lease:=public.calvren_acquire_lease(client_a,lead_a,fixed_now+interval '20 seconds',90);
@@ -129,7 +142,7 @@ begin
     'status','pending','provider_id',null,'created_at',fixed_now);
   bundle:=jsonb_set(bundle,'{appointments}',jsonb_build_array(appointment));
   result:=public.calvren_reserve_appointment(bundle,appointment,(lease->>'token')::uuid,fixed_now+interval '20 seconds');
-  if result is null or jsonb_array_length(result->'appointments')<>1 then
+  if result is null or jsonb_array_length(result->'appointments')<>1 or result->'lead'->>'appointment_status'<>'pending' then
     raise exception 'Appointment reservation failed';
   end if;
   if public.calvren_get_bundle(client_b,lead_a) is not null then raise exception 'Booking leaked across tenants'; end if;
@@ -162,7 +175,7 @@ begin
   -- Handoff/STOP invalidates workers, suppresses follow-ups and cannot silently resume.
   result:=public.calvren_force_handoff(client_a,lead_a,'Customer requested STOP',fixed_now+interval '30 seconds',true);
   if result->'lead'->>'status'<>'needs_human' or result->'lead'->>'automation_active'<>'false' or
-    result->'lead'->>'opted_out'<>'true' then raise exception 'STOP handoff failed'; end if;
+    result->'lead'->>'opted_out'<>'true' or result->'lead'->>'consent_sms'<>'false' then raise exception 'STOP handoff failed'; end if;
   if public.calvren_lease_valid(client_a,lead_a,(lease->>'token')::uuid,
     (result->'lead'->>'version')::integer,fixed_now+interval '30 seconds') then
     raise exception 'Handoff did not invalidate worker';

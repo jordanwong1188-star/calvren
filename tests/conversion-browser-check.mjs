@@ -37,7 +37,7 @@ export async function checkLeadDemo(page, url = baseUrl) {
     }
   });
   await page.goto(url + "/lead-demo.html", {waitUntil:"networkidle"});
-  await page.locator("#demo-config").waitFor();
+  await page.locator("#demo-config").waitFor({state:"attached"});
   assert.match(await page.locator(".simulation-banner").innerText(), /rules-based demo responder/);
   await startLead(page);
   assert.match(await page.locator("#demo-conversation").innerText(), /ABC Plumbing/);
