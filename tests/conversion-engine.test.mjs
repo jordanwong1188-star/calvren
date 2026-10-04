@@ -663,3 +663,39 @@ test("rescheduling a closed-hours overdue lead prevents cron limit one from star
   open = await repository.getBundle(secondClient.id, open.lead.id);
   assert.equal(open.lead.follow_up_attempts, 1);
 });
+
+test("demo rejects a repeated location as timing and offers tomorrow afternoon instead of morning", async () => {
+  const f = fixture();
+  let bundle = await f.engine.intake(f.input());
+  bundle = await f.reply(bundle, "No, it can wait.");
+  bundle = await f.reply(bundle, "Vancouver");
+  bundle = await f.reply(bundle, "Vancouver");
+  assert.equal(bundle.lead.answers.timing, undefined);
+  assert.equal(bundle.lead.qualification_status, "pending");
+  assert.equal(bundle.lead.offered_slots.length, 0);
+  assert.match(bundle.messages.at(-1).message, /give a day or time/);
+  bundle = await f.reply(bundle, "Tomorrow afternoon");
+  assert.equal(bundle.lead.answers.timing, "Tomorrow afternoon");
+  assert.equal(bundle.lead.status, "booking");
+  assert.equal(bundle.lead.offered_slots.length, 3);
+  for (const slot of bundle.lead.offered_slots) {
+    const local = new Intl.DateTimeFormat("en-US", { timeZone: f.client.timezone, day: "numeric", hour: "numeric", hourCycle: "h23" }).formatToParts(new Date(slot.start));
+    assert.equal(local.find(p => p.type === "day").value, "6");
+    const hour = Number(local.find(p => p.type === "hour").value);
+    assert.ok(hour >= 12 && hour < 17);
+  }
+  bundle = await f.reply(bundle, "2");
+  assert.equal(bundle.lead.status, "booked");
+  assert.equal(bundle.lead.next_follow_up_at, null);
+});
+test("a demo requested date with no opening hours does not silently offer another day", async () => {
+  const f = fixture();
+  f.advance("2026-10-03T16:00:00.000Z");
+  let bundle = await f.engine.intake(f.input());
+  bundle = await f.reply(bundle, "No, it can wait.");
+  bundle = await f.reply(bundle, "Vancouver");
+  bundle = await f.reply(bundle, "Tomorrow afternoon");
+  assert.equal(bundle.lead.offered_slots.length, 0);
+  assert.equal(bundle.lead.status, "needs_human");
+  assert.equal(bundle.appointments.length, 0);
+});

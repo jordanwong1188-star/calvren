@@ -1,6 +1,6 @@
 import { ConversionError } from "./contracts.mjs";
 import type { AIResult, AIService, CalendarService, ClientConfig, LeadBundle, MessagingService, NotificationService, Question } from "./contracts.mjs";
-import { demoSlots } from "./time.mjs";
+import { demoSlots, localClock } from "./time.mjs";
 function demoOnly(client: ClientConfig): void {
   if (client.mode !== "demo") throw new ConversionError("demo_only", "Demo adapters never serve live clients.", 503);
 }
@@ -56,6 +56,10 @@ export class DemoAIService implements AIService {
       if (questionKind(awaiting) === "service" && !serviceMatch(client, latest)) {
         return result("A person will check whether we can help with that request.", { intent: "handoff", needs_human: true, handoff_reason: "Requested service is outside or uncertain against the configured services." });
       }
+      if (questionKind(awaiting) === "timing" &&
+          !/\b(?:today|tomorrow|morning|afternoon|evening|tonight|anytime|any time|whenever|soon|available|asap|next|week|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b|\d/i.test(latest)) {
+        return result("Please give a day or time, such as tomorrow afternoon. " + awaiting.prompt);
+      }
       answers[awaiting.id] = latest.slice(0, 500);
     }
     // Only infer obvious service and non-emergency details; other answers are collected by the configured questions.
@@ -95,7 +99,27 @@ export class DemoMessagingService implements MessagingService {
   }
 }
 export class DemoCalendarService implements CalendarService {
-  async available({ client, now }: Parameters<CalendarService["available"]>[0]) { demoOnly(client); return demoSlots(client, now); }
+  async available({ client, lead, now }: Parameters<CalendarService["available"]>[0]) {
+    demoOnly(client);
+    const question = client.qualifying_questions.find(q => questionKind(q) === "timing");
+    const preference = question ? lead.answers[question.id]?.toLowerCase() ?? "" : "";
+    const period = /\bafternoon\b/.test(preference) ? [12, 17] :
+      /\bmorning\b/.test(preference) ? [0, 12] : /\b(?:evening|tonight)\b/.test(preference) ? [17, 24] : null;
+    const dateKey = (date: Date) => {
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: client.timezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+      return ["year", "month", "day"].map(type => parts.find(part => part.type === type)!.value).join("-");
+    };
+    const today = dateKey(new Date(now));
+    const tomorrow = new Date(today + "T12:00:00Z");
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const requestedDay = /\btomorrow\b/.test(preference) ? tomorrow.toISOString().slice(0, 10) :
+      /\b(?:today|tonight)\b/.test(preference) ? today : null;
+    return demoSlots(client, now, start => {
+      const hour = Number(localClock(start, client.timezone).time.slice(0, 2));
+      return (!period || (hour >= period[0] && hour < period[1])) &&
+        (!requestedDay || dateKey(start) === requestedDay);
+    });
+  }
   async book({ client, appointment }: Parameters<CalendarService["book"]>[0]) {
     demoOnly(client); return { provider_id: "demo-appointment-" + appointment.id };
   }

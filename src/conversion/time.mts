@@ -35,7 +35,7 @@ export function scheduleFollowUp(client: ClientConfig, from: Date, attempt: numb
 export function slotLabel(start: string, client: ClientConfig): string {
   return new Intl.DateTimeFormat("en-US", { timeZone: client.timezone, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(new Date(start));
 }
-export function demoSlots(client: ClientConfig, now: string): Slot[] {
+export function demoSlots(client: ClientConfig, now: string, accepts: (start: Date) => boolean = () => true): Slot[] {
   const slots: Slot[] = [];
   const first = Math.ceil((new Date(now).getTime() + 60 * 60000) / (15 * 60000)) * 15 * 60000;
   const end = first + client.calendar.horizon_days * 24 * 60 * 60000;
@@ -43,7 +43,7 @@ export function demoSlots(client: ClientConfig, now: string): Slot[] {
   let candidate = first;
   while (candidate < end && slots.length < 3) {
     const start = new Date(candidate);
-    if (insideBusinessHours(client, start, duration + client.calendar.buffer_minutes)) {
+    if (insideBusinessHours(client, start, duration + client.calendar.buffer_minutes) && accepts(start)) {
       slots.push({ id: "demo_" + candidate, start: start.toISOString(), end: new Date(candidate + duration * 60000).toISOString(), label: slotLabel(start.toISOString(), client) });
       candidate += (duration + client.calendar.buffer_minutes) * 60000;
     } else candidate += 15 * 60000;
