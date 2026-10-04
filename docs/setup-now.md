@@ -1,6 +1,21 @@
 # Set up Calvren now
 
-Use the owner setup wizard on your computer. It connects the existing Netlify project, privately saves credentials, publishes the website and tests a simulated lead when Supabase is ready.
+Use the owner setup wizard in GitHub Codespaces or on your computer. It connects the existing Netlify project, privately saves credentials, publishes the website and tests a simulated lead when Supabase is ready.
+
+## Set up from a phone or tablet
+
+You do not need to install Node.js on your phone. Use [Calvren's GitHub Codespaces workspace](https://codespaces.new/jordanwong1188-star/calvren).
+
+1. Sign in to your GitHub account on GitHub's own page and choose **Create codespace** on the main branch.
+2. Wait for the workspace to open and for the automatic package installation to finish. The repository's dev-container configuration supplies Node 22 and npm.
+3. On mobile, use landscape mode or **Request Desktop Website** if the menus are difficult to access.
+4. Open **☰ → Terminal → New Terminal** and run `npm run setup`.
+5. When Netlify login prints an authorization link, open that link in another browser tab, sign in there and approve access, then return to the terminal. No localhost callback is required.
+6. Enter API keys only in the wizard's hidden prompts. Blank answers skip an integration so the public demonstration can be published first.
+
+Keep passwords on the providers' own sign-in pages. The private `.env` is saved in your Codespace and ignored by Git. Download the Google service-account JSON outside the project directory, as required by the wizard. Stop the Codespace from GitHub's Codespaces page when you finish.
+
+## Set up from a computer
 
 Install Node 22.13 or newer and Git, then run:
 
@@ -48,7 +63,7 @@ Database migrations still run in your dedicated project's SQL Editor. The setup 
 
 ## Private credential handling
 
-Run in an interactive terminal on your own computer. Do not put keys in command arguments, public files, or this chat. The wizard does not use netlify env:import, because that command prints imported values and lacks scope controls.
+Run in an interactive terminal in your own GitHub Codespace or on your computer. Do not put keys in command arguments, public files, or this chat. The wizard does not use netlify env:import, because that command prints imported values and lacks scope controls.
 
 Download the Google JSON outside the project. Only the account email and PEM private key are written to .env; the JSON is never copied into deployment sources. Do not enable Netlify's optional source archive upload. Ordinary deployment uploads public and bundled functions, and .env/.netlify are ignored by Git and excluded from the CLI's source archive ignore defaults.
 
