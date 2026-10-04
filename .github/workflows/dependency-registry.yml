@@ -1,0 +1,26 @@
+name: Inspect published dependencies
+on:
+  push:
+    branches:
+      - codex/netlify-dependency-fix
+permissions:
+  contents: read
+jobs:
+  registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Read public npm package availability
+        run: |
+          node --input-type=module <<'NODE'
+          const required = {"@netlify/blobs":"11.1.3","@netlify/functions":"6.0.2","netlify-cli":"27.10.2"};
+          for (const [name, version] of Object.entries(required)) {
+            const response = await fetch("https://registry.npmjs.org/" + encodeURIComponent(name), {headers:{"cache-control":"no-cache"},signal:AbortSignal.timeout(30000)});
+            if (!response.ok) throw new Error(name + " registry HTTP " + response.status);
+            const data = await response.json();
+            const stable = Object.keys(data.versions ?? {}).filter(v=>/^\d+\.\d+\.\d+$/.test(v)).sort((a,b)=>{const aa=a.split(".").map(Number),bb=b.split(".").map(Number);return aa[0]-bb[0]||aa[1]-bb[1]||aa[2]-bb[2];});
+            console.log("CALVREN_REGISTRY_PACKAGE=" + JSON.stringify({name,requested:version,requested_exists:!!data.versions?.[version],tags:data["dist-tags"],recent_versions:stable.slice(-12),requested_published:data.time?.[version]}));
+          }
+          NODE
