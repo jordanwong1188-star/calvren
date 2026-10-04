@@ -15,7 +15,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install
+      - name: Install with the Netlify production registry settings
+        run: npm install --registry=https://registry.npmjs.org/ --prefer-online --no-audit --no-fund
       - run: npm run build
       - name: Check owner setup tools without credentials
         run: npm run setup -- --check
