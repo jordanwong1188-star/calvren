@@ -7,6 +7,60 @@ import { newDemoClient } from "../public/conversion/demo-config.mjs";
 
 const baseUrl = process.env.CALVREN_PREVIEW_URL || "http://127.0.0.1:8080";
 const fakeToken = "calvren-browser-fixture-token-no-real-secret-12345678";
+
+const authOrigin = "https://xjfsukhfmkgvlfpgjevg.supabase.co";
+const demoAccountToken = "demo-account-fixture-not-a-real-access-token";
+async function mockDemoAuth(page, requests = []) {
+  await page.route(authOrigin + "/auth/v1/**", async route => {
+    const request = route.request(), path = new URL(request.url()).pathname;
+    requests.push({ path, query: new URL(request.url()).searchParams.toString(), body: request.postData() });
+    if (path.endsWith("/otp")) {
+      await route.fulfill({status:200,contentType:"application/json",body:"{}"});
+    } else if (path.endsWith("/logout")) {
+      await route.fulfill({status:204,body:""});
+    } else if (request.headers().authorization === "Bearer " + demoAccountToken) {
+      await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({
+        id:"verified-demo-user",email:"visitor@example.com",email_confirmed_at:"2026-10-06T00:00:00Z"
+      })});
+    } else await route.fulfill({status:401,contentType:"application/json",body:'{"error":"Invalid token"}'});
+  });
+}
+export async function checkDemoAccounts(page, url = baseUrl) {
+  const requests = [];
+  await mockDemoAuth(page, requests);
+  await page.goto(url + "/lead-demo.html");
+  await page.waitForURL("**/try-demo.html");
+  await page.locator(".demo-access-dialog").waitFor({state:"visible"});
+  await assertNoOverflow(page, 375);
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator(".demo-access-dialog").isVisible(), false);
+  await page.goto(url + "/");
+  await page.locator(".hero-actions [data-demo-access]").click();
+  await page.locator("#demo-access-email").fill("visitor@example.com");
+  await page.locator("#demo-access-form button").click();
+  await page.waitForFunction(() => document.querySelector(".demo-access-status").textContent.includes("Check your inbox"));
+  const otp = requests.find(request => request.path.endsWith("/otp"));
+  assert.equal(JSON.parse(otp.body).email, "visitor@example.com");
+  assert.equal(new URLSearchParams(otp.query).get("redirect_to"), "https://calvren.netlify.app/try-demo.html");
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("calvren-demo-session")), null,
+    "An email submission alone must not unlock the demo.");
+  await page.goto(url + "/try-demo.html#access_token=unverified-fixture&expires_in=3600");
+  await page.locator(".demo-access-status").filter({hasText:"couldn’t verify"}).waitFor();
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("calvren-demo-session")), null);
+  assert.equal(await page.evaluate(() => location.hash), "");
+  await page.goto(url + "/try-demo.html#access_token=" + demoAccountToken + "&expires_in=3600");
+  await page.waitForURL("**/lead-demo.html");
+  await page.locator("#demo-start").waitFor({state:"visible"});
+  assert.equal(await page.evaluate(() => location.hash), "");
+  assert.equal(await page.locator("#demo-access-check").isVisible(), false);
+  await page.locator("#demo-sign-out").click();
+  await page.waitForURL("**/try-demo.html");
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("calvren-demo-session")), null);
+  await page.goto(url + "/lead-demo.html");
+  await page.waitForURL("**/try-demo.html");
+  console.log("Demo account checks passed: signed-out redirect, mobile popup, OTP, rejected session, verified callback and sign-out.");
+}
+
 const responses = {service:"Leak repair",emergency:"No, it can wait for a routine appointment.",area:"Vancouver",timing:"Tomorrow, please."};
 async function reply(page, message) {
   await page.locator("#demo-reply-message").fill(message);
@@ -36,6 +90,10 @@ export async function checkLeadDemo(page, url = baseUrl) {
       providerRequests.push(request.url());
     }
   });
+  await mockDemoAuth(page);
+  await page.addInitScript(token => sessionStorage.setItem("calvren-demo-session", JSON.stringify({
+    access_token:token,expires_at:Date.now() + 3600000
+  })), demoAccountToken);
   await page.goto(url + "/lead-demo.html", {waitUntil:"networkidle"});
   await page.locator("#demo-config").waitFor({state:"attached"});
   assert.match(await page.locator(".simulation-banner").innerText(), /rules-based demo responder/);
@@ -238,6 +296,9 @@ async function main() {
   const browser = await chromium.launch({headless:true});
   const context = await browser.newContext({viewport:{width:1360,height:960},reducedMotion:"reduce"});
   try {
+    const accountPage = await context.newPage();
+    await checkDemoAccounts(accountPage);
+    await accountPage.close();
     const demoPage = await context.newPage();
     await checkLeadDemo(demoPage);
     await mkdir("artifacts", {recursive:true});

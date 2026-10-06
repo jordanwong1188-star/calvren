@@ -4,6 +4,11 @@ import { createDemoServices } from "/conversion/mock-services.mjs";
 import { newDemoClient } from "/conversion/demo-config.mjs";
 import { validateClient } from "/conversion/validation.mjs";
 
+import { requireDemoAccount, signOutDemo } from "/demo-access.js";
+await requireDemoAccount();
+document.getElementById("demo-access-check").hidden = true;
+document.getElementById("main").hidden = false;
+document.getElementById("demo-sign-out").addEventListener("click", signOutDemo);
 const $ = id => document.getElementById(id);
 const titleCase = value => String(value || "").replaceAll("_", " ").replace(/^./, c => c.toUpperCase());
 const uuid = () => crypto.randomUUID();

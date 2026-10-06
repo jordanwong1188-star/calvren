@@ -1,0 +1,16 @@
+
+/* Email demo access: existing Calvren palette, native focus trap, reduced-motion support. */
+.demo-access-dialog{width:min(540px,calc(100% - 32px));max-height:calc(100dvh - 40px);overflow:auto;border:1px solid var(--line);border-radius:16px;padding:38px;background:var(--paper);color:var(--ink);box-shadow:0 24px 100px #14392f40}
+.demo-access-dialog::backdrop{background:#0c2b22bb;backdrop-filter:blur(5px)}
+.demo-access-dialog[open]{animation:demo-access-enter .25s ease-out}
+.demo-access-close{position:absolute;right:16px;top:12px;border:0;background:transparent;color:var(--ink);font-size:28px;width:40px;height:40px}
+.demo-access-dialog .eyebrow{margin-bottom:20px}.demo-access-symbol{background:var(--lime);width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:28px;margin-bottom:20px}
+.demo-access-dialog h2{font-size:48px;margin-bottom:20px}.demo-access-description{color:var(--muted);font-size:14px;line-height:1.75}
+.demo-access-perks{display:flex;flex-wrap:wrap;gap:16px;font-size:11px;margin:20px 0}
+.demo-access-dialog label{display:block;font-weight:600;font-size:12px;margin-bottom:8px}.demo-access-dialog input{width:100%;border:1px solid #becdb7;border-radius:5px;padding:14px;background:#fff;color:var(--ink);margin-bottom:12px}
+.demo-access-status{font-size:13px;margin:16px 0;line-height:1.65}.demo-access-fine,.demo-access-help{font-size:11px;color:var(--muted);margin-bottom:18px}.demo-access-fine a,.demo-access-help a{text-decoration:underline}
+.demo-access-help{margin:18px 0 0}.demo-invite{border:1px solid #abc17e;border-radius:10px;padding:28px;margin:30px 0;background:#d8ef9d12;display:flex;justify-content:space-between;align-items:center;gap:24px}
+.demo-invite h3{font-family:var(--serif);font-size:32px;font-weight:400;margin-bottom:8px}.demo-invite p{max-width:550px;font-size:13px;color:#c1d2c2}.demo-invite .button{flex-shrink:0}
+@keyframes demo-access-enter{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@media(max-width:600px){.demo-access-dialog{padding:28px 22px}.demo-access-dialog h2{font-size:39px}.demo-invite{display:block;padding:22px}.demo-invite .button{margin-top:18px}}
+@media(prefers-reduced-motion:reduce){.demo-access-dialog[open]{animation:none}}
