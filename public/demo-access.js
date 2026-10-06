@@ -116,11 +116,19 @@ document.querySelectorAll("[data-demo-access]").forEach(link => link.addEventLis
   event.preventDefault(); openDemoAccess();
 }));
 if (document.body.dataset.demoSignup === "true") {
-  try {
-    if (await receiveEmailLink() || await verifiedDemoSession()) location.replace("/lead-demo.html");
-    else await openDemoAccess();
-  } catch (error) {
-    await openDemoAccess();
-    dialog.querySelector('[role="status"]').textContent = error.message;
-  }
+  let completing = false;
+  const completeSignIn = async () => {
+    if (completing) return;
+    completing = true;
+    try {
+      if (await receiveEmailLink() || await verifiedDemoSession()) location.replace("/lead-demo.html");
+      else await openDemoAccess();
+    } catch (error) {
+      await openDemoAccess();
+      dialog.querySelector('[role="status"]').textContent = error.message;
+    } finally { completing = false; }
+  };
+  // A second emailed link may navigate within the same callback document.
+  window.addEventListener("hashchange", completeSignIn);
+  await completeSignIn();
 }
