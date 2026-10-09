@@ -21,7 +21,11 @@ jobs:
           let response=await call("/health");
           assert.equal(response.status,200);assert.equal((await response.json()).hosting,"supabase");
           for(const path of ["/api/conversion/status","/api/status"]){
-            response=await call(path);assert.equal(response.status,401);
+            response=await call(path);
+            assert.ok([401,503].includes(response.status),"Private routes must remain closed.");
+            const body=await response.json();
+            if(response.status===503)assert.match(body.error,/CALVREN_ADMIN_TOKEN/);
+            assert.equal(body.leads,undefined);assert.equal(body.clients,undefined);
           }
           response=await call("/forms",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({"form-name":"project-enquiry",name:"Hosting Test",email:"hosting-test@example.com",message:"Testing required consent validation."})});
           assert.equal(response.status,400);
