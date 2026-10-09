@@ -35,7 +35,10 @@ export async function checkDemoAccounts(page, url = baseUrl) {
   await page.keyboard.press("Escape");
   assert.equal(await page.locator(".demo-access-dialog").isVisible(), false);
   await page.goto(url + "/");
+  assert.equal(await page.locator(".hero-actions [data-demo-access]").getAttribute("href"), "/try-demo.html");
+  assert.equal(await page.locator("#site-navigation [data-demo-access]").getAttribute("href"), "/try-demo.html");
   await page.locator(".hero-actions [data-demo-access]").click();
+  assert.match(await page.locator("#demo-access-title").innerText(), /Serious about/);
   await page.locator("#demo-access-email").fill("visitor@example.com");
   await page.locator("#demo-access-form button").click();
   await page.waitForFunction(() => document.querySelector(".demo-access-status").textContent.includes("Check your inbox"));

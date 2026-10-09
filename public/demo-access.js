@@ -43,11 +43,11 @@ function makeDialog() {
     <button type="button" class="demo-access-close" aria-label="Close demo sign-in">×</button>
     <p class="eyebrow"><span class="tiny-dot"></span> YOUR FRONT-ROW SEAT</p>
     <div class="demo-access-symbol" aria-hidden="true">↗</div>
-    <h2 id="demo-access-title">Ready to put<br><em>Calvren to the test?</em></h2>
-    <p class="demo-access-description">Play the customer. Watch a lead become a conversation, then a simulated booking. Your next “what if?” starts here.</p>
+    <h2 id="demo-access-title">Serious about<br><em>fewer missed leads?</em></h2>
+    <p class="demo-access-description">Put us to the test. Play a customer, answer the qualifying questions and take a fake lead all the way to a simulated booking.</p>
     <div class="demo-access-perks"><span>✓ No password</span><span>✓ No card</span><span>✓ Fake leads only</span></div>
     <form id="demo-access-form">
-      <label for="demo-access-email">Your email</label>
+      <label for="demo-access-email">Your email to unlock the demo</label>
       <input id="demo-access-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required placeholder="you@yourbusiness.com">
       <button type="submit" class="button full-width">Email me a sign-in link <span aria-hidden="true">→</span></button>
     </form>
