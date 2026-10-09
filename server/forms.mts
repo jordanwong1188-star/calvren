@@ -58,7 +58,7 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
     const requestKey=form.get("submission-key") || "";
     if(requestKey.length>120)throw new FormError(400,"Invalid submission key.");
     const digest=requestKey?hash(name+":"+requestKey+":"+JSON.stringify({...data,createdAt:undefined,updatedAt:undefined,created_at:undefined})).slice(0,32):"";
-    let id=randomUUID();
+    let id:string=randomUUID();
     if(digest){const chars=digest.split("");chars[12]="4";chars[16]=(8|(parseInt(chars[16],16)&3)).toString(16);const hex=chars.join("");id=[hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join("-");}
     if(prefix==="leads/"&&await deps.storage.get("tombstones/"+id,{type:"json"}))return json({ok:true});
     await deps.storage.setJSON(prefix+id,{...data,id},{onlyIfNew:true});
