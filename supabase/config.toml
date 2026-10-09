@@ -1,0 +1,6 @@
+project_id = "calvren"
+
+[functions.calvren]
+# Custom operator/intake tokens and Twilio signatures are verified inside the router.
+# The public forms route validates consent, bounds input and rate-limits without triggering AI.
+verify_jwt = false

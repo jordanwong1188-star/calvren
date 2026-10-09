@@ -27,7 +27,7 @@ function renderStatus(data){
     card.append(textNode("span",label),textNode("strong",ready?yes:no));$("service-state").append(card);
   }
   $("setup-status").textContent=!data.persistentStorage
-    ?"Complete production storage setup before using the AI inbox for real client data. Original website enquiries remain available in Netlify Forms."
+    ?"Complete production storage setup before using the AI inbox for real client data. Older Netlify enquiries remain in Netlify; new website enquiries appear here after the hosting migration."
     :!data.providerConfigured
     ?"Enquiries can be retained for review. Add the OpenAI API key and redeploy to enable draft preparation."
     :"Configuration is present. Verify a synthetic enquiry before processing real client data; provider billing and permissions still need to work.";

@@ -82,7 +82,25 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f tests/database-bootstrap.sql
       - name: Apply the Calvren migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610030001_calvren_conversion.sql
+      - name: Apply portable hosting storage migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610090001_calvren_hosting.sql
+      - name: Check portable hosting storage security
+        run: psql -v ON_ERROR_STOP=1 -f tests/hosting-database.sql
       - name: Check transactional storage and security
         run: psql -v ON_ERROR_STOP=1 -f tests/conversion-database.sql
       - name: Check the conversion engine against real database functions
         run: node tests/database-engine-check.mjs
+
+  portable-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: npm run build:supabase
+      - name: Type-check the actual Supabase runtime entrypoint
+        run: deno check --config supabase/functions/calvren/deno.json supabase/functions/calvren/index.ts

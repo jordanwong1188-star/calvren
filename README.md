@@ -1,5 +1,7 @@
 # Calvren
 
+For the Cloudflare Pages + Supabase hosting migration and GitHub publishing, follow [docs/cloudflare-setup.md](docs/cloudflare-setup.md). The original Netlify setup command is retained for existing Netlify deployments.
+
 Calvren now includes a reusable Lead Conversion MVP alongside the existing marketing site. Run the guided owner setup with `npm install` then `npm run setup`. It collects credentials privately, generates an operator token, configures the existing Netlify site and deploys the build. Read [the quick setup guide](docs/setup-now.md) and [the complete demo and customer onboarding guide](docs/lead-conversion-mvp.md).
 
 - Full conversation demo: `/lead-demo.html` (credential-free simulation)

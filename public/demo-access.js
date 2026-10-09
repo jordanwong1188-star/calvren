@@ -65,7 +65,7 @@ function makeDialog() {
     waiting = true; button.disabled = true; button.setAttribute("aria-busy", "true");
     status.textContent = "Sending your secure sign-in link…";
     try {
-      const response = await fetch(origin + "/auth/v1/otp?redirect_to=" + encodeURIComponent("https://calvren.netlify.app/try-demo.html"), {
+      const response = await fetch(origin + "/auth/v1/otp?redirect_to=" + encodeURIComponent(location.origin + "/try-demo.html"), {
         method: "POST", headers: { apikey: publishableKey, "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.querySelector("input").value.trim(), create_user: true,
           data: { signup_source: "calvren-lead-demo" },

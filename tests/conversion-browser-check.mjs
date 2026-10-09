@@ -41,7 +41,7 @@ export async function checkDemoAccounts(page, url = baseUrl) {
   await page.waitForFunction(() => document.querySelector(".demo-access-status").textContent.includes("Check your inbox"));
   const otp = requests.find(request => request.path.endsWith("/otp"));
   assert.equal(JSON.parse(otp.body).email, "visitor@example.com");
-  assert.equal(new URLSearchParams(otp.query).get("redirect_to"), "https://calvren.netlify.app/try-demo.html");
+  assert.equal(new URLSearchParams(otp.query).get("redirect_to"), url + "/try-demo.html");
   assert.equal(await page.evaluate(() => sessionStorage.getItem("calvren-demo-session")), null,
     "An email submission alone must not unlock the demo.");
   await page.goto(url + "/try-demo.html#access_token=unverified-fixture&expires_in=3600");

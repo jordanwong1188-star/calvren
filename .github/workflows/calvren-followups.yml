@@ -1,0 +1,27 @@
+name: Calvren follow-up scheduler
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+permissions:
+  contents: read
+concurrency:
+  group: calvren-followup-scheduler
+  cancel-in-progress: false
+jobs:
+  followups:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process one due lead without printing credentials
+        env:
+          CALVREN_CRON_TOKEN: ${{ secrets.CALVREN_CRON_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CALVREN_CRON_TOKEN;
+          if(!token){console.log("Follow-ups are disabled until CALVREN_CRON_TOKEN is set in Supabase and GitHub.");process.exit(0);}
+          const response=await fetch("https://xjfsukhfmkgvlfpgjevg.supabase.co/functions/v1/calvren/api/internal/follow-ups",{
+            method:"POST",headers:{Authorization:"Bearer "+token},signal:AbortSignal.timeout(90000),redirect:"error"
+          });
+          if(!response.ok)throw new Error("Follow-up scheduler returned HTTP "+response.status);
+          console.log("One follow-up scheduler pass completed.");
+          NODE
