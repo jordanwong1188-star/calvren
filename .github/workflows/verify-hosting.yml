@@ -1,0 +1,29 @@
+name: Verify Calvren hosted backend
+on:
+  workflow_dispatch:
+  push:
+    branches: ["codex/cloudflare-supabase-hosting"]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify the deployed backend without credentials or paid provider calls
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          const base="https://xjfsukhfmkgvlfpgjevg.supabase.co/functions/v1/calvren";
+          const call=(path,options={})=>fetch(base+path,{...options,redirect:"error",signal:AbortSignal.timeout(30000)});
+          let response=await call("/health");
+          assert.equal(response.status,200);assert.equal((await response.json()).hosting,"supabase");
+          for(const path of ["/api/conversion/status","/api/status"]){
+            response=await call(path);assert.equal(response.status,401);
+          }
+          response=await call("/forms",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({"form-name":"project-enquiry",name:"Hosting Test",email:"hosting-test@example.com",message:"Testing required consent validation."})});
+          assert.equal(response.status,400);
+          console.log("CALVREN_HOSTED_BACKEND_PASSED: live health, both protected workspaces, required consent; no records created or paid calls.");
+          NODE
