@@ -1,7 +1,8 @@
 interface PageContext { request: Request; env: { CALVREN_BACKEND_URL?: string }; next(): Promise<Response>; }
 export async function onRequest(context: PageContext): Promise<Response> {
   const url=new URL(context.request.url);
-  const form=url.pathname==="/"&&context.request.method==="POST";
+  const fallback=context.request.method==="POST"&&["/thanks","/thanks.html","/review-thanks","/review-thanks.html"].includes(url.pathname);
+  const form=context.request.method==="POST"&&(url.pathname==="/"||fallback);
   if(!form&&!url.pathname.startsWith("/api/"))return context.next();
   try{
     const base=new URL(context.env.CALVREN_BACKEND_URL||"https://xjfsukhfmkgvlfpgjevg.supabase.co/functions/v1/calvren");
@@ -15,6 +16,7 @@ export async function onRequest(context: PageContext): Promise<Response> {
     const response=await fetch(new Request(base.href+path+url.search,init));
     // Redirects must never carry an operator/client token to another host.
     if(response.status>=300&&response.status<400)throw new Error();
+    if(fallback&&response.ok)return new Response(null,{status:303,headers:{Location:url.pathname,"Cache-Control":"no-store"}});
     const result=new Response(response.body,response);
     result.headers.set("Cache-Control","no-store");
     result.headers.set("X-Content-Type-Options","nosniff");

@@ -2,7 +2,11 @@
   "version": 1,
   "include": [
     "/",
-    "/api/*"
+    "/api/*",
+    "/thanks",
+    "/thanks.html",
+    "/review-thanks",
+    "/review-thanks.html"
   ],
   "exclude": []
 }

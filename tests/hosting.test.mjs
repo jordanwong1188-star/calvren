@@ -82,6 +82,9 @@ test("Cloudflare proxy forwards protected APIs and forms without cookies or redi
     const form=new Request("https://calvren.pages.dev/",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"name=Test"});
     assert.equal((await onRequest({request:form,env:{},next:async()=>new Response("static")})).status,200);
     assert.ok(calls[1].url.endsWith("/calvren/forms"));assert.equal(await calls[1].text(),"name=Test");
+    const plainForm=new Request("https://calvren.pages.dev/thanks.html",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"name=Test"});
+    const plainResult=await onRequest({request:plainForm,env:{},next:async()=>new Response("static")});
+    assert.equal(plainResult.status,303);assert.equal(plainResult.headers.get("location"),"/thanks.html");assert.ok(calls[2].url.endsWith("/calvren/forms"));
     globalThis.fetch=async()=>new Response(null,{status:302,headers:{Location:"https://untrusted.example/"}});
     assert.equal((await onRequest({request,env:{},next:async()=>new Response("static")})).status,503);
     assert.equal((await onRequest({request:new Request("https://calvren.pages.dev/styles.css"),env:{},next:async()=>new Response("static")})).status,200);
