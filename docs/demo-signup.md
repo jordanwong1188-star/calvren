@@ -30,3 +30,5 @@ The public signup has bounded JSON validation, a honeypot and hashed global/IP/e
 8. Verify /operator and /admin still require their separate strong operator token.
 
 Apply supabase/migrations/202610090002_calvren_demo_signup.sql before deploying the updated backend.
+
+The live verification workflow uses an example.com test address with promotional consent off. Its private signup record is identifiable by the calvren-probe- prefix; it is a test fixture, not a customer or marketing recipient. Remove that fixture through the Supabase table editor if desired.

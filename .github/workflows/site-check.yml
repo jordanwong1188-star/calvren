@@ -27,6 +27,8 @@ jobs:
         run: node tests/site-check.mjs
         env:
           CALVREN_TEST_SITE: https://calvren.pages.dev
+      - name: Generate local fixtures for production demo checks
+        run: node scripts/build-demo.mjs
       - name: Check the production demo entry and simulated workflow
         run: node tests/conversion-browser-check.mjs
         env:
