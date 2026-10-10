@@ -84,6 +84,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610030001_calvren_conversion.sql
       - name: Apply portable hosting storage migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610090001_calvren_hosting.sql
+      - name: Apply demo signup storage migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610090002_calvren_demo_signup.sql
       - name: Check portable hosting storage security
         run: psql -v ON_ERROR_STOP=1 -f tests/hosting-database.sql
       - name: Check transactional storage and security

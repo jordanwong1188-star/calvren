@@ -8,60 +8,57 @@ import { newDemoClient } from "../public/conversion/demo-config.mjs";
 const baseUrl = process.env.CALVREN_PREVIEW_URL || "http://127.0.0.1:8080";
 const fakeToken = "calvren-browser-fixture-token-no-real-secret-12345678";
 
-const authOrigin = "https://xjfsukhfmkgvlfpgjevg.supabase.co";
-const demoAccountToken = "demo-account-fixture-not-a-real-access-token";
-async function mockDemoAuth(page, requests = []) {
-  await page.route(authOrigin + "/auth/v1/**", async route => {
-    const request = route.request(), path = new URL(request.url()).pathname;
-    requests.push({ path, query: new URL(request.url()).searchParams.toString(), body: request.postData() });
-    if (path.endsWith("/otp")) {
-      await route.fulfill({status:200,contentType:"application/json",body:"{}"});
-    } else if (path.endsWith("/logout")) {
-      await route.fulfill({status:204,body:""});
-    } else if (request.headers().authorization === "Bearer " + demoAccountToken) {
-      await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({
-        id:"verified-demo-user",email:"visitor@example.com",email_confirmed_at:"2026-10-06T00:00:00Z"
-      })});
-    } else await route.fulfill({status:401,contentType:"application/json",body:'{"error":"Invalid token"}'});
+const demoAccessId="12345678-1234-4123-8123-123456789abc";
+const demoStorageKey="calvren-demo-access-v2";
+async function mockDemoAccess(page, requests=[], state={failed:false,promotion:"not_requested"}){
+  await page.route("**/api/demo-access",async route=>{
+    const request=route.request();requests.push({body:request.postData(),path:new URL(request.url()).pathname});
+    await route.fulfill({status:state.failed?503:201,contentType:"application/json",body:JSON.stringify(state.failed?{error:"Unavailable"}:{ok:true,id:demoAccessId,demo_url:"/lead-demo.html",promotion:state.promotion})});
   });
 }
-export async function checkDemoAccounts(page, url = baseUrl) {
-  const requests = [];
-  await mockDemoAuth(page, requests);
-  await page.goto(url + "/lead-demo.html");
-  await page.waitForURL("**/try-demo.html");
+export async function checkDemoAccounts(page,url=baseUrl){
+  const requests=[],state={failed:false,promotion:"not_requested"},authRequests=[];
+  page.on("request",request=>{if(request.url().includes("/auth/v1/"))authRequests.push(request.url());});
+  await mockDemoAccess(page,requests,state);
+  await page.goto(url+"/lead-demo.html");await page.waitForURL("**/try-demo.html");
   await page.locator(".demo-access-dialog").waitFor({state:"visible"});
-  await assertNoOverflow(page, 375);
-  await page.keyboard.press("Escape");
-  assert.equal(await page.locator(".demo-access-dialog").isVisible(), false);
-  await page.goto(url + "/");
-  assert.equal(await page.locator(".hero-actions [data-demo-access]").getAttribute("href"), "/try-demo.html");
-  assert.equal(await page.locator("#site-navigation [data-demo-access]").getAttribute("href"), "/try-demo.html");
+  await assertNoOverflow(page,375);await page.keyboard.press("Escape");
+  assert.equal(await page.locator(".demo-access-dialog").isVisible(),false);
+  await page.goto(url+"/");
+  assert.equal(await page.locator(".hero-actions [data-demo-access]").getAttribute("href"),"/try-demo.html");
+  assert.equal(await page.locator("#site-navigation [data-demo-access]").getAttribute("href"),"/try-demo.html");
   await page.locator(".hero-actions [data-demo-access]").click();
-  assert.match(await page.locator("#demo-access-title").innerText(), /Serious about/);
-  await page.locator("#demo-access-email").fill("visitor@example.com");
+  assert.match(await page.locator("#demo-access-title").innerText(),/Serious about/);
+  assert.equal(await page.locator("#demo-promo-consent").isChecked(),false);
+  assert.equal(await page.locator("#demo-promo-consent").getAttribute("required"),null);
+  await page.locator("#demo-access-email").fill("visitor@example.com");state.failed=true;
   await page.locator("#demo-access-form button").click();
-  await page.waitForFunction(() => document.querySelector(".demo-access-status").textContent.includes("Check your inbox"));
-  const otp = requests.find(request => request.path.endsWith("/otp"));
-  assert.equal(JSON.parse(otp.body).email, "visitor@example.com");
-  assert.equal(new URLSearchParams(otp.query).get("redirect_to"), url + "/try-demo.html");
-  assert.equal(await page.evaluate(() => sessionStorage.getItem("calvren-demo-session")), null,
-    "An email submission alone must not unlock the demo.");
-  await page.goto(url + "/try-demo.html#access_token=unverified-fixture&expires_in=3600");
-  await page.locator(".demo-access-status").filter({hasText:"couldn’t verify"}).waitFor();
-  assert.equal(await page.evaluate(() => sessionStorage.getItem("calvren-demo-session")), null);
-  assert.equal(await page.evaluate(() => location.hash), "");
-  await page.goto(url + "/try-demo.html#access_token=" + demoAccountToken + "&expires_in=3600");
-  await page.waitForURL("**/lead-demo.html");
+  await page.waitForFunction(()=>document.querySelector(".demo-access-status").textContent.includes("couldn’t save"));
+  assert.equal(await page.locator("#demo-open-link").isVisible(),false);
+  assert.equal(await page.evaluate(key=>sessionStorage.getItem(key),demoStorageKey),null);
+  state.failed=false;await page.locator("#demo-access-form button").click();
+  await page.locator("#demo-open-link").waitFor({state:"visible"});
+  assert.equal(new URL(page.url()).pathname,"/","The visitor chooses the on-page demo link.");
+  assert.equal(JSON.parse(requests.at(-1).body).email,"visitor@example.com");
+  assert.equal(JSON.parse(requests.at(-1).body).promotional_consent,false);
+  await page.locator("#demo-open-link").click();await page.waitForURL("**/lead-demo.html");
   await page.locator("#demo-start").waitFor({state:"visible"});
-  assert.equal(await page.evaluate(() => location.hash), "");
-  assert.equal(await page.locator("#demo-access-check").isVisible(), false);
-  await page.locator("#demo-sign-out").click();
-  await page.waitForURL("**/try-demo.html");
-  assert.equal(await page.evaluate(() => sessionStorage.getItem("calvren-demo-session")), null);
-  await page.goto(url + "/lead-demo.html");
-  await page.waitForURL("**/try-demo.html");
-  console.log("Demo account checks passed: signed-out redirect, mobile popup, OTP, rejected session, verified callback and sign-out.");
+  assert.equal(await page.locator("#demo-access-check").isVisible(),false);
+  await page.locator("#demo-sign-out").click();await page.waitForURL("**/try-demo.html");
+  assert.equal(await page.evaluate(key=>sessionStorage.getItem(key),demoStorageKey),null);
+  await page.locator("#demo-access-email").fill("visitor@example.com");
+  await page.locator("#demo-promo-consent").check();state.promotion="unavailable";
+  await page.locator("#demo-access-form button").click();await page.locator("#demo-open-link").waitFor({state:"visible"});
+  assert.equal(JSON.parse(requests.at(-1).body).promotional_consent,true);
+  assert.match(await page.locator(".demo-access-status").innerText(),/temporarily unavailable/);
+  await page.locator("#demo-open-link").click();await page.waitForURL("**/lead-demo.html");
+  await page.locator("#demo-sign-out").click();await page.waitForURL("**/try-demo.html");
+  await page.goto(url+"/try-demo.html#access_token=obsolete-link&expires_in=3600");
+  await page.locator(".demo-access-dialog").waitFor({state:"visible"});
+  assert.equal(await page.evaluate(()=>location.hash),"");
+  assert.equal(await page.evaluate(key=>sessionStorage.getItem(key),demoStorageKey),null);
+  assert.deepEqual(authRequests,[],"Instant demo access must never use email authentication.");
+  console.log("Demo email capture passed: immediate on-page link, optional consent, failed-submit retry, promo failure fallback, local access clearing and no Auth requests.");
 }
 
 const responses = {service:"Leak repair",emergency:"No, it can wait for a routine appointment.",area:"Vancouver",timing:"Tomorrow, please."};
@@ -93,10 +90,10 @@ export async function checkLeadDemo(page, url = baseUrl) {
       providerRequests.push(request.url());
     }
   });
-  await mockDemoAuth(page);
-  await page.addInitScript(token => sessionStorage.setItem("calvren-demo-session", JSON.stringify({
-    access_token:token,expires_at:Date.now() + 3600000
-  })), demoAccountToken);
+  await mockDemoAccess(page);
+  await page.addInitScript(id => sessionStorage.setItem("calvren-demo-access-v2", JSON.stringify({
+    version:2,submission_id:id,expires_at:Date.now()+86400000
+  })), demoAccessId);
   await page.goto(url + "/lead-demo.html", {waitUntil:"networkidle"});
   await page.locator("#demo-config").waitFor({state:"attached"});
   assert.match(await page.locator(".simulation-banner").innerText(), /rules-based demo responder/);

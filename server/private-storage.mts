@@ -20,7 +20,7 @@ export class SupabasePrivateStorage implements Storage {
     this.fetcher = options.fetch ?? fetch;
   }
   private valid(key: string) {
-    if (!/^(leads|tombstones|feedback)\/[a-f0-9-]{36}$/.test(key)) throw new Error("Invalid storage key.");
+    if (!/^(leads|tombstones|feedback|demo-signups)\/[a-f0-9-]{36}$/.test(key)) throw new Error("Invalid storage key.");
   }
   private async call(path: string, method = "GET", data?: unknown): Promise<any> {
     const response = await this.fetcher(this.base + path, {method,headers:this.headers,signal:AbortSignal.timeout(15000),

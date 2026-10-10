@@ -12,7 +12,7 @@ These steps require the owner's provider login. Do not put passwords or secret k
    CALVREN_ADMIN_TOKEN, OPENAI_API_KEY, OPENAI_MODEL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, RESEND_API_KEY, NOTIFICATION_FROM_EMAIL when available.
    Set CALVREN_PUBLIC_URL to your actual production Pages/custom-domain origin. Keep CALVREN_AUTOMATION_MODE=demo until end-to-end live testing passes.
    Supabase supplies SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY automatically; do not move them into frontend settings.
-5. Supabase Authentication → URL Configuration: Site URL = new production website origin. Add its exact /try-demo.html return URL. Keep email confirmation enabled and configure custom SMTP to deliver sign-in emails to customers.
+5. Demo access now captures an email and shows an on-page link immediately; Supabase Auth/SMTP is not required for it. Optional promotional introductions use Resend and a real CALVREN_BUSINESS_ADDRESS. See docs/demo-signup.md for setup and tests.
 6. For automatic backend updates: Supabase Account → Access Tokens → create an access token. GitHub repository → Settings → Secrets and variables → Actions → New repository secret: SUPABASE_ACCESS_TOKEN. This credential belongs only in GitHub Actions. The backend publishes after Check Calvren succeeds for a push to main; fork pull requests cannot trigger privileged publishing. Initial database migration is applied during this migration; future schema changes need their own reviewed migration.
 7. For automatic follow-ups: generate a random 32+ character CALVREN_CRON_TOKEN. Save the same value in Supabase Edge Function Secrets AND GitHub Actions secrets. GitHub's Calvren follow-up scheduler calls the backend approximately every five minutes and processes one due lead per pass. Scheduled GitHub Actions can be delayed and may disable themselves after prolonged repository inactivity; this is a first-client MVP schedule, not an exact-time guarantee.
 8. If using real SMS later: change the Twilio number's inbound webhook to the new website /api/conversion/twilio/inbound. The configured business phone_number must match its assigned Twilio number. Test signed incoming SMS, confirmations and STOP after completing all live provider credentials.
@@ -22,7 +22,7 @@ These steps require the owner's provider login. Do not put passwords or secret k
 - New marketing enquiry appears in /admin; prepare/review a fake draft and test archive/export.
 - /operator requires your token and still shows existing clients/conversations.
 - Create a new server demo lead, answer the questions, choose a simulated time and inspect booked notification.
-- /try-demo creates a verified email account; direct signed-out /lead-demo returns to signup; sign-out removes access.
+- /try-demo captures an email and immediately shows Open the demo; promotional consent is optional; clearing demo access removes the local marker. Requests without a current marker return to signup.
 - Run the GitHub scheduler manually with a demo client and verify due follow-up history.
 - Client feedback remains private in calvren_private_records (feedback/ keys); authenticated operator GET /api/feedback can retrieve it. It is never automatically published.
 - Verify real provider delivery separately before changing CALVREN_AUTOMATION_MODE.

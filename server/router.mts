@@ -5,6 +5,7 @@ import { handleWorkflow } from "../netlify/lib/workflow-core.mjs";
 import { createConversionDependencies } from "./conversion-runtime.mjs";
 import { SupabasePrivateStorage } from "./private-storage.mjs";
 import { handlePublicForm } from "./forms.mjs";
+import { handleDemoSignup, handleDemoUnsubscribe } from "./demo-access.mjs";
 export interface ServerOptions { env(name:string):string|undefined; ip?:string; }
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
 export async function handleServer(request: Request, options: ServerOptions): Promise<Response> {
@@ -26,6 +27,11 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
       if(!expected||expected.length<32||!supplied||!timingSafeEqual(hash(expected),hash(supplied)))return json({error:"Scheduler authentication required."},401);
       if(!deps.repository||!deps.readiness().admin)return json({error:"Operator setup is incomplete."},503);
       return json({ok:true,...await deps.engine().followUps(1)});
+    }
+    if(path==="/api/demo-access"||path==="/api/demo-access/unsubscribe"){
+      if(!url||!key||!deps.repository)return json({error:"Demo signup is temporarily unavailable."},503);
+      const signupDeps={repository:deps.repository,storage:new SupabasePrivateStorage({url,key}),env,ip:options.ip};
+      return path.endsWith("/unsubscribe")?handleDemoUnsubscribe(routed,signupDeps):handleDemoSignup(routed,signupDeps);
     }
     if(path==="/forms"&&request.method==="POST"){
       if(!url||!key||!deps.repository)return json({error:"Database setup is incomplete."},503);
