@@ -25,6 +25,12 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Check the published site
         run: node tests/site-check.mjs
+        env:
+          CALVREN_TEST_SITE: https://calvren.pages.dev
+      - name: Check the production demo entry and simulated workflow
+        run: node tests/conversion-browser-check.mjs
+        env:
+          CALVREN_PREVIEW_URL: https://calvren.pages.dev
       - name: Save browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
