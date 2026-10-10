@@ -1,0 +1,50 @@
+name: Verify live demo access
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "server/demo-access.mts"
+      - "public/demo-access.js"
+      - ".github/workflows/verify-demo-access.yml"
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify backend and production Cloudflare email capture without sending an email
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          const site="https://calvren.pages.dev";
+          const backend="https://xjfsukhfmkgvlfpgjevg.supabase.co/functions/v1/calvren";
+          const email="calvren-probe-"+process.env.GITHUB_RUN_ID+"@example.com";
+          const call=(url,options={})=>fetch(url,{...options,redirect:"error",signal:AbortSignal.timeout(20000)});
+          const options=()=>({method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,promotional_consent:false,website:""})});
+          let response=await call(backend+"/api/demo-access",options());
+          assert.equal(response.status,201,"Deployed backend must save a demo signup.");
+          const first=await response.json();
+          assert.equal(first.demo_url,"/lead-demo.html");assert.equal(first.promotion,"not_requested");
+          console.log("CALVREN_DEMO_PROBE_ID="+first.id);
+          // Git integration publishes asynchronously after a push to main.
+          let ready=false;
+          for(let attempt=0;attempt<24;attempt++){
+            try{response=await call(site+"/demo-access.js");const source=await response.text();if(response.ok&&source.includes("calvren-demo-access-v2")&&!source.includes("/auth/v1/otp")){ready=true;break;}}catch{}
+            await new Promise(resolve=>setTimeout(resolve,15000));
+          }
+          assert.ok(ready,"Cloudflare must publish the new immediate-access frontend.");
+          response=await call(site+"/api/demo-access",options());
+          assert.equal(response.status,201,"The Cloudflare API proxy must save a demo signup.");
+          const repeated=await response.json();assert.equal(repeated.id,first.id);assert.equal(repeated.promotion,"not_requested");
+          for(const path of ["/api/conversion/status","/api/status"]){
+            response=await call(site+path);assert.ok([401,503].includes(response.status));
+            const body=await response.json();if(response.status===503)assert.match(body.error,/CALVREN_ADMIN_TOKEN/);
+            assert.equal(body.leads,undefined);assert.equal(body.clients,undefined);
+          }
+          console.log("CALVREN_INSTANT_DEMO_LIVE_PASSED: production frontend, direct backend capture, Cloudflare proxy, duplicate identity, no promotion, private workspaces closed.");
+          NODE
