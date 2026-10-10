@@ -70,6 +70,7 @@ document.querySelectorAll("[data-demo-access]").forEach(link=>link.addEventListe
 }));
 if(document.body.dataset.demoSignup==="true"){
   // Remove obsolete magic-link fragments without accepting them as demo access.
-  if(location.hash)history.replaceState(null,"",signupPath);
+  const clearObsoleteLink=()=>{if(location.hash)history.replaceState(null,"",signupPath);};
+  clearObsoleteLink();window.addEventListener("hashchange",clearObsoleteLink);
   if(demoAccessSession())location.replace("/lead-demo.html");else openDemoAccess();
 }
