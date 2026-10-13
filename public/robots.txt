@@ -1,4 +1,4 @@
 User-agent: *
 Disallow: /admin.html
 Disallow: /api/
-Sitemap: https://calvren.netlify.app/sitemap.xml
+Sitemap: https://calvren.pages.dev/sitemap.xml
