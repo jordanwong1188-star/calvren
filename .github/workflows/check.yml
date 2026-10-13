@@ -43,6 +43,10 @@ jobs:
           CALVREN_TEST_SITE: http://127.0.0.1:8080
       - name: Check lead conversion demo and operator workspace
         run: node tests/conversion-browser-check.mjs
+      - name: Check standalone guest demo, requested weekdays and case studies
+        run: node tests/public-demo-smoke.mjs
+        env:
+          CALVREN_PUBLIC_SITE: http://127.0.0.1:8080
       - name: Save browser review
         if: always()
         uses: actions/upload-artifact@v4
