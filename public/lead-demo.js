@@ -5,6 +5,27 @@
   const $ = id => document.getElementById(id);
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const weekdayIndex = {sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+  // Illustrative appointment openings. Keep this weekday pattern in sync with
+  // src/conversion/mock-services.mts; neither list reflects a real calendar.
+  const weekdayTimes = {
+    1:["08:15","09:30","10:45","12:15","13:30","15:00"],
+    2:["08:00","09:15","10:30","12:00","13:45","15:15"],
+    3:["08:30","09:45","11:00","12:30","13:45","15:15"],
+    4:["08:45","10:00","11:15","12:15","13:30","15:00"],
+    5:["09:00","10:15","11:30","12:45","14:00","15:15"],
+    6:["09:15","10:30","11:45"]
+  };
+  function suggestedTimes(weekday,period) {
+    const scheduled=weekdayTimes[weekday]||[];
+    if(period)return scheduled.filter(time=>{
+      const hour=Number(time.slice(0,2));
+      return hour>=period[0]&&hour<period[1];
+    });
+    // Without a daypart preference offer a choice spanning morning and afternoon.
+    const mornings=scheduled.filter(time=>time<"12:00");
+    const afternoons=scheduled.filter(time=>time>="12:00");
+    return afternoons.length?[mornings[0],afternoons[0],afternoons.at(-1)].filter(Boolean):scheduled;
+  }
   const safeClone = value => JSON.parse(JSON.stringify(value));
   const initial = {
     id:"abc-plumbing-demo", business_name:"ABC Plumbing", industry:"Local services",
@@ -68,7 +89,7 @@
       if(!hours||start.time<hours.open||end.date!==start.date||end.time>hours.close)continue;
       if(requestedWeekday!==null&&start.weekday!==requestedWeekday)continue;
       if(requestedDay&&start.date!==requestedDay)continue;
-      if(part&&(start.hour<part[0]||start.hour>=part[1]))continue;
+      if(!suggestedTimes(start.weekday,part).includes(start.time))continue;
       const label=new Intl.DateTimeFormat("en-US",{timeZone:client.timezone,weekday:"short",
         month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(new Date(ms));
       result.push({id:"demo_"+ms,start:new Date(ms).toISOString(),end:new Date(ms+duration).toISOString(),label});
