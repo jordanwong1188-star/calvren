@@ -50,6 +50,24 @@ jobs:
             await new Promise(resolve=>setTimeout(resolve,15000));
           }
           assert.ok(weekdayReady,"Cloudflare must serve the weekday-aware demo calendar, not an old build.");
+          // The user-facing simulation must be a standalone browser script and respond without signup.
+          let currentDemo=false;
+          for(let attempt=0;attempt<24;attempt++){
+            try{
+              const [js,study]=await Promise.all([call(site+"/lead-demo.js"),call(site+"/case-studies.html")]);
+              const [demoCode,studyHtml]=await Promise.all([js.text(),study.text()]);
+              if(js.ok&&study.ok&&demoCode.includes("calvrenDemoReady")&&
+                demoCode.includes("requestedWeekday")&&
+                !demoCode.includes('import { ConversionEngine }')&&
+                studyHtml.includes("ShinerBros Window Cleaning")&&
+                studyHtml.includes("ClearCraft Automotive Detailing")&&
+                studyHtml.includes("Jacob")&&studyHtml.includes("Dylan")){
+                currentDemo=true;break;
+              }
+            }catch{}
+            await new Promise(resolve=>setTimeout(resolve,15000));
+          }
+          assert.ok(currentDemo,"Cloudflare must publish the current standalone demo and corrected case studies.");
           response=await call(site+"/api/demo-access",options());
           assert.equal(response.status,201,"The Cloudflare API proxy must save a demo signup.");
           const repeated=await response.json();assert.equal(repeated.id,first.id);assert.equal(repeated.promotion,"not_requested");
