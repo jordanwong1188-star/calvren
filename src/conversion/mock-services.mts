@@ -98,6 +98,26 @@ export class DemoMessagingService implements MessagingService {
     demoOnly(client); return { provider_id: "demo-message-" + message.id, status: "sent" };
   }
 }
+// Demonstration-only availability: a distinct curated pattern for every open
+// weekday, never connected to a real client calendar. Match public/lead-demo.js.
+const weekdayTimes: Record<number, string[]> = {
+  1: ["08:15","09:30","10:45","12:15","13:30","15:00"],
+  2: ["08:00","09:15","10:30","12:00","13:45","15:15"],
+  3: ["08:30","09:45","11:00","12:30","13:45","15:15"],
+  4: ["08:45","10:00","11:15","12:15","13:30","15:00"],
+  5: ["09:00","10:15","11:30","12:45","14:00","15:15"],
+  6: ["09:15","10:30","11:45"]
+};
+function suggestedTimes(weekday: number, period: number[] | null): string[] {
+  const scheduled=weekdayTimes[weekday]??[];
+  if(period)return scheduled.filter(time=>{
+    const hour=Number(time.slice(0,2));
+    return hour>=period[0]&&hour<period[1];
+  });
+  const mornings=scheduled.filter(time=>time<"12:00");
+  const afternoons=scheduled.filter(time=>time>="12:00");
+  return afternoons.length?[mornings[0],afternoons[0],afternoons.at(-1)].filter((time):time is string=>Boolean(time)):scheduled;
+}
 export class DemoCalendarService implements CalendarService {
   async available({ client, lead, now }: Parameters<CalendarService["available"]>[0]) {
     demoOnly(client);
@@ -125,7 +145,8 @@ export class DemoCalendarService implements CalendarService {
       const hour = Number(local.time.slice(0, 2));
       return (!period || (hour >= period[0] && hour < period[1])) &&
         (!requestedDay || dateKey(start) === requestedDay) &&
-        (requestedWeekday === null || Number(local.day) === requestedWeekday);
+        (requestedWeekday === null || Number(local.day) === requestedWeekday) &&
+        suggestedTimes(Number(local.day),period).includes(local.time);
     });
   }
   async book({ client, appointment }: Parameters<CalendarService["book"]>[0]) {
