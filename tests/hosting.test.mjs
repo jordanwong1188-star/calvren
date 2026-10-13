@@ -41,7 +41,7 @@ test("portable backend preserves custom operator authentication and defaults to 
 function formFixture(overrides={}){
   const writes=[];const rows=new Map();const limits=[];
   const deps={ip:"fixture-ip",repository:{async consumeRateLimit(...args){limits.push(args);return true;}},
-    storage:{async get(key){return rows.get(key)??null;},async delete(key){rows.delete(key);},async setJSON(key,data,conditions){writes.push({key,data,conditions});if(!rows.has(key))rows.set(key,data);return{modified:true};}},...overrides};
+    storage:{async get(key){return rows.get(key)??null;},async delete(key){rows.delete(key);},async setJSON(key,data,conditions){const modified=!rows.has(key);writes.push({key,data,conditions});if(modified)rows.set(key,data);return{modified};}},...overrides};
   const fields={"form-name":"project-enquiry",name:"Jordan Test",email:"test@example.com",message:"Please help us organise new enquiries.",consent:"yes","submission-key":"fixture-request",industry:"Local services"};
   const request=extra=>new Request("https://calvren.example/forms",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({...fields,...extra})});
   return{deps,request,writes,rows,limits};
@@ -54,6 +54,53 @@ test("public forms save private enquiries without AI processing and retry with a
   assert.equal(f.rows.size,1);assert.equal(f.writes[0].data.status,"new");assert.equal(f.writes[0].data.automation,null);
   assert.equal(f.writes[0].conditions.onlyIfNew,true);
   assert.ok(f.limits.every(([hash])=>/^[a-f0-9]{64}$/.test(hash)));
+});
+test("public enquiries notify the designated Gmail once, only after persistence, without leaking tokens",async()=>{
+  const f=formFixture(),calls=[];
+  f.deps.env=name=>({RESEND_API_KEY:"resend-test-secret",NOTIFICATION_FROM_EMAIL:"Calvren <notifications@verified.example>",CALVREN_LEAD_NOTIFICATION_EMAIL:"jordan.wong1177@gmail.com"}[name]);
+  f.deps.fetch=async (url,init)=>{
+    assert.ok(f.rows.size===1,"Record must be durable before mail provider is called.");
+    calls.push({url,init});
+    return new Response(JSON.stringify({id:"provider-accepted"}),{status:200});
+  };
+  const first=await handlePublicForm(f.request(),f.deps);
+  assert.equal(first.status,201);
+  const id=(await first.json()).id;
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].url,"https://api.resend.com/emails");
+  const message=JSON.parse(calls[0].init.body);
+  assert.deepEqual(message.to,["jordan.wong1177@gmail.com"]);
+  assert.equal(message.reply_to,"test@example.com");
+  assert.match(message.subject,/New website enquiry/);
+  assert.match(message.text,/Please help us organise new enquiries/);
+  assert.equal(calls[0].init.headers["Idempotency-Key"],"calvren-public-form-"+id);
+  const duplicate=await handlePublicForm(f.request(),f.deps);
+  assert.equal(duplicate.status,201);
+  assert.equal(calls.length,1,"Duplicate browser submissions must not email twice.");
+});
+test("missing email configuration and provider errors never discard saved forms",async()=>{
+  for(const result of ["missing","provider-down","exception"]){
+    const f=formFixture();
+    let calls=0;
+    f.deps.env=name=>({RESEND_API_KEY:result==="missing"?undefined:"test-resend-key",NOTIFICATION_FROM_EMAIL:"notifications@example.com"}[name]);
+    f.deps.fetch=async()=>{calls++;if(result==="exception")throw Error("Simulated timeout");return new Response("not authorized",{status:403});};
+    const response=await handlePublicForm(f.request(),f.deps);
+    assert.equal(response.status,201,result);
+    assert.equal(f.rows.size,1,result);
+    assert.equal(calls,result==="missing"?0:1);
+  }
+});
+test("feedback notifications are separate from promotional consent and never imply publication",async()=>{
+  const f=formFixture(),mail=[];
+  f.deps.env=name=>({RESEND_API_KEY:"test-resend-key",NOTIFICATION_FROM_EMAIL:"notifications@example.com"}[name]);
+  f.deps.fetch=async(_url,init)=>{mail.push(JSON.parse(init.body));return new Response("ok",{status:200});};
+  const response=await handlePublicForm(f.request({"form-name":"client-insight",company:"Demo Co",workflow:"Scheduling",
+    experience:"The enquiry process is easier to understand.","feedback-consent":"yes"}),f.deps);
+  assert.equal(response.status,201);
+  assert.equal(mail.length,1);
+  assert.deepEqual(mail[0].to,["jordan.wong1177@gmail.com"]);
+  assert.match(mail[0].subject,/client feedback/);
+  assert.match(mail[0].text,/Publication permission: Not granted/);
 });
 test("public forms enforce consent, honeypot, field bounds and rate limits",async()=>{
   const f=formFixture();
