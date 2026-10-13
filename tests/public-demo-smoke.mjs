@@ -32,7 +32,7 @@ async function runExample(day,label){
   assert.match(await page.locator("#demo-appointment").innerText(),/Simulated appointment booked/);
   await page.locator("#demo-sign-out").click();
   assert.equal(await page.locator("#demo-lead-status").innerText(),"Not started");
-  return offered.map(value=>value.match(/\\b\\d{1,2}:\\d{2}\\s*[AP]M\\b/)?.[0]||value);
+  return offered.map(value=>value.match(/\b\d{1,2}:\d{2}\s*[AP]M\b/)?.[0]||value);
 }
 try{
   const openings={};
