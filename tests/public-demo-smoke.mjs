@@ -32,10 +32,18 @@ async function runExample(day,label){
   assert.match(await page.locator("#demo-appointment").innerText(),/Simulated appointment booked/);
   await page.locator("#demo-sign-out").click();
   assert.equal(await page.locator("#demo-lead-status").innerText(),"Not started");
+  return offered.map(value=>value.match(/\\b\\d{1,2}:\\d{2}\\s*[AP]M\\b/)?.[0]||value);
 }
 try{
-  await runExample("Friday","Fri");
-  await runExample("Thursday","Thu");
+  const openings={};
+  for(const [day,label] of [["Monday","Mon"],["Tuesday","Tue"],["Wednesday","Wed"],
+    ["Thursday","Thu"],["Friday","Fri"],["Saturday","Sat"]]){
+    openings[day]=await runExample(day,label);
+  }
+  assert.equal(new Set(Object.values(openings).map(times=>times.join(","))).size,6,
+    "Each business day must offer a different set of times.");
+  assert.deepEqual(openings.Friday,["9:00 AM","12:45 PM","3:15 PM"]);
+  assert.deepEqual(openings.Thursday,["8:45 AM","12:15 PM","3:00 PM"]);
   await page.goto(site+"/case-studies.html",{waitUntil:"networkidle",timeout:30000});
   const studyText=await page.locator("#workflow-studies").innerText();
   for(const name of ["ShinerBros Window Cleaning","ClearCraft Automotive Detailing","Jacob","Dylan"]) {
@@ -44,7 +52,7 @@ try{
   assert.equal(await page.locator("[data-study]").count(),2);
   assert.deepEqual(errors,[],"No browser JavaScript exceptions.");
   assert.deepEqual(privateRequests,[],"Guest simulation must not use private APIs or even signup APIs.");
-  console.log("CALVREN_PUBLIC_DEMO_SMOKE_PASSED: guest response, Friday/Thursday slots, simulated booking, reset, named studies, no private API.");
+  console.log("CALVREN_PUBLIC_DEMO_SMOKE_PASSED: guest response, six distinct weekday slot sets, simulated booking, reset, named studies, no private API.");
 }finally{
   await browser.close();
 }
