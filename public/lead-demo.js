@@ -254,13 +254,13 @@
       const q=client.qualifying_questions.find(q=>kind(q)==="service");
       if(service&&q)lead.answers[q.id]=service;
       conversation();render();
-      status("demo-intake-status","Conversation started. No real messages were sent.");
+      status("demo-intake-status","Saved in this demo. No real messages or appointments were sent.");
     }catch(err){status("demo-intake-status",err.message||"Try the example enquiry again.",true);}
   });
   $("demo-reply").addEventListener("submit",event=>{
     event.preventDefault();
     try{input($("demo-reply-message").value);$("demo-reply-message").value="";
-      status("demo-action-status","Reply processed in this demo. No real messages were sent.");
+      status("demo-action-status","Saved in this demo. No real messages or appointments were sent.");
     }catch(err){status("demo-action-status",err.message||"Please try again.",true);}
   });
   $("demo-config-form").addEventListener("submit",event=>{
