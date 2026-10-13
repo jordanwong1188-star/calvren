@@ -103,6 +103,12 @@ export class DemoCalendarService implements CalendarService {
     demoOnly(client);
     const question = client.qualifying_questions.find(q => questionKind(q) === "timing");
     const preference = question ? lead.answers[question.id]?.toLowerCase() ?? "" : "";
+    // A weekday preference must constrain mock appointment dates, not just the time of day.
+    // Match full names and common abbreviations; evaluate against the business's timezone.
+    const weekdayMatch = /\b(?:sun(?:day)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?)\b/.exec(preference);
+    const requestedWeekday: number | null = weekdayMatch
+      ? ({ sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 } as Record<string, number>)[weekdayMatch[0].slice(0, 3)]
+      : null;
     const period = /\bafternoon\b/.test(preference) ? [12, 17] :
       /\bmorning\b/.test(preference) ? [0, 12] : /\b(?:evening|tonight)\b/.test(preference) ? [17, 24] : null;
     const dateKey = (date: Date) => {
@@ -115,9 +121,11 @@ export class DemoCalendarService implements CalendarService {
     const requestedDay = /\btomorrow\b/.test(preference) ? tomorrow.toISOString().slice(0, 10) :
       /\b(?:today|tonight)\b/.test(preference) ? today : null;
     return demoSlots(client, now, start => {
-      const hour = Number(localClock(start, client.timezone).time.slice(0, 2));
+      const local = localClock(start, client.timezone);
+      const hour = Number(local.time.slice(0, 2));
       return (!period || (hour >= period[0] && hour < period[1])) &&
-        (!requestedDay || dateKey(start) === requestedDay);
+        (!requestedDay || dateKey(start) === requestedDay) &&
+        (requestedWeekday === null || Number(local.day) === requestedWeekday);
     });
   }
   async book({ client, appointment }: Parameters<CalendarService["book"]>[0]) {
