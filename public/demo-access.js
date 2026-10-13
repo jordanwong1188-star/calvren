@@ -14,10 +14,10 @@ function makeDialog(){
     <p class="eyebrow"><span class="tiny-dot"></span> YOUR FRONT-ROW SEAT</p>
     <div class="demo-access-symbol" aria-hidden="true">↗</div>
     <h2 id="demo-access-title">Serious about<br><em>fewer missed leads?</em></h2>
-    <p class="demo-access-description">Try the lead-to-booking simulation. Enter your email if you want to hear from us, or skip signup to explore it now.</p>
+    <p class="demo-access-description">Try the lead-to-booking simulation right away. Email signup is optional; promotional messages require your separate consent.</p>
     <div class="demo-access-perks"><span>✓ Immediate access</span><span>✓ No password</span><span>✓ No card</span></div>
     <form id="demo-access-form">
-      <label for="demo-access-email">Your email (optional — guest access below)</label>
+      <label for="demo-access-email">Your email (optional — or choose guest access)</label>
       <input id="demo-access-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required placeholder="you@yourbusiness.com">
       <p hidden><label>Leave blank <input name="website" tabindex="-1" autocomplete="off"></label></p>
       <label class="demo-promo-choice" for="demo-promo-consent"><input id="demo-promo-consent" type="checkbox"><span>Also email me a one-time introduction to Calvren’s automation services. Optional; demo access works either way.</span></label>
