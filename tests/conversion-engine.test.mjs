@@ -108,6 +108,38 @@ test("first MVP fake leak workflow qualifies, offers stored times, books, notifi
   assert.equal(bundle.messages.filter(m => m.sender === "assistant").length, 5);
   assert.ok(bundle.messages.every(m => m.status === "received" || m.status === "sent"));
 });
+test("Thursday preference offers only Thursday slots and books one of those slots", async () => {
+  const f = fixture();
+  f.advance("2026-10-13T21:59:00.000Z"); // Tuesday, 2:59 PM in Vancouver.
+  let bundle = await f.engine.intake(f.input());
+  bundle = await f.reply(bundle, "i want to wait for a routine appointment");
+  bundle = await f.reply(bundle, "vancouver");
+  bundle = await f.reply(bundle, "thursday");
+  assert.equal(bundle.lead.qualification_status, "qualified");
+  assert.equal(bundle.lead.offered_slots.length, 3);
+  assert.ok(bundle.lead.offered_slots.every(slot => /^Thu, Oct 15,/.test(slot.label)),
+    "A Thursday request must never offer Wednesday appointments.");
+  bundle = await f.reply(bundle, "1");
+  assert.equal(bundle.lead.status, "booked");
+  assert.match(bundle.appointments[0].slot.label, /^Thu, Oct 15,/);
+});
+test("demo calendar respects weekday aliases, dayparts, and horizon instead of offering another day", async () => {
+  const f = fixture();
+  const now = "2026-10-13T21:59:00.000Z";
+  for (const timing of ["Thursday", "thu", "Thurs afternoon", "next Thursday", "Thursday morning"]) {
+    const slots = await f.mock.calendar.available({ client: f.client, lead: { answers: { timing } }, now });
+    assert.equal(slots.length, 3, timing);
+    assert.ok(slots.every(slot => /^Thu, Oct 15,/.test(slot.label)), timing);
+    if (/afternoon/.test(timing)) assert.ok(slots.every(slot => Number(new Intl.DateTimeFormat("en-US", {
+      timeZone: f.client.timezone, hour: "numeric", hourCycle: "h23"
+    }).format(new Date(slot.start))) >= 12), "Afternoon slots should be after noon.");
+  }
+  const shortHorizon = newDemoClient({ calendar: { ...f.client.calendar, horizon_days: 1 } });
+  const unavailable = await f.mock.calendar.available({ client: shortHorizon, lead: { answers: { timing: "Thursday" } }, now });
+  assert.deepEqual(unavailable, [], "Do not substitute Wednesday if Thursday falls outside the booking horizon.");
+  const closedSunday = await f.mock.calendar.available({ client: f.client, lead: { answers: { timing: "Sunday" } }, now });
+  assert.deepEqual(closedSunday, [], "Do not suggest slots on the business's closed day.");
+});
 test("one reusable engine serves a different configured business and custom questions", async () => {
   const f = fixture({ client: {
     id: "office-demo", business_name: "Office Studio", industry: "Professional services",
