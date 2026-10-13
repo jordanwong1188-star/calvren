@@ -126,19 +126,19 @@ try{
   assert.equal(await page.locator('#project-form [name="workflow"]').inputValue(),"real-estate");
   await visit("/case-studies.html");
   await screenshot("STUDIES");
-  assert.equal(await page.locator("[data-study]").count(),5);
+  assert.equal(await page.locator("[data-study]").count(),2);
   assert.match(await page.locator(".study-disclosure").textContent(),/illustrative/i);
   for(const id of ["shine-bros","clear-craft"]){
     assert.match(await page.locator("#"+id+" .example-badge").textContent(),/not a verified client result/);
-    assert.equal(await page.locator("#"+id+" [data-demo-access]").getAttribute("href"),"/try-demo.html");
+    assert.equal(await page.locator("#"+id+" a.button").getAttribute("href"),"/lead-demo.html");
   }
-  for(const industry of ["real-estate","local-services","professional"]){
+  for(const industry of ["window-cleaning","auto-detailing"]){
     await page.locator('[data-study-filter="'+industry+'"]').click();
-    assert.equal(await page.locator("[data-study]:not([hidden])").count(),industry==="local-services"?3:1);
+    assert.equal(await page.locator("[data-study]:not([hidden])").count(),1);
     assert.equal(await page.locator('[data-study-filter="'+industry+'"]').getAttribute("aria-pressed"),"true");
   }
   await page.locator('[data-study-filter="all"]').click();
-  assert.equal(await page.locator("[data-study]:not([hidden])").count(),5);
+  assert.equal(await page.locator("[data-study]:not([hidden])").count(),2);
   assert.equal(await page.locator("#publish-permission").isChecked(),false);
   assert.equal(await page.locator("#publish-permission").getAttribute("required"),null);
   assert.notEqual(await page.locator('[name="feedback-consent"]').getAttribute("required"),null);
