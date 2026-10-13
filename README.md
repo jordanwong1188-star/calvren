@@ -1,5 +1,9 @@
 # Calvren
 
+**Current production website:** https://calvren.pages.dev  
+**Customer-facing demo:** https://calvren.pages.dev/lead-demo.html  
+**Hosting rule:** GitHub `main` deploys to Cloudflare Pages. `calvren.netlify.app` is an old legacy deployment and must not be used for new customer links or demo testing. Keep the operator workspace private and separate from the public demo.
+
 For the Cloudflare Pages + Supabase hosting migration and GitHub publishing, follow [docs/cloudflare-setup.md](docs/cloudflare-setup.md). The original Netlify setup command is retained for existing Netlify deployments.
 
 Calvren now includes a reusable Lead Conversion MVP alongside the existing marketing site. Run the guided owner setup with `npm install` then `npm run setup`. It collects credentials privately, generates an operator token, configures the existing Netlify site and deploys the build. Read [the quick setup guide](docs/setup-now.md) and [the complete demo and customer onboarding guide](docs/lead-conversion-mvp.md).
@@ -10,11 +14,11 @@ Calvren now includes a reusable Lead Conversion MVP alongside the existing marke
 
 A live B2B AI automation website and single-owner enquiry workspace for Jordan Wong.
 
-- Website: https://calvren.netlify.app
-- Case studies and client feedback: https://calvren.netlify.app/case-studies
-- Contact: https://calvren.netlify.app/contact
-- Private owner workspace: https://calvren.netlify.app/admin.html
-- Netlify: https://app.netlify.com/projects/calvren
+- Website: https://calvren.pages.dev
+- Case studies and client feedback: https://calvren.pages.dev/case-studies.html
+- Contact: https://calvren.pages.dev/contact.html
+- Private owner workspace: https://calvren.pages.dev/admin.html (token protected; not promoted to visitors)
+- Old Netlify hosting (legacy only): https://app.netlify.com/projects/calvren
 - Repository: https://github.com/jordanwong1188-star/calvren
 
 ## Operating the business
@@ -65,7 +69,7 @@ Use Node 22.13 or newer:
 
 Use Netlify Dev for platform features. The guided setup keeps credentials in ignored private `.env` files and configures hosted Production variables. Local development and deploy previews cannot run the new live client providers; use a demo client for local tests.
 
-Build settings are in netlify.toml. Automatic publication requires linking this repository to the existing Netlify project on branch `main`; it has not been verified. The guided setup can publish directly through your authenticated Netlify CLI session. [GitHub Actions](https://github.com/jordanwong1188-star/calvren/actions) checks TypeScript, JavaScript syntax, browser-demo behavior, backend behavior and the published website. Live browser tests use mocked form success/failure paths, so ordinary checks do not create real enquiries.
+Current website deployment uses Cloudflare Pages with `npm run build:cloudflare` and publishes from GitHub `main`. The `netlify.toml` configuration and Netlify CLI workflow are retained only for the original legacy deployment. [GitHub Actions](https://github.com/jordanwong1188-star/calvren/actions) checks TypeScript, JavaScript syntax, browser-demo behavior, backend behavior and the published website. Live browser tests use mocked form success/failure paths, so ordinary checks do not create real enquiries.
 
 Production OpenAI execution and notification delivery must be verified with the controlled smoke tests in the owner guide after account configuration. No fabricated customer reviews or performance results are published.
 
