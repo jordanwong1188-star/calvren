@@ -1,6 +1,6 @@
 # Instant demo access and optional introduction
 
-The public website captures an email with POST /api/demo-access and then displays an Open the demo link. No Supabase Auth account or magic link is created. Emails are unverified. This is a browser gate for an illustrative simulation, not authorization for client data or an operator account. A tab-local access marker expires after 24 hours.
+The public website captures an email with POST /api/demo-access and then opens the browser demo automatically. No Supabase Auth account or magic link is created. Emails are unverified. This is a browser gate for an illustrative simulation, not authorization for client data or an operator account. A tab-local access marker expires after 24 hours.
 
 Storage: calvren_private_records keys demo-signups/<id>. Each record stores the email, signup timestamps, explicit promotional consent, consent timestamp, send state and an unsubscribe token hash. Only the server/service role can read or write; RLS and existing database grants are unchanged. Owner can inspect/delete signup records in Supabase's table editor. Deleting a record also removes its suppression history; keep an unsubscribed marker if needed to preserve the opt-out.
 
@@ -22,11 +22,11 @@ The public signup has bounded JSON validation, a honeypot and hashed global/IP/e
 ## Test
 1. Click Test the full demo on the landing page.
 2. Enter a test email with the promotional checkbox off.
-3. Submit. Open the demo appears immediately on the same page; click it.
+3. Submit. The browser automatically opens the full demo after signup succeeds.
 4. Clear demo access; submit another test email with the promotional checkbox on.
 5. With email configured, inspect the received introduction and test unsubscribe.
 6. Submit the same address again and verify there is no second email. A previously opted-out address remains opted out.
-7. With email settings absent, the demo still opens and the UI reports the introductory email is unavailable.
+7. With email settings absent, the demo still opens when the signup succeeds; optional promotional email delivery is not required.
 8. Verify /operator and /admin still require their separate strong operator token.
 
 Apply supabase/migrations/202610090002_calvren_demo_signup.sql before deploying the updated backend.
