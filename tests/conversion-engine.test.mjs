@@ -145,6 +145,41 @@ test("demo calendar respects weekday aliases, dayparts, and horizon instead of o
   const closedSunday = await f.mock.calendar.available({ client: f.client, lead: { answers: { timing: "Sunday" } }, now });
   assert.deepEqual(closedSunday, [], "Do not suggest slots on the business's closed day.");
 });
+test("each open weekday offers its own realistic morning and afternoon demo times", async () => {
+  const f=fixture();
+  const now="2026-10-12T13:00:00.000Z"; // Monday 6 AM, before all simulated openings.
+  const expected={
+    Monday:["08:15","12:15","15:00"],
+    Tuesday:["08:00","12:00","15:15"],
+    Wednesday:["08:30","12:30","15:15"],
+    Thursday:["08:45","12:15","15:00"],
+    Friday:["09:00","12:45","15:15"],
+    Saturday:["09:15","10:30","11:45"]
+  };
+  const timeOf=iso=>{
+    const parts=new Intl.DateTimeFormat("en-GB",{timeZone:f.client.timezone,hour:"2-digit",
+      minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(iso));
+    return parts.find(p=>p.type==="hour").value+":"+parts.find(p=>p.type==="minute").value;
+  };
+  for(const [weekday,times] of Object.entries(expected)){
+    const offered=await f.mock.calendar.available({client:f.client,lead:{answers:{timing:weekday}},now});
+    assert.equal(offered.length,3,weekday);
+    assert.deepEqual(offered.map(slot=>timeOf(slot.start)),times,weekday+" must use its own openings");
+    assert.ok(offered.every(slot=>slot.label.startsWith(weekday.slice(0,3))),weekday);
+    const morning=await f.mock.calendar.available({client:f.client,lead:{answers:{timing:weekday+" morning"}},now});
+    assert.equal(morning.length,3,weekday+" morning");
+    assert.ok(morning.every(slot=>timeOf(slot.start)<"12:00"));
+    if(weekday!=="Saturday"){
+      const afternoon=await f.mock.calendar.available({client:f.client,lead:{answers:{timing:weekday+" afternoon"}},now});
+      assert.equal(afternoon.length,3,weekday+" afternoon");
+      assert.ok(afternoon.every(slot=>timeOf(slot.start)>="12:00"));
+    }
+  }
+  const distinct=new Set(Object.values(expected).map(times=>times.join(",")));
+  assert.equal(distinct.size,6,"The six open days must not repeat a single schedule.");
+  assert.deepEqual(await f.mock.calendar.available({client:f.client,lead:{answers:{timing:"Saturday afternoon"}},now}),[],
+    "Closed Saturday afternoons must not be replaced by appointments on other days.");
+});
 test("one reusable engine serves a different configured business and custom questions", async () => {
   const f = fixture({ client: {
     id: "office-demo", business_name: "Office Studio", industry: "Professional services",
