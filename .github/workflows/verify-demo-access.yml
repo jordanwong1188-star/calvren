@@ -38,6 +38,18 @@ jobs:
             await new Promise(resolve=>setTimeout(resolve,15000));
           }
           assert.ok(ready,"Cloudflare must publish the new immediate-access frontend.");
+          // Do not mistake a successful build for a published weekday-booking fix.
+          // The browser demo is static; verify its actual compiled calendar module on Cloudflare.
+          let weekdayReady=false;
+          for(let attempt=0;attempt<24;attempt++){
+            try{
+              response=await call(site+"/conversion/mock-services.mjs");
+              const code=await response.text();
+              if(response.ok&&code.includes("requestedWeekday")&&code.includes("Number(local.day) === requestedWeekday")){weekdayReady=true;break;}
+            }catch{}
+            await new Promise(resolve=>setTimeout(resolve,15000));
+          }
+          assert.ok(weekdayReady,"Cloudflare must serve the weekday-aware demo calendar, not an old build.");
           response=await call(site+"/api/demo-access",options());
           assert.equal(response.status,201,"The Cloudflare API proxy must save a demo signup.");
           const repeated=await response.json();assert.equal(repeated.id,first.id);assert.equal(repeated.promotion,"not_requested");
