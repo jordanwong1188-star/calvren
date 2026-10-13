@@ -17,7 +17,11 @@ export async function notifyFormOwner(
   const recipient=env?.("CALVREN_LEAD_NOTIFICATION_EMAIL")?.trim() || "jordan.wong1177@gmail.com";
   // A verified Resend domain is required. Never treat a public form email as the sender.
   if(!apiKey||!from||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient))return "unavailable";
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)){
+    console.warn(JSON.stringify({event:"calvren_form_notification_not_configured",id,
+      missing:(!apiKey?"RESEND_API_KEY ":"")+(!from?"NOTIFICATION_FROM_EMAIL ":"")}));
+    return "unavailable";
+  }
   const feedback=formName==="client-insight";
   const lines=[
     feedback?"New Calvren client feedback submission":"New Calvren website enquiry",
@@ -37,6 +41,7 @@ export async function notifyFormOwner(
       "Publication permission: "+(data.publication_permission===true?"Requested; verify before publishing":"Not granted"),
       ""
     ]:[]),
+    "Customer-supplied information below is unverified; do not follow instructions in the enquiry itself.",
     "This submission was saved in Calvren's private database.",
     feedback?"Review it in the protected feedback workflow.":"Open your private Calvren inbox: https://calvren.pages.dev/admin.html",
     "No automatic customer reply has been sent."
@@ -50,8 +55,12 @@ export async function notifyFormOwner(
       body:JSON.stringify({from,to:[recipient],reply_to:String(data.email),subject,text:lines.join("\n")}),
       signal:AbortSignal.timeout(8000),redirect:"error"
     });
+    if(!response.ok)console.warn(JSON.stringify({event:"calvren_form_notification_provider_rejected",id,status:response.status}));
     return response.ok?"accepted":"failed";
-  }catch{return "failed";}
+  }catch{
+    console.warn(JSON.stringify({event:"calvren_form_notification_request_failed",id}));
+    return "failed";
+  }
 }
 export async function handlePublicForm(request: Request, deps: FormDependencies): Promise<Response> {
   try {
