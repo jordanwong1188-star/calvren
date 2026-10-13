@@ -35,7 +35,7 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
     }
     if(path==="/forms"&&request.method==="POST"){
       if(!url||!key||!deps.repository)return json({error:"Database setup is incomplete."},503);
-      return handlePublicForm(routed,{repository:deps.repository,storage:new SupabasePrivateStorage({url,key}),ip:options.ip});
+      return handlePublicForm(routed,{repository:deps.repository,storage:new SupabasePrivateStorage({url,key}),env,ip:options.ip});
     }
     if(path.startsWith("/api/conversion/")||(path==="/api/leads"&&request.method==="POST"))return handleConversion(routed,deps);
     if(path==="/api/feedback"){
