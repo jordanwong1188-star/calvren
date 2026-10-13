@@ -46,7 +46,8 @@ function makeDialog(){
       if(consent&&["sent","sending"].includes(result.promotion))status.textContent+=" Your requested introduction has been queued for email.";
       else if(consent&&["failed","unavailable"].includes(result.promotion))status.textContent+=" The introductory email is temporarily unavailable; your demo access is ready.";
       else if(consent&&result.promotion==="unsubscribed")status.textContent+=" Your previous email opt-out is still respected.";
-      // Open the public simulation as soon as the signup succeeds; avoid an extra, easy-to-miss click.\n      location.assign(link.href);
+      // Open the public simulation as soon as the signup succeeds; avoid an extra, easy-to-miss click.
+      location.assign(link.href);
     }catch(error){status.textContent=error.name==="TimeoutError"||error.name==="TypeError"?"The connection timed out. Please try again.":error.message;}
     finally{waiting=false;button.disabled=false;button.removeAttribute("aria-busy");}
   });
