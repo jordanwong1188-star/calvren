@@ -129,7 +129,7 @@ try{
   assert.equal(await page.locator("[data-study]").count(),2);
   assert.match(await page.locator(".study-disclosure").textContent(),/illustrative/i);
   for(const id of ["shine-bros","clear-craft"]){
-    assert.match(await page.locator("#"+id+" .example-badge").textContent(),/not a verified client result/);
+    assert.match(await page.locator("#"+id+" .example-badge").textContent(),/illustrative workflow/i);
     assert.equal(await page.locator("#"+id+" a.button").getAttribute("href"),"/lead-demo.html");
   }
   for(const industry of ["window-cleaning","auto-detailing"]){
