@@ -134,6 +134,11 @@ test("demo calendar respects weekday aliases, dayparts, and horizon instead of o
       timeZone: f.client.timezone, hour: "numeric", hourCycle: "h23"
     }).format(new Date(slot.start))) >= 12), "Afternoon slots should be after noon.");
   }
+  for (const timing of ["Friday", "fri", "Friday morning", "Friday afternoon"]) {
+    const slots = await f.mock.calendar.available({ client: f.client, lead: { answers: { timing } }, now });
+    assert.equal(slots.length, 3, timing);
+    assert.ok(slots.every(slot => /^Fri, Oct 16,/.test(slot.label)), timing + " must not return Wednesday slots.");
+  }
   const shortHorizon = newDemoClient({ calendar: { ...f.client.calendar, horizon_days: 1 } });
   const unavailable = await f.mock.calendar.available({ client: shortHorizon, lead: { answers: { timing: "Thursday" } }, now });
   assert.deepEqual(unavailable, [], "Do not substitute Wednesday if Thursday falls outside the booking horizon.");
