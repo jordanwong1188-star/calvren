@@ -4,7 +4,7 @@ import {setTimeout as delay} from "node:timers/promises";
 import {chromium} from "playwright";
 import {checkOwnerWorkspace} from "./admin-browser-check.mjs";
 
-const site=process.env.CALVREN_TEST_SITE || "https://calvren.netlify.app";
+const site=process.env.CALVREN_TEST_SITE || "https://calvren.pages.dev";
 const sourcePreview=Boolean(process.env.CALVREN_TEST_SITE);
 const version="conversion-v1";
 const normalisePath=path=>path.endsWith(".html")?path.slice(0,-5):path.endsWith("/")?path.slice(0,-1):path;
