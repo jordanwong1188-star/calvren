@@ -57,7 +57,7 @@ test("public forms save private enquiries without AI processing and retry with a
 });
 test("public enquiries notify the designated Gmail once, only after persistence, without leaking tokens",async()=>{
   const f=formFixture(),calls=[];
-  f.deps.env=name=>({RESEND_API_KEY:"resend-test-secret",NOTIFICATION_FROM_EMAIL:"Calvren <notifications@verified.example>",CALVREN_LEAD_NOTIFICATION_EMAIL:"jordan.wong1177@gmail.com"}[name]);
+  f.deps.env=name=>({RESEND_API_KEY:"resend-test-secret",NOTIFICATION_FROM_EMAIL:"notifications@verified.example",CALVREN_LEAD_NOTIFICATION_EMAIL:"jordan.wong1177@gmail.com"}[name]);
   f.deps.fetch=async (url,init)=>{
     assert.ok(f.rows.size===1,"Record must be durable before mail provider is called.");
     calls.push({url,init});
