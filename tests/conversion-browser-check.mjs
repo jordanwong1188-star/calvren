@@ -37,28 +37,24 @@ export async function checkDemoAccounts(page,url=baseUrl){
   assert.equal(await page.locator("#demo-open-link").isVisible(),false);
   assert.equal(await page.evaluate(key=>sessionStorage.getItem(key),demoStorageKey),null);
   state.failed=false;await page.locator("#demo-access-form button").click();
-  await page.locator("#demo-open-link").waitFor({state:"visible"});
-  assert.equal(new URL(page.url()).pathname,"/","The visitor chooses the on-page demo link.");
+  await page.waitForURL(url=>/^\/lead-demo(?:\.html)?\/?$/.test(url.pathname));
   assert.equal(JSON.parse(requests.at(-1).body).email,"visitor@example.com");
   assert.equal(JSON.parse(requests.at(-1).body).promotional_consent,false);
-  await page.locator("#demo-open-link").click();await page.waitForURL(url=>/^\/lead-demo(?:\.html)?\/?$/.test(url.pathname));
   await page.locator("#demo-start").waitFor({state:"visible"});
   assert.equal(await page.locator("#demo-access-check").isVisible(),false);
   await page.locator("#demo-sign-out").click();await page.waitForURL(url=>/^\/try-demo(?:\.html)?\/?$/.test(url.pathname));
   assert.equal(await page.evaluate(key=>sessionStorage.getItem(key),demoStorageKey),null);
   await page.locator("#demo-access-email").fill("visitor@example.com");
   await page.locator("#demo-promo-consent").check();state.promotion="unavailable";
-  await page.locator("#demo-access-form button").click();await page.locator("#demo-open-link").waitFor({state:"visible"});
+  await page.locator("#demo-access-form button").click();await page.waitForURL(url=>/^\/lead-demo(?:\.html)?\/?$/.test(url.pathname));
   assert.equal(JSON.parse(requests.at(-1).body).promotional_consent,true);
-  assert.match(await page.locator(".demo-access-status").innerText(),/temporarily unavailable/);
-  await page.locator("#demo-open-link").click();await page.waitForURL(url=>/^\/lead-demo(?:\.html)?\/?$/.test(url.pathname));
   await page.locator("#demo-sign-out").click();await page.waitForURL(url=>/^\/try-demo(?:\.html)?\/?$/.test(url.pathname));
   await page.goto(url+"/try-demo.html#access_token=obsolete-link&expires_in=3600");
   await page.locator(".demo-access-dialog").waitFor({state:"visible"});
   assert.equal(await page.evaluate(()=>location.hash),"");
   assert.equal(await page.evaluate(key=>sessionStorage.getItem(key),demoStorageKey),null);
   assert.deepEqual(authRequests,[],"Instant demo access must never use email authentication.");
-  console.log("Demo email capture passed: immediate on-page link, optional consent, failed-submit retry, promo failure fallback, local access clearing and no Auth requests.");
+  console.log("Demo email capture passed: automatic launch after signup, optional consent, failed-submit retry, promo failure fallback, local access clearing and no Auth requests.");
 }
 
 const responses = {service:"Leak repair",emergency:"No, it can wait for a routine appointment.",area:"Vancouver",timing:"Tomorrow, please."};
