@@ -1,4 +1,8 @@
-# Calvren: free hosting migration
+# Calvren: Cloudflare Pages production hosting
+
+**Canonical public website:** https://calvren.pages.dev  
+**Public demo:** https://calvren.pages.dev/lead-demo.html  
+The former Netlify deployment is legacy and may contain outdated demo logic. Use Cloudflare for all new tests, user-facing links and deployments.
 
 Architecture: Cloudflare Pages publishes the existing public website from GitHub. Its lightweight API proxy forwards to the existing Calvren Supabase project. Supabase Edge Functions run the reusable automation and private inbox. The same clients, conversion leads, messages and appointments stay in the same database. New marketing enquiries and client reviews use private Supabase storage; older Netlify Forms/Blobs records remain on Netlify and are not deleted or automatically imported.
 
@@ -7,12 +11,12 @@ These steps require the owner's provider login. Do not put passwords or secret k
 
 1. Cloudflare Dashboard → Workers & Pages → Create application → Pages → Connect to Git/GitHub. Authorize only jordanwong1188-star/calvren, select main. Choose an available project name.
 2. Framework preset: None. Build command: npm run build:cloudflare. Output directory: public. Root directory: leave blank. Add NODE_VERSION=22. Use the Free plan.
-3. Pages routes to https://xjfsukhfmkgvlfpgjevg.supabase.co/functions/v1/calvren by default. Optionally set CALVREN_BACKEND_URL to that exact URL. Once the Pages origin is known, set CALVREN_SITE_URL to it in Cloudflare build variables and redeploy so canonical URLs point to the new website. Cloudflare does not need OpenAI, Twilio, Google, Supabase privileged keys or operator credentials.
+3. Pages routes to https://xjfsukhfmkgvlfpgjevg.supabase.co/functions/v1/calvren by default. Optionally set CALVREN_BACKEND_URL to that exact URL. The build defaults to https://calvren.pages.dev for all canonical URLs and the sitemap. Set CALVREN_SITE_URL only when moving to a verified custom HTTPS domain. Cloudflare does not need OpenAI, Twilio, Google, Supabase privileged keys or operator credentials.
 4. Supabase Dashboard → Edge Functions → Secrets. Copy server settings from Netlify:
    CALVREN_ADMIN_TOKEN, OPENAI_API_KEY, OPENAI_MODEL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, RESEND_API_KEY, NOTIFICATION_FROM_EMAIL when available.
    Set CALVREN_PUBLIC_URL to your actual production Pages/custom-domain origin. Keep CALVREN_AUTOMATION_MODE=demo until end-to-end live testing passes.
    Supabase supplies SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY automatically; do not move them into frontend settings.
-5. Demo access now captures an email and shows an on-page link immediately; Supabase Auth/SMTP is not required for it. Optional promotional introductions use Resend and a real CALVREN_BUSINESS_ADDRESS. See docs/demo-signup.md for setup and tests.
+5. Demo access now captures an email and opens the simulated demo automatically on successful submission; Supabase Auth/SMTP is not required for it. Optional promotional introductions use Resend and a real CALVREN_BUSINESS_ADDRESS. See docs/demo-signup.md for setup and tests.
 6. For automatic backend updates: Supabase Account → Access Tokens → create an access token. GitHub repository → Settings → Secrets and variables → Actions → New repository secret: SUPABASE_ACCESS_TOKEN. This credential belongs only in GitHub Actions. The backend publishes after Check Calvren succeeds for a push to main; fork pull requests cannot trigger privileged publishing. Initial database migration is applied during this migration; future schema changes need their own reviewed migration.
 7. For automatic follow-ups: generate a random 32+ character CALVREN_CRON_TOKEN. Save the same value in Supabase Edge Function Secrets AND GitHub Actions secrets. GitHub's Calvren follow-up scheduler calls the backend approximately every five minutes and processes one due lead per pass. Scheduled GitHub Actions can be delayed and may disable themselves after prolonged repository inactivity; this is a first-client MVP schedule, not an exact-time guarantee.
 8. If using real SMS later: change the Twilio number's inbound webhook to the new website /api/conversion/twilio/inbound. The configured business phone_number must match its assigned Twilio number. Test signed incoming SMS, confirmations and STOP after completing all live provider credentials.
@@ -22,7 +26,7 @@ These steps require the owner's provider login. Do not put passwords or secret k
 - New marketing enquiry appears in /admin; prepare/review a fake draft and test archive/export.
 - /operator requires your token and still shows existing clients/conversations.
 - Create a new server demo lead, answer the questions, choose a simulated time and inspect booked notification.
-- /try-demo captures an email and immediately shows Open the demo; promotional consent is optional; clearing demo access removes the local marker. Requests without a current marker return to signup.
+- /try-demo captures an email and automatically opens the demo; promotional consent is optional; clearing demo access removes the local marker. Requests without a current marker return to signup.
 - Run the GitHub scheduler manually with a demo client and verify due follow-up history.
 - Client feedback remains private in calvren_private_records (feedback/ keys); authenticated operator GET /api/feedback can retrieve it. It is never automatically published.
 - Verify real provider delivery separately before changing CALVREN_AUTOMATION_MODE.
