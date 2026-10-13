@@ -14,18 +14,19 @@ function makeDialog(){
     <p class="eyebrow"><span class="tiny-dot"></span> YOUR FRONT-ROW SEAT</p>
     <div class="demo-access-symbol" aria-hidden="true">↗</div>
     <h2 id="demo-access-title">Serious about<br><em>fewer missed leads?</em></h2>
-    <p class="demo-access-description">Put us to the test. Enter your email, then open the full lead-to-booking simulation right here.</p>
+    <p class="demo-access-description">Try the lead-to-booking simulation. Enter your email if you want to hear from us, or skip signup to explore it now.</p>
     <div class="demo-access-perks"><span>✓ Immediate access</span><span>✓ No password</span><span>✓ No card</span></div>
     <form id="demo-access-form">
-      <label for="demo-access-email">Your email to unlock the demo</label>
+      <label for="demo-access-email">Your email (optional — guest access below)</label>
       <input id="demo-access-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required placeholder="you@yourbusiness.com">
       <p hidden><label>Leave blank <input name="website" tabindex="-1" autocomplete="off"></label></p>
       <label class="demo-promo-choice" for="demo-promo-consent"><input id="demo-promo-consent" type="checkbox"><span>Also email me a one-time introduction to Calvren’s automation services. Optional; demo access works either way.</span></label>
-      <button type="submit" class="button full-width">Unlock the demo <span aria-hidden="true">→</span></button>
+      <button type="submit" class="button full-width">Continue to the demo <span aria-hidden="true">→</span></button>
     </form>
     <p class="demo-access-status" role="status" aria-live="polite"></p>
     <a id="demo-open-link" class="button full-width" href="/lead-demo.html" hidden>Open the demo <span aria-hidden="true">↗</span></a>
-    <p class="demo-access-fine">We save your email and email preference privately. No account, password or email verification is required for this simulated demo. The optional introduction includes an unsubscribe link. <a href="/privacy.html">Privacy details</a>.</p>
+    <p class="demo-access-help"><a href="/lead-demo.html">Skip email and try the interactive demo →</a></p>
+    <p class="demo-access-fine">If you submit your email, we save it and your email preference privately. No account, password or email verification is required for this simulated demo. The optional introduction includes an unsubscribe link. <a href="/privacy.html">Privacy details</a>.</p>
     <a class="text-link" href="/#demo">Just browsing? Try the quick preview →</a>
     <p class="demo-access-help">Need a hand? <a href="mailto:Jordan.wong1177@gmail.com">Contact Jordan</a>.</p>`;
   document.body.append(dialog);dialog.querySelector(".demo-access-close").addEventListener("click",()=>dialog.close());
@@ -37,7 +38,7 @@ function makeDialog(){
     const consent=form.querySelector("#demo-promo-consent").checked;
     try{
       const response=await fetch("/api/demo-access",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:form.querySelector("#demo-access-email").value.trim(),promotional_consent:consent,website:form.elements.website.value}),signal:AbortSignal.timeout(20000),redirect:"error"});
-      if(!response.ok)throw Error(response.status===429?"Please wait before trying again.":"We couldn’t save your email. Please try again or contact Jordan.");
+      if(!response.ok)throw Error(response.status===429?"Please wait before trying again.":"Email signup is temporarily unavailable. You can still try the demo without submitting your email.");
       const result=await response.json();
       if(!result.ok||!/^[a-f0-9-]{36}$/.test(result.id||"")||result.demo_url!=="/lead-demo.html")throw Error("Please try again.");
       try{sessionStorage.setItem(sessionKey,JSON.stringify({version:2,submission_id:result.id,expires_at:Date.now()+86400000}));sessionStorage.removeItem("calvren-demo-session");}catch{throw Error("Allow browser storage for this website to open the demo.");}
@@ -48,7 +49,7 @@ function makeDialog(){
       else if(consent&&result.promotion==="unsubscribed")status.textContent+=" Your previous email opt-out is still respected.";
       // Open the public simulation as soon as the signup succeeds; avoid an extra, easy-to-miss click.
       location.assign(link.href);
-    }catch(error){status.textContent=error.name==="TimeoutError"||error.name==="TypeError"?"The connection timed out. Please try again.":error.message;}
+    }catch(error){status.textContent=error.name==="TimeoutError"||error.name==="TypeError"?"Email signup is unavailable right now; use the guest demo link below, or try again.":error.message;}
     finally{waiting=false;button.disabled=false;button.removeAttribute("aria-busy");}
   });
   return dialog;
