@@ -159,6 +159,13 @@ export async function checkLeadDemo(page, url = baseUrl) {
   for (const id of ["emergency","area","timing"]) await reply(page, responses[id]);
   await page.locator("#demo-slots button").first().click();
   await page.waitForFunction(() => document.getElementById("demo-lead-status").textContent === "Booked");
+  // Browser regression: requesting Thursday must never yield Wednesday or another weekday.
+  await page.locator("#demo-reset").click();
+  await startLead(page);
+  for (const message of ["No, it can wait for a routine appointment.", "Vancouver", "thursday"]) await reply(page, message);
+  const thursdaySlots = await page.locator("#demo-slots button").allTextContents();
+  assert.ok(thursdaySlots.length > 0 && thursdaySlots.every(label => /^Thu,/.test(label)),
+    "A Thursday preference must show only Thursday appointments.");
   await assertNoOverflow(page, 320);
   await assertNoOverflow(page, 375);
   assert.deepEqual(providerRequests, [], "The browser demo cannot contact any live provider or server automation endpoint.");
