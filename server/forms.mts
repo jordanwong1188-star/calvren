@@ -124,7 +124,7 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
     }
     // New submissions notify the owner exactly once, without charging for AI processing.
     // Resend's stable idempotency key additionally protects against network retries.
-    const notification=write.modified?await notifyFormOwner(name!,id,data,deps):"duplicate";
+    const notification=write.modified?(form.get("formspree-archived")==="yes"?"handled_by_formspree":await notifyFormOwner(name!,id,data,deps)):"duplicate";
     console.log(JSON.stringify({event:"calvren_public_form_saved",form:name,id,
       notification}));
     // The submission stays saved even if Resend is unavailable or delivery later fails.
