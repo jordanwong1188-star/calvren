@@ -5,7 +5,7 @@ const supabase=createClient("https://xjfsukhfmkgvlfpgjevg.supabase.co","sb_publi
 });
 const $=id=>document.getElementById(id);
 // Must match an explicitly allowed Supabase Auth Redirect URL.
-const clientRedirectUrl="https://calvren.pages.dev/client.html";
+const clientRedirectUrl="https://calvren.pages.dev/client";
 const isBilling=!!$("billing-checkout");
 const notice=(message,error=false)=>{const node=$("client-notice");if(node){node.textContent=message;node.classList.toggle("form-error",error);}};
 let ready=false;
