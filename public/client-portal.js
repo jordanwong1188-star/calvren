@@ -19,7 +19,8 @@ async function api(path,options={}){
   if(!access)throw Error("Sign in first.");
   const response=await fetch("/api/billing/"+path,{
     method:options.method||"GET",credentials:"omit",
-    headers:{"Authorization":"Bearer "+access,"Accept":"application/json"},
+    ...(options.body?{body:JSON.stringify(options.body)}:{}),
+    headers:{"Authorization":"Bearer "+access,"Accept":"application/json",...(options.body?{"Content-Type":"application/json"}:{})},
   });
   const dataJson=await response.json().catch(()=>({error:"The server returned an invalid response."}));
   if(!response.ok)throw Error(dataJson.error||"This request could not complete.");
@@ -90,7 +91,8 @@ $("billing-checkout")?.addEventListener("click",async()=>{
   const button=$("billing-checkout");button.disabled=true;
   notice("Opening Stripe checkout…");
   try{
-    const result=await api("checkout",{method:"POST"});
+    const typedCode=$("discount-code")?.value.trim()||"";
+    const result=await api("checkout",{method:"POST",body:{discount_code:typedCode}});
     const url=new URL(result.url);
     if(url.protocol!=="https:"||url.hostname!=="checkout.stripe.com")throw Error("Invalid checkout destination.");
     location.assign(url.href);
