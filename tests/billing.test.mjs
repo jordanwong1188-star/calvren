@@ -16,7 +16,7 @@ const userId="5aafe427-dffc-429c-8a9b-1347f6b2ee4e";
 const secret="whsec_webhooktest1234",priceId="price_123abc",subId="sub_123abc",customerId="cus_123abc";
 const env=name=>({
   STRIPE_SECRET_KEY:"sk_test_fixture1234",STRIPE_WEBHOOK_SECRET:secret,
-  STRIPE_PRICE_ID:priceId,SUPABASE_URL:"https://fixture.supabase.co",
+  STRIPE_PRICE_ID:priceId,STRIPE_SETUP_PRICE_ID:"price_setup123",SUPABASE_URL:"https://fixture.supabase.co",
   SUPABASE_SECRET_KEY:"sb_secret_example",CALVREN_PUBLIC_URL:"https://calvren.pages.dev"
 }[name]);
 function fixture({member=null,clientId=null}={}){
@@ -31,6 +31,7 @@ function fixture({member=null,clientId=null}={}){
     }
     if(url.includes("/rest/v1/calvren_leads"))return Response.json([
       {data:{id:"1",status:"qualified",created_at:"2026-10-13T00:00:00Z"}}]);
+    if(url.endsWith("/v1/prices/price_setup123"))return Response.json({id:"price_setup123",active:true,unit_amount:34900,currency:"cad",recurring:null});
     if(url.endsWith("/v1/prices/"+priceId))return Response.json({id:priceId,active:true,unit_amount:15900,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
     if(url.endsWith("/v1/subscriptions/"+subId))return Response.json({
@@ -57,7 +58,7 @@ test("billing public price only comes from configured Stripe price",async()=>{
   const f=fixture();
   const response=await handleBilling(f.req("public"),f.deps);
   assert.equal(response.status,200);
-  assert.deepEqual(await response.json(),{ready:true,amount:15900,currency:"cad",interval:"month",interval_count:1,test_mode:true});
+  assert.deepEqual(await response.json(),{ready:true,amount:15900,setup_amount:34900,first_payment:50800,currency:"cad",interval:"month",interval_count:1,test_mode:true});
 });
 test("unauthenticated checkout, client data, portal cannot be accessed",async()=>{
   const f=fixture();
@@ -77,6 +78,7 @@ test("session creation uses authenticated user id, fixed server price, and retur
   assert.equal(body.get("subscription_data[metadata][auth_user_id]"),userId);
   assert.equal(body.get("customer_email"),"client@example.com");
   assert.equal(body.get("line_items[0][price]"),priceId);
+  assert.equal(body.get("line_items[1][price]"),"price_setup123");
   assert.equal(body.get("success_url"),"https://calvren.pages.dev/client.html?checkout=success");
   assert.equal(body.get("cancel_url"),"https://calvren.pages.dev/payment?checkout=canceled");
 });
