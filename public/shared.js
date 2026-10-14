@@ -41,6 +41,7 @@ document.querySelectorAll("[data-lead-form]").forEach(form=>{
     form.dataset.submissionKey ||= crypto.randomUUID();
     const body=new URLSearchParams();
     body.set("submission-key",form.dataset.submissionKey);
+    body.set("formspree-archived","yes");
     for(const [key,value]of new FormData(form))body.append(key,String(value));
     button.disabled=true;button.setAttribute("aria-busy","true");button.textContent="Sending…";
     error.hidden=true;
