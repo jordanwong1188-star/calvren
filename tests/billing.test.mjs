@@ -63,18 +63,18 @@ test("billing public price only comes from configured Stripe price",async()=>{
 });
 test("server billing accepts least-privilege restricted Stripe test keys",async()=>{
   const f=fixture();
-  f.deps.env=name=>name==="STRIPE_SECRET_KEY"?"rk_test_synthetic_fixture123":env(name);
+  f.deps.env=name=>name==="STRIPE_SECRET_KEY"?"rk_test_syntheticfixture123":env(name);
   const response=await handleBilling(f.req("public"),f.deps);
   assert.equal(response.status,200);
   const body=await response.json();
   assert.equal(body.ready,true);
   assert.equal(body.test_mode,true);
   const call=f.calls.find(x=>x.url.endsWith("/v1/prices/"+priceId));
-  assert.equal(call.init.headers.Authorization,"Bearer rk_test_synthetic_fixture123");
+  assert.equal(call.init.headers.Authorization,"Bearer rk_test_syntheticfixture123");
 });
 test("restricted live key enforces Stripe webhook livemode",async()=>{
   const f=fixture();
-  f.deps.env=name=>name==="STRIPE_SECRET_KEY"?"rk_live_synthetic_fixture123":env(name);
+  f.deps.env=name=>name==="STRIPE_SECRET_KEY"?"rk_live_syntheticfixture123":env(name);
   const event={id:"evt_fixture",livemode:false,type:"customer.subscription.updated",
     data:{object:{id:subId,metadata:{auth_user_id:userId}}}};
   const signed=signedPayload(event);
