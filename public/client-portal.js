@@ -4,6 +4,8 @@ const supabase=createClient("https://xjfsukhfmkgvlfpgjevg.supabase.co","sb_publi
   auth:{flowType:"implicit",detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}
 });
 const $=id=>document.getElementById(id);
+// Must match an explicitly allowed Supabase Auth Redirect URL.
+const clientRedirectUrl="https://calvren.pages.dev/client.html";
 const isBilling=!!$("billing-checkout");
 const notice=(message,error=false)=>{const node=$("client-notice");if(node){node.textContent=message;node.classList.toggle("form-error",error);}};
 let ready=false;
@@ -82,12 +84,13 @@ if(login)login.addEventListener("submit",async event=>{
   event.preventDefault();
   const button=login.querySelector("button[type=submit]"),email=login.querySelector("input[type=email]").value.trim();
   button.disabled=true;
+  notice("Requesting your secure sign-in link…");
   try{
     const {error}=await supabase.auth.signInWithOtp({
-      email,options:{emailRedirectTo:location.origin+"/client.html",shouldCreateUser:true}
+      email,options:{emailRedirectTo:clientRedirectUrl,shouldCreateUser:true}
     });
     if(error)throw error;
-    notice("Check your inbox for the Calvren sign-in link. It may take a moment.");
+    notice("Sign-in link requested. Check your inbox and spam folder. Open the link to return to Calvren. If no email arrives, contact Calvren support.");
   }catch(error){notice(error.message||"Could not send sign-in email.",true);}
   finally{button.disabled=false;}
 });
@@ -113,6 +116,10 @@ $("client-manage")?.addEventListener("click",async()=>{
   }catch(error){notice(error.message,true);button.disabled=false;}
 });
 async function init(){
+  // Supabase may return auth errors in URL fragments or query parameters.
+  const authQuery=new URLSearchParams(location.search);
+  const authHash=new URLSearchParams(location.hash.replace(/^#/,""));
+  const returnedError=authQuery.get("error_description")||authHash.get("error_description")||authQuery.get("error")||authHash.get("error");
   if(isBilling){
     try{
       const response=await fetch("/api/billing/public",{headers:{"Accept":"application/json"}});
@@ -138,6 +145,7 @@ async function init(){
   if(new URLSearchParams(location.search).get("checkout")==="success")
     notice("Thanks. Stripe is confirming your subscription; your access will appear once its signed payment event arrives.");
   await check();
+  if(returnedError)notice("Your sign-in link could not be used: "+returnedError.replaceAll("+"," ")+". Request a fresh link.",true);
 }
 supabase.auth.onAuthStateChange(()=>{setTimeout(()=>check().catch(()=>{}),0);});
 init().catch(error=>notice(error.message||"Unable to initialize client access.",true));
