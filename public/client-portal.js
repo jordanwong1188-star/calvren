@@ -36,6 +36,11 @@ async function check(){
   if(identity){identity.hidden=!user;if(user)identity.textContent="Signed in as "+user.email;}
   if($("client-signout"))$("client-signout").hidden=!user;
   if(isBilling){
+    if($("billing-stripe-link")){
+      $("billing-checkout").hidden=true;
+      if(user)notice("Signed in. Complete payment using the secure Stripe checkout button.");
+      return;
+    }
     const button=$("billing-checkout");
     button.hidden=!user;
     button.disabled=!user||!ready;
@@ -112,6 +117,14 @@ async function init(){
     try{
       const response=await fetch("/api/billing/public",{headers:{"Accept":"application/json"}});
       const data=await response.json();
+      if($("billing-stripe-link")){
+        $("billing-price").textContent="CA$99 / month";
+        $("billing-first-payment").textContent="CA$448 due initially";
+        $("billing-price-note").textContent="CA$349 setup once, then CA$99 monthly. Taxes, discounts, and the final amount appear in Stripe checkout.";
+        ready=false;
+        await check();
+        return;
+      }
       ready=!!data.ready;
       $("billing-price").textContent=ready?
         money(data.amount,data.currency)+" / "+(data.interval_count===1?data.interval:data.interval_count+" "+data.interval+"s"):
