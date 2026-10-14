@@ -10,7 +10,9 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const stripeId=(v:unknown,prefix:string):v is string=>typeof v==="string"&&new RegExp("^"+prefix+"_[a-zA-Z0-9]+$").test(v);
 const safeEqual=(a:string,b:string)=>{const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);};
 const stripeKey=(env:Env)=>env("STRIPE_SECRET_KEY")?.trim()||"";
-const validKey=(key:string)=>/^sk_(test|live)_[a-zA-Z0-9]+$/.test(key);
+const validKey=(key:string)=>/^(?:sk|rk)_(?:test|live)_[a-zA-Z0-9]+$/.test(key);
+const testMode=(env:Env)=>/^(?:sk|rk)_test_/.test(stripeKey(env));
+const liveMode=(env:Env)=>/^(?:sk|rk)_live_/.test(stripeKey(env));
 const priceId=(env:Env)=>env("STRIPE_PRICE_ID")?.trim()||"";
 const setupPriceId=(env:Env)=>env("STRIPE_SETUP_PRICE_ID")?.trim()||"";
 const webhookReady=(env:Env)=>/^whsec_[a-zA-Z0-9]+$/.test(env("STRIPE_WEBHOOK_SECRET")||"");
@@ -74,7 +76,7 @@ async function publicConfig(deps:BillingDependencies){
       return json({ready:false,message:"Subscription price requires setup."});
     return json({ready:true,amount:price.unit_amount,setup_amount:setup.unit_amount,first_payment:price.unit_amount+setup.unit_amount,currency:price.currency,
       interval:price.recurring.interval,interval_count:price.recurring.interval_count||1,
-      test_mode:stripeKey(deps.env).startsWith("sk_test_")});
+      test_mode:testMode(deps.env)});
   }catch{return json({ready:false,message:"Subscription price is unavailable."});}
 }
 async function webhook(request:Request,deps:BillingDependencies){
@@ -91,7 +93,7 @@ async function webhook(request:Request,deps:BillingDependencies){
   if(!versions.some(x=>safeEqual(x,expected)))return json({error:"Invalid signature."},400);
   let event:ObjectRow;
   try{event=JSON.parse(raw);}catch{return json({error:"Invalid payload."},400);}
-  if(event.livemode!==stripeKey(deps.env).startsWith("sk_live_"))return json({error:"Stripe environment mismatch."},400);
+  if(event.livemode!==liveMode(deps.env))return json({error:"Stripe environment mismatch."},400);
   const obj=event?.data?.object;
   if(!obj||typeof obj!=="object")return json({ok:true,ignored:true});
   let subId:string|undefined,userId:string|undefined;
