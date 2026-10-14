@@ -61,6 +61,29 @@ test("billing public price only comes from configured Stripe price",async()=>{
   assert.equal(response.status,200);
   assert.deepEqual(await response.json(),{ready:true,amount:15900,setup_amount:34900,first_payment:50800,currency:"cad",interval:"month",interval_count:1,test_mode:true});
 });
+test("server billing accepts least-privilege restricted Stripe test keys",async()=>{
+  const f=fixture();
+  f.deps.env=name=>name==="STRIPE_SECRET_KEY"?"rk_test_synthetic_fixture123":env(name);
+  const response=await handleBilling(f.req("public"),f.deps);
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.ready,true);
+  assert.equal(body.test_mode,true);
+  const call=f.calls.find(x=>x.url.endsWith("/v1/prices/"+priceId));
+  assert.equal(call.init.headers.Authorization,"Bearer rk_test_synthetic_fixture123");
+});
+test("restricted live key enforces Stripe webhook livemode",async()=>{
+  const f=fixture();
+  f.deps.env=name=>name==="STRIPE_SECRET_KEY"?"rk_live_synthetic_fixture123":env(name);
+  const event={id:"evt_fixture",livemode:false,type:"customer.subscription.updated",
+    data:{object:{id:subId,metadata:{auth_user_id:userId}}}};
+  const signed=signedPayload(event);
+  const response=await handleBilling(f.req("webhook","POST",false,{
+    headers:{"Stripe-Signature":signed.header},body:signed.raw
+  }),f.deps);
+  assert.equal(response.status,400);
+  assert.equal(f.saved.length,0);
+});
 test("unauthenticated checkout, client data, portal cannot be accessed",async()=>{
   const f=fixture();
   for(const path of ["checkout","portal","me","automation"]){
