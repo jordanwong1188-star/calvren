@@ -3,7 +3,8 @@
 ## Approved prices (CAD)
 - One-time setup and onboarding: **CA$349**, Stripe price `price_1UQX1gQ9mewkKyl5QpjCrTyt` (product `prod_VRPKQiNjWCDDPh`).
 - Ongoing updates and maintenance: **CA$99/month**, Stripe price `price_1UQWVeQ9mewkKyl5kv85ccXb` (product `prod_VRPEflqPI2JCAT`).
-- First Checkout session includes both prices, total **CA$448 before applicable taxes**. Stripe creates only the monthly recurring subscription item; subsequent invoices do not include the setup fee. A wholly new checkout for a canceled/restarting subscriber currently includes setup again; handle exceptions individually.
+- First Checkout session includes both prices, total **CA$448 before applicable taxes**.
+- Optional owner-negotiated code: **Calvren15%** (typed into Calvren's /payment page). Stripe codes cannot contain `%`, so the backend maps that alias to Stripe code `CALVREN15`, backed by coupon `tlQfQM4u` (15% discount with `duration=once`). Initial invoice **CA$380.80 before tax** after applying the code; renewals remain **CA$99/month before tax**. Stripe promotion ID `promo_1UQX7IQ9mewkKyl5lR0GMbi4`. Anyone given the shared code can redeem it; create customer-specific promotion codes later if needed. Stripe creates only the monthly recurring subscription item; subsequent invoices do not include the setup fee. A wholly new checkout for a canceled/restarting subscriber currently includes setup again; handle exceptions individually.
 
 ## Security model
 1. `/payment` serves the client login and price details; Stripe-hosted Checkout collects card details.
