@@ -1,0 +1,41 @@
+name: Verify Calvren payment readiness
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/verify-payment-readiness.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check payment page and server readiness (never charge)
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          const root="https://calvren.pages.dev";
+          try {
+            const response=await fetch(root+"/payment",{signal:AbortSignal.timeout(15000),headers:{"Cache-Control":"no-cache"}});
+            const html=await response.text();
+            const pageOk=response.ok && html.includes('id="billing-checkout"') && html.includes('id="discount-code"');
+            console.log(JSON.stringify({check:"payment-page",status:response.status,ready:pageOk}));
+            if(!pageOk)process.exitCode=1;
+            const billing=await fetch(root+"/api/billing/public",{signal:AbortSignal.timeout(15000),headers:{Accept:"application/json","Cache-Control":"no-cache"}});
+            const data=await billing.json();
+            // Only non-secret readiness fields; no Stripe API key or signing secret is logged.
+            const safe={check:"billing-public",http_status:billing.status,ready:data.ready,
+              monthly:data.amount,setup:data.setup_amount,first_payment:data.first_payment,
+              currency:data.currency,test_mode:data.test_mode,message:data.message};
+            console.log(JSON.stringify(safe));
+            if(!billing.ok || !data.ready || data.amount!==9900 || data.setup_amount!==34900
+              || data.first_payment!==44800 || data.currency!=="cad" || data.test_mode!==false)process.exitCode=1;
+          }catch(error){
+            console.error("Public payment verification could not complete:",error.message);
+            process.exitCode=1;
+          }
+          NODE
