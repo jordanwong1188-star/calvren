@@ -1,1 +1,14 @@
 .billing-main{max-width:1150px;margin:35px auto 80px;padding:0 24px}.billing-intro{max-width:710px;line-height:1.7}.billing-layout{display:grid;grid-template-columns:1.08fr 1fr;gap:24px;margin-top:32px}.billing-card{background:#fff;color:#173b31;border:1px solid #d9e5db;border-radius:20px;padding:clamp(24px,3vw,40px);box-shadow:0 12px 35px rgba(8,39,29,.055)}.billing-card h2{font-size:clamp(22px,2.5vw,32px);margin:.4em 0}.billing-card form{display:grid;gap:12px}.billing-card label{font-weight:600}.billing-card input{width:100%;border:1px solid #829a90;border-radius:8px;padding:14px;font:inherit}.billing-card button{cursor:pointer}.billing-card button[disabled]{opacity:.55;cursor:not-allowed}.billing-card .button{margin-top:15px}.billing-price{font-size:clamp(26px,3.5vw,44px);font-weight:750;margin:22px 0 9px}.billing-small{color:#45655a;font-size:14px;line-height:1.7}.billing-benefits{padding-left:22px;margin:24px 0;line-height:1.9}.billing-benefits li{margin:5px 0}.billing-notice{min-height:22px;font-size:14px;color:#264e43;line-height:1.6}.billing-notice.form-error{color:#a12836}.billing-account{max-width:880px;margin:26px 0}.billing-actions{display:flex;gap:12px;flex-wrap:wrap}.billing-card .plain-button{margin-top:10px}.billing-card .text-link{display:block;margin-top:20px}@media(max-width:760px){.billing-layout{grid-template-columns:1fr}.billing-main{padding:0 16px}.billing-card{padding:24px}.billing-actions{flex-direction:column;align-items:flex-start}}
+/* The shared .document .button rule forces white text; restore contrast on outlined billing links. */
+.document.billing-main a.button.button-outline,
+.document.billing-main button.button.button-outline {
+  color:#173b31;
+  background:transparent;
+  border-color:#173b31;
+}
+.document.billing-main a.button.button-outline:hover,
+.document.billing-main button.button.button-outline:hover {
+  color:#fff;
+  background:#265345;
+  border-color:#265345;
+}
