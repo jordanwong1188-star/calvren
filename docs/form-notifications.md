@@ -1,31 +1,35 @@
-# Public form email notifications
+# Public form notifications — Formspree
 
-Calvren's **current website is Cloudflare Pages**, and public forms are saved in private Supabase storage before notification. Notifications cover:
-- Homepage form (`workflow-enquiry`)
-- Contact page form (`project-enquiry`)
-- Case-study feedback form (`client-insight`)
+Calvren's canonical production site is **https://calvren.pages.dev**.
 
-Each **new**, accepted submission sends one transactional email through Resend. The recipient defaults to `jordan.wong1177@gmail.com` and may be overridden privately through `CALVREN_LEAD_NOTIFICATION_EMAIL`. The browser cannot choose this recipient. No automated customer reply or AI request is triggered.
+All three public forms submit to the Formspree endpoint supplied by the owner:
 
-## Required one-time sender setup
+`https://formspree.io/f/xaeqpaeq`
 
-1. Create/sign into your Resend account at https://resend.com. Add a sender domain **you control** in Resend → Domains, add its required DNS records in your DNS provider and wait for Resend to mark it verified. A Gmail address is the **recipient**, not an appropriate Resend sender domain.
-2. In Resend → API Keys, create a key with *sending* permission. Store it only in **Supabase → project xjfsukhfmkgvlfpgjevg → Edge Functions → Secrets**, not in GitHub, Cloudflare public variables, browser code, or chat.
-3. Configure these Edge Function secrets:
-   - `RESEND_API_KEY` = the secret API key from Resend
-   - `NOTIFICATION_FROM_EMAIL` = a mailbox on the verified sender domain, for example `notifications@your-owned-domain.com`
-   - `CALVREN_LEAD_NOTIFICATION_EMAIL` = `jordan.wong1177@gmail.com` (optional because this is the safe default; explicitly setting it is recommended)
-4. Supabase functions can read newly saved secrets without redeployment. The app code still must be deployed to Supabase from GitHub `main`. The GitHub workflow **Publish Calvren backend** deploys after **Check Calvren** succeeds, provided the repository's `SUPABASE_ACCESS_TOKEN` GitHub Actions secret is present.
-5. On https://calvren.pages.dev/contact.html submit a clearly labeled **TEST ENQUIRY** with consent checked. Check your Gmail inbox, Promotions and Spam. An accepted Resend API request means email was accepted, not necessarily delivered.
+- Homepage workflow enquiry (`workflow-enquiry`)
+- Contact-page project enquiry (`project-enquiry`)
+- Case-study client feedback (`client-insight`)
 
-## Troubleshooting / proof
+The live website sends to Formspree first. **Only when Formspree responds successfully** does the visitor see Calvren's usual thank-you page. The page also attempts a secondary private copy through Cloudflare Pages → Supabase; private-copy failure does not make an email notification fail. Supabase remains the private operator inbox where available. No user-supplied API keys are exposed in the site.
 
-- The form always writes to `calvren_private_records` (keys `leads/<uuid>` or `feedback/<uuid>`) **before** trying email.
-- In **Supabase → Edge Functions → calvren → Logs**, find `calvren_public_form_saved`. Its `notification` field is:
-  - `accepted`: Resend returned success; check its email logs and Gmail for delivered/bounced status
-  - `unavailable`: missing API key, sender, or usable recipient
-  - `failed`: Resend rejected the request or it timed out; review Resend's logs and verified sender domain
-  - `duplicate`: this same submission key was processed earlier; deliberately does not send a duplicate message
-- A mail failure never deletes a lead. Review saved enquiries in the private `/admin.html` inbox and private feedback through `/api/feedback` (operator auth required).
-- If a visitor is redirected to the thank-you page, the save succeeded; that is not a guarantee a notification was delivered.
-- Never put Resend credentials in browser code or respond publicly with provider errors.
+## Owner setup — required for notifications
+
+1. Log in to [Formspree](https://formspree.io) and select the form with endpoint `xaeqpaeq`.
+2. Check the form's **target/notification email** is **jordan.wong1177@gmail.com**. Verify the address if prompted.
+3. Check the form's Workflow/Notifications settings so an email notification is actually enabled. A successfully stored Formspree submission does not, on its own, prove that Gmail delivered a notification.
+4. Test at [the live contact form](https://calvren.pages.dev/contact.html) with a fresh, consented test enquiry.
+5. Confirm the record in **Formspree → Submissions**, then check Gmail's Inbox, Promotions and Spam. If stored but no email arrives, inspect Formspree notification settings and spam filtering.
+6. For company-domain restrictions, use the canonical `https://calvren.pages.dev` domain as an allowed origin if the Formspree form is configured to restrict domains.
+
+The Resend sender-domain setup is **not required for website enquiry notifications** after this change. It remains a separate integration for client-conversion notifications and optional promotional demo emails.
+
+## Technical behavior
+
+- Native HTML fallback: the form has a real external `action` and `method="POST"`; with JavaScript disabled, the visitor sees Formspree's own completion flow.
+- JavaScript path: `shared.js` sends `FormData` with `Accept: application/json`; on success it attempts a secondary URL-encoded submission to Supabase and navigates to `/thanks.html` (or `/review-thanks.html` for feedback).
+- The Formspree form includes a fixed `subject`, the customer `email` as the reply-to address, and the `_gotcha` honeypot. No automatic customer reply is sent by Calvren.
+- The existing Supabase backend's optional Resend notifications may still be attempted for backup form records while those secrets are configured; they are **not** needed for Formspree to work. If a verified Resend sender is configured later, both providers may generate alerts unless the legacy path is separately disabled.
+- Rate limits, spam classification and provider outages are controlled by the vendors. Formspree returns errors such as HTTP 429; visitors see a retry/contact message rather than a misleading thank-you page.
+- The site privacy page discloses Formspree processing and the separate Supabase copy.
+
+**Do not test by posting actual customer details through developer tools or automated suites.** The browser regression suite intercepts the Formspree endpoint and never sends messages to the owner's mailbox.
