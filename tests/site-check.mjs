@@ -198,6 +198,7 @@ try{
     assert.ok(lastProviderBody.includes('name="subject"'),"Notifications must identify their form.");
     const values=new URLSearchParams(lastArchiveBody);
     assert.equal(values.get("form-name"),config.formName);
+    assert.equal(values.get("formspree-archived"),"yes");
     assert.equal(values.get("website"),"");
     assert.equal(values.get("_gotcha"),"");
     if(config.formName==="client-insight")assert.equal(values.has("publication-permission"),false);
