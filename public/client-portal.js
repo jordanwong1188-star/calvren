@@ -114,6 +114,7 @@ async function init(){
       $("billing-price").textContent=ready?
         money(data.amount,data.currency)+" / "+(data.interval_count===1?data.interval:data.interval_count+" "+data.interval+"s"):
         "Custom onboarding";
+      $("billing-first-payment").textContent=ready?money(data.first_payment,data.currency)+" due initially":"CA$448 due initially (checkout not yet active)";
       $("billing-price-note").textContent=ready?(data.test_mode?
         "Stripe TEST MODE — no real charge will be made.":"Amount and taxes are confirmed by Stripe before you pay."):
         "Recurring service pricing is agreed in your proposal. Online checkout is being configured.";
