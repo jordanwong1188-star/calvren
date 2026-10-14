@@ -78,6 +78,7 @@ test("session creation uses authenticated user id, fixed server price, and retur
   assert.equal(body.get("customer_email"),"client@example.com");
   assert.equal(body.get("line_items[0][price]"),priceId);
   assert.equal(body.get("success_url"),"https://calvren.pages.dev/client.html?checkout=success");
+  assert.equal(body.get("cancel_url"),"https://calvren.pages.dev/payment?checkout=canceled");
 });
 test("signed checkout completion fetches current subscription before granting access",async()=>{
   const f=fixture();
