@@ -25,3 +25,7 @@
   Cache-Control: no-cache, must-revalidate
 /conversion/*
   Cache-Control: no-cache, must-revalidate
+
+# Public form logic changes with deployments and must not remain stale.
+/shared.js
+  Cache-Control: no-cache, must-revalidate
