@@ -45,9 +45,21 @@ document.querySelectorAll("[data-lead-form]").forEach(form=>{
     button.disabled=true;button.setAttribute("aria-busy","true");button.textContent="Sending…";
     error.hidden=true;
     try{
-      const response=await fetch("/",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
-      if(!response.ok)throw new Error("Submission unavailable");
-      location.assign(form.getAttribute("action")||"/thanks.html");
+      // Formspree is the notification source of truth for public website forms.
+      // A 2xx response confirms receipt by Formspree, not delivery to an inbox.
+      const response=await fetch(form.action,{
+        method:"POST",body:new FormData(form),headers:{"Accept":"application/json"}
+      });
+      if(!response.ok)throw new Error("Formspree did not accept the submission");
+      // Retain the existing protected Calvren lead/feedback inbox as a secondary
+      // copy. Its availability must not block a successfully notified visitor.
+      try{
+        const archive=await fetch("/",{method:"POST",
+          headers:{"Content-Type":"application/x-www-form-urlencoded"},body,
+          signal:AbortSignal.timeout(5000)});
+        if(!archive.ok)console.warn("Calvren private copy could not be saved.");
+      }catch{console.warn("Calvren private copy is temporarily unavailable.");}
+      location.assign(form.dataset.successUrl||"/thanks.html");
     }catch{
       error.textContent="We couldn’t submit this right now. Please try again, or email Jordan.wong1177@gmail.com.";
       error.hidden=false;button.disabled=false;button.removeAttribute("aria-busy");button.innerHTML=original;
