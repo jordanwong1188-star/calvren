@@ -28,7 +28,7 @@ The Resend sender-domain setup is **not required for website enquiry notificatio
 - Native HTML fallback: the form has a real external `action` and `method="POST"`; with JavaScript disabled, the visitor sees Formspree's own completion flow.
 - JavaScript path: `shared.js` sends `FormData` with `Accept: application/json`; on success it attempts a secondary URL-encoded submission to Supabase and navigates to `/thanks.html` (or `/review-thanks.html` for feedback).
 - The Formspree form includes a fixed `subject`, the customer `email` as the reply-to address, and the `_gotcha` honeypot. No automatic customer reply is sent by Calvren.
-- The existing Supabase backend's optional Resend notifications may still be attempted for backup form records while those secrets are configured; they are **not** needed for Formspree to work. If a verified Resend sender is configured later, both providers may generate alerts unless the legacy path is separately disabled.
+- Backup records are marked as already delivered through Formspree, so Supabase does **not** send a second Resend notification for them. Direct legacy submissions to Supabase (not sent through Formspree) still use the separate Resend configuration if present.
 - Rate limits, spam classification and provider outages are controlled by the vendors. Formspree returns errors such as HTTP 429; visitors see a retry/contact message rather than a misleading thank-you page.
 - The site privacy page discloses Formspree processing and the separate Supabase copy.
 
