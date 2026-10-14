@@ -149,6 +149,18 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
         success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/payment?checkout=canceled",
       });
       if(existing?.stripe_customer_id)p.set("customer",existing.stripe_customer_id),p.delete("customer_email");
+      // Negotiated code is never a price override: Stripe validates the attached coupon.
+      const input=await request.json().catch(()=>({}));
+      const requested=typeof input?.discount_code==="string"?input.discount_code.trim():"";
+      if(requested){
+        if(requested.toLowerCase()!=="calvren15%"&&requested.toLowerCase()!=="calvren15")
+          return json({error:"That discount code is not valid."},400);
+        const promotion=await stripe(deps,"promotion_codes?"+new URLSearchParams({code:"CALVREN15",active:"true",limit:"10"}));
+        const codes=Array.isArray(promotion.data)?promotion.data:[];
+        const valid=codes.find((code:ObjectRow)=>code.active&&code.code?.toLowerCase()==="calvren15"&&code.promotion?.coupon==="tlQfQM4u");
+        if(!valid||!stripeId(valid.id,"promo"))return json({error:"This discount code is currently unavailable."},400);
+        p.set("discounts[0][promotion_code]",valid.id);
+      }
       const session=await stripe(deps,"checkout/sessions",p);
       if(!/^https:\/\/checkout\.stripe\.com\//.test(session.url||""))throw Error("Invalid Stripe checkout.");
       return json({url:session.url});
