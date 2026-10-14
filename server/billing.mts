@@ -162,7 +162,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       // Private service key; never authorize by client_id from the browser.
       const clientId=existing.client_id;
       const rows=await queryDb(deps,"calvren_leads?"+new URLSearchParams({
-        client_id:"eq."+clientId,select:"data",order:"created_at.desc",limit:"20"
+        client_id:"eq."+clientId,select:"data",limit:"20"
       }));
       return json({status:"connected",leads:rows.map(row=>({
         id:row.data?.id||"",status:row.data?.status||"unknown",created_at:row.data?.created_at||null
