@@ -140,7 +140,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
         mode:"subscription","line_items[0][price]":priceId(deps.env),"line_items[0][quantity]":"1",
         client_reference_id:user.id,"subscription_data[metadata][auth_user_id]":user.id,
         customer_email:user.email,
-        success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/billing.html?checkout=canceled",
+        success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/payment?checkout=canceled",
       });
       if(existing?.stripe_customer_id)p.set("customer",existing.stripe_customer_id),p.delete("customer_email");
       const session=await stripe(deps,"checkout/sessions",p);
