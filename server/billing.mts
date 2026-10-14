@@ -66,7 +66,15 @@ async function stripe(deps:BillingDependencies,path:string,body?:URLSearchParams
 const paid=(m:ObjectRow|null)=>!!m&&["active","trialing"].includes(m.subscription_status)
   &&(!m.current_period_end||new Date(m.current_period_end).getTime()>Date.now());
 async function publicConfig(deps:BillingDependencies){
-  if(!billingReady(deps.env))return json({ready:false,message:"Subscription checkout is being configured."});
+  if(!billingReady(deps.env)){
+    // Presence/format diagnostics only; never log secret contents or identifiers.
+    console.warn(JSON.stringify({event:"calvren_billing_configuration_incomplete",
+      key_format_valid:validKey(stripeKey(deps.env)),
+      recurring_price_set:stripeId(priceId(deps.env),"price"),
+      setup_price_set:stripeId(setupPriceId(deps.env),"price"),
+      webhook_secret_format_valid:webhookReady(deps.env)}));
+    return json({ready:false,message:"Subscription checkout is being configured."});
+  }
   try{
     const price=await stripe(deps,"prices/"+encodeURIComponent(priceId(deps.env)));
     const setup=await stripe(deps,"prices/"+encodeURIComponent(setupPriceId(deps.env)));
