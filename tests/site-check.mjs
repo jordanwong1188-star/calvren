@@ -143,12 +143,20 @@ try{
   assert.equal(await page.locator("#publish-permission").getAttribute("required"),null);
   assert.notEqual(await page.locator('[name="feedback-consent"]').getAttribute("required"),null);
 
-  // Intercept every form POST. These are synthetic tests; no actual enquiry or review is stored.
-  let postCount=0,postStatus=503,lastBody="";
+  // Intercept both providers: browser checks must never send test notifications.
+  let notificationCount=0,archiveCount=0,providerStatus=503,lastProviderBody="",lastArchiveBody="";
+  const endpoint="https://formspree.io/f/xaeqpaeq";
   const intercept=route=>{
-    if(route.request().method()==="POST"&&route.request().url()===site+"/"){
-      postCount++;lastBody=route.request().postData()||"";
-      return route.fulfill({status:postStatus,contentType:"text/plain",body:"Synthetic browser test"});
+    const request=route.request();
+    if(request.method()==="POST"&&request.url()===endpoint){
+      notificationCount++;lastProviderBody=request.postData()||"";
+      return route.fulfill({status:providerStatus,
+        headers:{"Access-Control-Allow-Origin":"*","Content-Type":"application/json"},
+        body:JSON.stringify(providerStatus===200?{ok:true}:{error:"Synthetic provider failure"})});
+    }
+    if(request.method()==="POST"&&request.url()===site+"/"){
+      archiveCount++;lastArchiveBody=request.postData()||"";
+      return route.fulfill({status:201,contentType:"application/json",body:'{"ok":true}'});
     }
     return route.continue();
   };
@@ -158,9 +166,11 @@ try{
     {path:"/contact.html",form:"#project-form",name:"#project-name",email:"#project-email",message:"#project-message",consent:'[name="consent"]',action:"/thanks.html",formName:"project-enquiry"},
     {path:"/case-studies.html",form:"#review-form",name:"#review-name",email:"#review-email",message:"#review-experience",consent:'[name="feedback-consent"]',action:"/review-thanks.html",formName:"client-insight"}
   ]){
-    postStatus=503;postCount=0;
+    providerStatus=503;notificationCount=0;archiveCount=0;
     await visit(config.path);
     const form=page.locator(config.form);
+    assert.equal(await form.getAttribute("action"),endpoint);
+    assert.equal(await form.getAttribute("data-success-url"),config.action);
     await page.locator(config.name).fill("Calvren QA");
     await page.locator(config.email).fill("qa@example.com");
     await page.locator(config.message).fill("Synthetic browser test for preserving feedback and enquiry fields.");
@@ -171,17 +181,25 @@ try{
     await form.locator(config.consent).check();
     await form.locator('button[type="submit"]').click();
     await form.locator("[data-form-error]").waitFor({state:"visible"});
-    assert.equal(postCount,1,config.formName+" must submit once");
+    assert.equal(notificationCount,1,config.formName+" must submit once");
+    assert.equal(archiveCount,0,"Failed Formspree delivery must not be acknowledged as saved.");
     assert.equal(await page.locator(config.name).inputValue(),"Calvren QA");
     assert.equal(await form.locator('button[type="submit"]').isEnabled(),true);
     assert.match(await form.locator("[data-form-error]").textContent(),/Jordan.wong1177@gmail.com/);
-    postStatus=200;
+    providerStatus=200;
     await form.locator('button[type="submit"]').click();
     await page.waitForURL(url=>normalisePath(url.pathname)===normalisePath(config.action));
-    assert.equal(postCount,2);
-    const values=new URLSearchParams(lastBody);
+    assert.equal(notificationCount,2);
+    assert.equal(archiveCount,1,"The private Calvren archive should receive a backup copy.");
+    assert.ok(lastProviderBody.includes('name="form-name"')&&lastProviderBody.includes(config.formName),
+      "Formspree must receive form source metadata.");
+    assert.ok(lastProviderBody.includes('name="email"')&&lastProviderBody.includes("qa@example.com"),
+      "Formspree must receive a reply-to address.");
+    assert.ok(lastProviderBody.includes('name="subject"'),"Notifications must identify their form.");
+    const values=new URLSearchParams(lastArchiveBody);
     assert.equal(values.get("form-name"),config.formName);
     assert.equal(values.get("website"),"");
+    assert.equal(values.get("_gotcha"),"");
     if(config.formName==="client-insight")assert.equal(values.has("publication-permission"),false);
   }
   await page.unroute("**/*",intercept);
