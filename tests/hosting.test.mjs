@@ -78,6 +78,15 @@ test("public enquiries notify the designated Gmail once, only after persistence,
   assert.equal(duplicate.status,201);
   assert.equal(calls.length,1,"Duplicate browser submissions must not email twice.");
 });
+test("Formspree-delivered submissions are privately archived without a second Resend email",async()=>{
+  const f=formFixture(),sends=[];
+  f.deps.env=name=>({RESEND_API_KEY:"test-sending-key",NOTIFICATION_FROM_EMAIL:"notifications@example.com"}[name]);
+  f.deps.fetch=async (...args)=>{sends.push(args);return new Response("ok",{status:200});};
+  const response=await handlePublicForm(f.request({"formspree-archived":"yes"}),f.deps);
+  assert.equal(response.status,201);
+  assert.equal(f.rows.size,1);
+  assert.equal(sends.length,0,"Formspree handles the email; Supabase is only the backup inbox.");
+});
 test("missing email configuration and provider errors never discard saved forms",async()=>{
   for(const result of ["missing","provider-down","exception"]){
     const f=formFixture();
