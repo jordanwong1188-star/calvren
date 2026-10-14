@@ -38,6 +38,7 @@ function fixture({member=null,clientId=null}={}){
       id:subId,customer:customerId,status:"active",metadata:{auth_user_id:userId},
       items:{data:[{price:{id:priceId},current_period_end:1890000000}]}
     });
+    if(url.includes("/v1/promotion_codes?"))return Response.json({data:[{id:"promo_1UQX7IQ9mewkKyl5lR0GMbi4",active:true,code:"CALVREN15",promotion:{coupon:"tlQfQM4u"}}]});
     if(url.endsWith("/v1/checkout/sessions"))return Response.json({url:"https://checkout.stripe.com/c/pay/cs_test_fixture"});
     if(url.endsWith("/v1/billing_portal/sessions"))return Response.json({url:"https://billing.stripe.com/p/session/test_fixture"});
     return Response.json({error:"Unknown test request"}, {status:500});
@@ -127,4 +128,29 @@ test("subscription without payment cannot read tenant activity",async()=>{
   const response=await handleBilling(f.req("automation","GET",true),f.deps);
   assert.equal(response.status,403);
   assert.equal(f.calls.some(x=>x.url.includes("/calvren_leads")),false);
+});
+
+test("15 percent negotiation alias applies a Stripe coupon only on initial Checkout",async()=>{
+  const f=fixture();
+  const request=new Request("https://calvren.pages.dev/api/billing/checkout",{
+    method:"POST",headers:{"Authorization":"Bearer verified.fake.jwt","Content-Type":"application/json"},
+    body:JSON.stringify({discount_code:"Calvren15%"})
+  });
+  const response=await handleBilling(request,f.deps);
+  assert.equal(response.status,200);
+  const sent=f.calls.find(x=>x.url.endsWith("/v1/checkout/sessions"));
+  const params=new URLSearchParams(sent.init.body);
+  assert.equal(params.get("discounts[0][promotion_code]"),"promo_1UQX7IQ9mewkKyl5lR0GMbi4");
+  assert.equal(params.get("line_items[0][price]"),priceId);
+  assert.equal(params.get("line_items[1][price]"),"price_setup123");
+});
+test("invalid negotiation codes cannot start Stripe checkout",async()=>{
+  const f=fixture();
+  const request=new Request("https://calvren.pages.dev/api/billing/checkout",{
+    method:"POST",headers:{"Authorization":"Bearer verified.fake.jwt","Content-Type":"application/json"},
+    body:JSON.stringify({discount_code:"made-up"})
+  });
+  const response=await handleBilling(request,f.deps);
+  assert.equal(response.status,400);
+  assert.equal(f.calls.some(x=>x.url.endsWith("/v1/checkout/sessions")),false);
 });
