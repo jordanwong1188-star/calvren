@@ -85,7 +85,7 @@ if(login)login.addEventListener("submit",async event=>{
   }catch(error){notice(error.message||"Could not send sign-in email.",true);}
   finally{button.disabled=false;}
 });
-$("client-signout")?.addEventListener("click",async()=>{await supabase.auth.signOut();location.assign("/billing.html");});
+$("client-signout")?.addEventListener("click",async()=>{await supabase.auth.signOut();location.assign("/payment");});
 $("billing-checkout")?.addEventListener("click",async()=>{
   const button=$("billing-checkout");button.disabled=true;
   notice("Opening Stripe checkout…");
