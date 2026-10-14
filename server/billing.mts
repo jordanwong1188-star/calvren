@@ -12,7 +12,9 @@ const safeEqual=(a:string,b:string)=>{const x=Buffer.from(a),y=Buffer.from(b);re
 const stripeKey=(env:Env)=>env("STRIPE_SECRET_KEY")?.trim()||"";
 const validKey=(key:string)=>/^sk_(test|live)_[a-zA-Z0-9]+$/.test(key);
 const priceId=(env:Env)=>env("STRIPE_PRICE_ID")?.trim()||"";
-const billingReady=(env:Env)=>validKey(stripeKey(env))&&stripeId(priceId(env),"price");
+const setupPriceId=(env:Env)=>env("STRIPE_SETUP_PRICE_ID")?.trim()||"";
+const webhookReady=(env:Env)=>/^whsec_[a-zA-Z0-9]+$/.test(env("STRIPE_WEBHOOK_SECRET")||"");
+const billingReady=(env:Env)=>validKey(stripeKey(env))&&stripeId(priceId(env),"price")&&stripeId(setupPriceId(env),"price")&&webhookReady(env);
 const dbConfig=(env:Env)=>{
   const url=env("SUPABASE_URL"),key=env("SUPABASE_SECRET_KEY")||env("SUPABASE_SERVICE_ROLE_KEY");
   if(!url||!key||!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url))throw Error("Billing database unavailable.");
@@ -65,9 +67,12 @@ async function publicConfig(deps:BillingDependencies){
   if(!billingReady(deps.env))return json({ready:false,message:"Subscription checkout is being configured."});
   try{
     const price=await stripe(deps,"prices/"+encodeURIComponent(priceId(deps.env)));
+    const setup=await stripe(deps,"prices/"+encodeURIComponent(setupPriceId(deps.env)));
+    if(setup.id!==setupPriceId(deps.env)||!setup.active||setup.recurring||!Number.isSafeInteger(setup.unit_amount)||setup.unit_amount<1||setup.currency!==price.currency)
+      return json({ready:false,message:"Setup price requires configuration."});
     if(price.id!==priceId(deps.env)||!price.active||!price.recurring||!Number.isSafeInteger(price.unit_amount)||price.unit_amount<1)
       return json({ready:false,message:"Subscription price requires setup."});
-    return json({ready:true,amount:price.unit_amount,currency:price.currency,
+    return json({ready:true,amount:price.unit_amount,setup_amount:setup.unit_amount,first_payment:price.unit_amount+setup.unit_amount,currency:price.currency,
       interval:price.recurring.interval,interval_count:price.recurring.interval_count||1,
       test_mode:stripeKey(deps.env).startsWith("sk_test_")});
   }catch{return json({ready:false,message:"Subscription price is unavailable."});}
@@ -138,6 +143,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       const origin=new URL(publicOrigin).origin;
       const p=new URLSearchParams({
         mode:"subscription","line_items[0][price]":priceId(deps.env),"line_items[0][quantity]":"1",
+        "line_items[1][price]":setupPriceId(deps.env),"line_items[1][quantity]":"1",
         client_reference_id:user.id,"subscription_data[metadata][auth_user_id]":user.id,
         customer_email:user.email,
         success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/payment?checkout=canceled",
