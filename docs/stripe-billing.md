@@ -17,7 +17,7 @@
 ## REQUIRED secrets — do not put keys in chat, GitHub, or public assets
 
 Go to Supabase project `xjfsukhfmkgvlfpgjevg` → Edge Functions → Secrets. Set:
-- `STRIPE_SECRET_KEY`: **new** Stripe restricted/live key for the Calvren account (server-side only; replace any previously disclosed key)
+- `STRIPE_SECRET_KEY`: **newly rotated** Stripe restricted key (`rk_test_...` for testing, `rk_live_...` for production) for the Calvren account. Give it only minimum necessary permissions to read Prices, Subscriptions and Promotion Codes and create Checkout Sessions and Billing Portal Sessions. Verify exact permissions in Stripe before accepting payments. Enter it directly in Supabase Edge Functions → Secrets; NEVER share it in chat, source code, or website assets. The Stripe ChatGPT connector requires no manual API key.
 - `STRIPE_PRICE_ID`: `price_1UQWVeQ9mewkKyl5kv85ccXb`
 - `STRIPE_SETUP_PRICE_ID`: `price_1UQX1gQ9mewkKyl5QpjCrTyt`
 - `STRIPE_WEBHOOK_SECRET`: signing secret from the Calvren Stripe webhook endpoint (`whsec_...`), **not** an API key
