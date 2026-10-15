@@ -426,18 +426,23 @@ async function loadOnboardingQueue(){
         ["Lead sources",form.lead_sources],["Lead form",form.lead_form_url],
         ["Qualification",form.qualifying_questions],["Booking",form.booking_duration],
         ["Calendar owner",form.calendar_email],["Handoff email",form.handoff_email],
-        ["Escalation rules",form.handoff_instructions],["Notes",form.additional_notes]
+        ["Escalation rules",form.handoff_instructions],["Kickoff call",form.kickoff_requested?"Requested — "+(form.kickoff_availability||"Contact client for availability"):"Not requested"],["Notes",form.additional_notes],["Proposed launch scope",record.launch_scope],["Approved at",record.scope_approved_at]
       ])sheet.append(onboardingField(label,value));
       const controls=element("div",undefined,"ob-operator-controls");
       const label=element("label","Implementation stage");
       const select=element("select");select.setAttribute("aria-label","Implementation stage");
-      for(const name of ["submitted","reviewing","needs_details","building","testing","live"]){
+      for(const name of ["submitted","reviewing","needs_details","building","testing","awaiting_approval","approved","live"]){
         const option=element("option",name.replaceAll("_"," "));option.value=name;
         if(record.status===name)option.selected=true;
         select.append(option);
       }
       const noteLabel=element("label","Note visible to the customer");
       const note=element("textarea");note.rows=2;note.maxLength=1200;note.value=record.owner_note||"";
+      const scopeLabel=element("label","Final workflow scope for client approval");
+      const scope=element("textarea");scope.rows=6;scope.maxLength=2400;scope.value=record.launch_scope||"";
+      scope.placeholder="Describe the exact lead sources, qualifying questions, responses, booking rules, SMS/consent process, escalation contacts, permitted integrations, exclusions and launch requirements.";
+      const scopeHelp=element("p","After your tests pass, select Awaiting approval to email this summary to the customer. Launch requires their separate sign-off.","fine-print");
+      const approvalProof=element("p",record.scope_approved_at?"Customer approved on "+new Date(record.scope_approved_at).toLocaleString():"Awaiting client approval before launch.","fine-print");
       const clientLabel=element("label","Assign existing live business ID (optional)");
       const clientInput=element("input");clientInput.type="text";clientInput.maxLength=100;
       clientInput.placeholder="e.g. northshore-plumbing-live";
@@ -446,7 +451,7 @@ async function loadOnboardingQueue(){
       save.addEventListener("click",async()=>{
         save.disabled=true;response.textContent="Saving…";
         try{
-          const payload={status:select.value,owner_note:note.value.trim()};
+          const payload={status:select.value,owner_note:note.value.trim(),launch_scope:scope.value.trim()};
           if(clientInput.value.trim())payload.client_id=clientInput.value.trim();
           await operatorOnboardingRequest("/"+encodeURIComponent(record.auth_user_id),{method:"PATCH",body:payload});
           response.textContent="Saved. The client can see the updated milestone and note.";
@@ -454,7 +459,7 @@ async function loadOnboardingQueue(){
         }catch(error){response.textContent=error.message}
         finally{save.disabled=false}
       });
-      controls.append(label,select,noteLabel,note,clientLabel,clientInput,save,response);
+      controls.append(label,select,noteLabel,note,scopeLabel,scope,scopeHelp,approvalProof,clientLabel,clientInput,save,response);
       details.append(sheet,controls);
       container.append(details);
     }
