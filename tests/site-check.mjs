@@ -267,6 +267,54 @@ try{
   assert.equal(await unpaidPage.locator("#billing-checkout").isDisabled(),true);
   await unpaidContext.close();
 
+  // Regression: password-first auth plus existing-user migration, all mocked.
+  const accountContext=await browser.newContext();
+  await accountContext.route("https://esm.sh/@supabase/supabase-js@2.57.0",route=>route.fulfill({
+    status:200,contentType:"text/javascript",headers:{"Access-Control-Allow-Origin":"*"},
+    body:`export function createClient(){
+      globalThis.__calvrenAuthCalls=[];
+      const record=(kind,payload)=>globalThis.__calvrenAuthCalls.push({kind,payload});
+      return {auth:{
+        getSession:async()=>({data:{session:null}}),
+        onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),
+        signUp:async(payload)=>{record("signup",{email:payload.email,passwordLength:payload.password.length});return {data:{session:null},error:null};},
+        signInWithPassword:async(payload)=>{record("password",{email:payload.email});return {error:{message:"Synthetic credentials are not valid"}};},
+        resetPasswordForEmail:async(email,options)=>{record("reset",{email,redirectTo:options.redirectTo});return {error:null};},
+        signInWithOtp:async(payload)=>{record("legacy",{email:payload.email,shouldCreateUser:payload.options.shouldCreateUser});return {error:null};}
+      }};}`
+  }));
+  await accountContext.route("**/api/billing/public",route=>route.fulfill({
+    status:200,contentType:"application/json",body:'{"ready":false}'
+  }));
+  const accountPage=await accountContext.newPage();
+  await accountPage.goto(site+"/client.html",{waitUntil:"domcontentloaded"});
+  await accountPage.locator("#client-login").waitFor({state:"visible"});
+  assert.equal(await accountPage.locator("#client-signup").isVisible(),false);
+  await accountPage.locator('[data-auth-view="signup"]').first().click();
+  assert.equal(await accountPage.locator("#client-signup").isVisible(),true);
+  await accountPage.locator("#signup-email").fill("new@example.com");
+  await accountPage.locator("#signup-password").fill("TestPasswordLong123!");
+  await accountPage.locator("#signup-password-confirm").fill("TestPasswordLong123!");
+  await accountPage.locator("#client-signup button[type=submit]").click();
+  await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="signup"));
+  assert.match(await accountPage.locator("#client-notice").textContent(),/confirmation link/i);
+  await accountPage.locator('[data-auth-view="reset"]').click();
+  await accountPage.locator("#reset-email").fill("new@example.com");
+  await accountPage.locator("#client-reset button[type=submit]").click();
+  await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="reset"));
+  await accountPage.locator('[data-auth-view="legacy"]').click();
+  await accountPage.locator("#legacy-email").fill("old@example.com");
+  await accountPage.locator("#client-legacy button[type=submit]").click();
+  await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="legacy"));
+  const calls=await accountPage.evaluate(()=>globalThis.__calvrenAuthCalls);
+  assert.equal(calls.find(x=>x.kind==="signup").payload.passwordLength,20);
+  assert.equal(calls.find(x=>x.kind==="reset").payload.redirectTo,"https://calvren.pages.dev/client");
+  assert.equal(calls.find(x=>x.kind==="legacy").payload.shouldCreateUser,false);
+  await accountContext.close();
+  await visit("/onboarding.html");
+  assert.equal(await page.locator("#signin").count(),0);
+  assert.equal(await page.locator('#auth-panel a[href="/client.html?next=onboarding"]').count(),1);
+
   for(const path of ["/privacy.html","/thanks.html","/review-thanks.html","/404.html","/shared.js","/app.js","/styles.css","/sitemap.xml"]){
     const asset=await context.request.get(site+path);
     assert.equal(asset.status(),200,path+" must load");
