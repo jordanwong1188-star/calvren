@@ -136,6 +136,8 @@ test("cannot mark launch live without exact customer approval",async()=>{
     status:"live"
   },"Bearer "+TOKEN),env));
   assert.equal(r.status,409);
+  const forgedOwnerApproval=await usingFetch(f.fetch,()=>handleOnboarding(endpoint(admin,"PATCH",{status:"approved"},"Bearer "+TOKEN),env));
+  assert.equal(forgedOwnerApproval.status,409,"Owner must not forge customer authorization.");
   const unauthorized=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding/approve","POST",{
     approved:true,scope:"wrong old scope"
   }),env));
