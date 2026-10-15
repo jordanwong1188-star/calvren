@@ -22,3 +22,10 @@
 .ob-footer{margin:80px 0 35px;border-top:1px solid #dee6db;padding-top:25px;display:flex;justify-content:space-between;gap:20px;color:#7e907f;font-size:11px}.ob-footer a{text-decoration:underline}
 @media(max-width:920px){.ob-shell{padding:40px 26px 0}.ob-header{padding:24px 26px}.ob-layout{grid-template-columns:1fr;gap:24px}.ob-sidebar{padding:0}.ob-side-title{margin:9px 0 18px}.ob-side-heading{display:none}#step-nav{grid-template-columns:repeat(4,1fr);border:0;padding:0;margin:0;gap:6px}#step-nav button{flex-direction:column;gap:5px;padding:9px}#step-nav button::before{display:none}#step-nav button small{font-size:10px}.ob-side-help{display:none}}
 @media(max-width:600px){.ob-header-caption{display:none}.ob-header-right{gap:10px;font-size:11px}.ob-intro h1{font-size:61px}.ob-panel{padding:24px 18px}.ob-form-grid{grid-template-columns:1fr;gap:0}.ob-connect{flex-wrap:wrap}.ob-pill{margin:0 0 0 58px}#step-nav button{font-size:10px}#step-nav button small{display:none}.ob-progress-meta{font-size:9px}.ob-review-item{grid-template-columns:1fr;gap:3px}.ob-wizard-actions{gap:9px}.ob-wizard-actions .ob-button{padding:13px 14px}.ob-action-spacer{display:none}.ob-text-button{order:3;width:100%;text-align:center}.ob-footer{flex-direction:column;gap:8px}}
+
+
+.ob-preview-banner{display:flex;align-items:center;gap:14px;padding:14px 18px;margin:-10px 0 34px;border:1px solid #b8d0b6;border-radius:9px;background:#e7f0e1;color:#214e35;flex-wrap:wrap;font-size:12px}
+.ob-preview-banner strong{letter-spacing:.9px;font-size:10px;white-space:nowrap}
+.ob-preview-banner span{flex:1;min-width:260px}
+.ob-preview-banner button{color:#214e35;background:transparent;border:1px solid #7f9f7c;border-radius:6px;padding:8px 10px;font-size:11px;font-weight:700}
+@media(max-width:600px){.ob-preview-banner{align-items:start;flex-direction:column}.ob-preview-banner span{min-width:0}}
