@@ -1,7 +1,19 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
-const supabase=createClient("https://xjfsukhfmkgvlfpgjevg.supabase.co","sb_publishable_cCLJ_WnlgiBsHsU0BzWcvQ_ID03dhxw",{
-  auth:{flowType:"implicit",detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}
-});
+const previewMode=/\/onboarding-preview(?:\.html)?$/.test(location.pathname);
+const previewKey="calvren-onboarding-preview-demo-v1";
+const sampleForm={
+  business_name:"North Shore Plumbing (sample)",industry:"Home services",website:"https://example.com",
+  description:"Local plumbing company offering leak repair, drain cleaning and routine maintenance.",
+  contact_name:"Alex Morgan",contact_email:"alex@example.com",contact_phone:"+1 604 555 0100",
+  timezone:"America/Vancouver",services:"Drain cleaning, leak repair, water heater servicing",
+  service_areas:"Vancouver, Burnaby, North Vancouver",business_hours:"Monday–Friday: 9 am–5 pm. Weekend: closed.",
+  lead_sources:"Website contact form",lead_form_url:"https://example.com/contact",
+  ai_tone:"Warm and professional",qualifying_questions:"What service do you need? Where are you located? Is it urgent?",
+  booking_duration:"60 minutes",booking_buffer:"15 minutes",booking_rules:"Do not book emergency jobs automatically.",
+  calendar_email:"bookings@example.com",handoff_email:"office@example.com",
+  handoff_phone:"+1 604 555 0100",handoff_instructions:"Escalate emergencies and requests for a person.",
+  additional_notes:"",consent_data_handling:false,approve_workflow_scope:false
+};
+let supabase=null;
 const $=id=>document.getElementById(id);
 const controls=[...document.querySelectorAll("#onboarding-form [name]")];
 let step=1,busy=false,form={},session=null;
@@ -13,6 +25,18 @@ function message(text,error=false){
   target.textContent=text;target.dataset.error=error?"true":"false";
 }
 async function request(method="GET",body){
+  if(previewMode){
+    const saved=JSON.parse(sessionStorage.getItem(previewKey)||"null");
+    if(method==="GET")return {email:"alex@example.com",record:saved};
+    const record={
+      form:body.form,current_step:body.current_step,
+      status:method==="POST"?"submitted":"draft",
+      submitted_at:method==="POST"?new Date().toISOString():null,
+      updated_at:new Date().toISOString(),owner_note:"",automation_connected:false
+    };
+    sessionStorage.setItem(previewKey,JSON.stringify(record));
+    return {record};
+  }
   const {data}=await supabase.auth.getSession();
   const token=data.session?.access_token;
   if(!token)throw Error("Please sign in again.");
@@ -81,7 +105,7 @@ async function save(nextStep=step,submit=false){
     const result=await request(submit?"POST":"PUT",{form,current_step:nextStep});
     if(submit){showSubmitted(result.record);return true}
     step=nextStep;render();
-    $("saved-indicator").textContent="Progress saved securely";
+    $("saved-indicator").textContent=previewMode?"Saved in this browser (sample only)":"Progress saved securely";
     return true;
   }catch(error){message(error.message,true);return false}
   finally{busy=false;buttons.forEach(b=>b.disabled=false)}
@@ -89,6 +113,10 @@ async function save(nextStep=step,submit=false){
 function showSubmitted(record){
   $("wizard-container").hidden=true;
   $("submitted-panel").hidden=false;
+  if(previewMode){
+    document.querySelector("#submitted-panel h2").textContent="Sample onboarding complete.";
+    document.querySelector("#submitted-panel > p").textContent="You have tested the sample customer journey. In production, Calvren would review the real submission and connect approved services. No data or notification was sent.";
+  }
   document.querySelectorAll("#step-nav button").forEach(btn=>btn.disabled=true);
   const stages=[
     ["submitted","Questionnaire received","Your details are safely on file."],
@@ -115,6 +143,22 @@ function showSubmitted(record){
   }
 }
 async function load(){
+  if(previewMode){
+    const result=await request();
+    form={...sampleForm,...(result.record?.form||{})};
+    step=Math.max(1,Math.min(4,result.record?.current_step||1));
+    restore();show("onboarding-app");
+    if(result.record&&result.record.status!=="draft")showSubmitted(result.record);
+    else {render();$("saved-indicator").textContent="Sample only — saved in this browser";}
+    $("ob-preview-reset")?.addEventListener("click",()=>{
+      sessionStorage.removeItem(previewKey);location.reload();
+    });
+    return;
+  }
+  const {createClient}=await import("https://esm.sh/@supabase/supabase-js@2.57.0");
+  supabase=createClient("https://xjfsukhfmkgvlfpgjevg.supabase.co","sb_publishable_cCLJ_WnlgiBsHsU0BzWcvQ_ID03dhxw",{
+    auth:{flowType:"implicit",detectSessionInUrl:true,autoRefreshToken:true,persistSession:true}
+  });
   const {data,error}=await supabase.auth.getSession();
   if(error||!data.session){
     show("auth-panel");
