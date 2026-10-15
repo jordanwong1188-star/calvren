@@ -302,7 +302,8 @@ try{
   await accountPage.locator("#reset-email").fill("new@example.com");
   await accountPage.locator("#client-reset button[type=submit]").click();
   await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="reset"));
-  await accountPage.locator('[data-auth-view="legacy"]').click();
+  await accountPage.locator('#client-reset [data-auth-view="signin"]').click();
+  await accountPage.locator('#client-login [data-auth-view="legacy"]').click();
   await accountPage.locator("#legacy-email").fill("old@example.com");
   await accountPage.locator("#client-legacy button[type=submit]").click();
   await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="legacy"));
