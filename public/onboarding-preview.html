@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#173b31">
+<title>Try Client Onboarding | Calvren</title><meta name="description" content="Set up your managed Calvren automation, securely and at your pace.">
+<link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/onboarding.css">
+<script type="module" src="/onboarding.js"></script>
+</head><body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="ob-header">
+  <a class="brand" href="/">calvren<span class="brand-dot">.</span></a>
+  <div class="ob-header-right"><span class="ob-header-caption">CLIENT ONBOARDING</span><a href="https://github.com/jordanwong1188-star/calvren/pull/1" target="_blank" rel="noopener">Development preview &nearr;</a></div>
+</header>
+<main id="main" class="ob-shell">
+<div class="ob-preview-banner" role="status"><strong>INTERACTIVE SAMPLE — NOT A LIVE ACCOUNT</strong>
+<span>Explore the complete onboarding process using example information. Nothing is sent to Calvren, Stripe, OpenAI or your business accounts.</span>
+<button type="button" id="ob-preview-reset">Restart sample ↻</button></div>
+  <section id="auth-panel" class="ob-auth ob-panel" hidden>
+    <span class="ob-eyebrow">SECURE CLIENT ACCESS</span>
+    <h1>Welcome to <em>Calvren.</em></h1>
+    <p>Sign in using the email associated with your subscription to begin your guided setup.</p>
+    <form id="signin"><label for="signin-email">Business email</label><input id="signin-email" type="email" required autocomplete="email" placeholder="you@company.com">
+      <button class="ob-button" type="submit">Send secure sign-in link &rarr;</button></form>
+    <p class="ob-note">We'll send a secure sign-in link. No password needed.</p>
+  </section>
+  <section id="access-panel" class="ob-auth ob-panel" hidden>
+    <span class="ob-eyebrow">ACCOUNT VERIFICATION</span><h1>Almost there.</h1>
+    <p id="access-message">Checking your subscription and onboarding access.</p>
+    <a class="ob-button" href="/client.html">Visit your dashboard &rarr;</a>
+    <a class="ob-underlink" href="/contact.html">Contact Calvren support</a>
+  </section>
+  <div id="onboarding-app" hidden>
+    <div class="ob-intro"><span class="ob-eyebrow"><span class="ob-status-dot"></span> YOUR IMPLEMENTATION WORKSPACE</span>
+      <h1>Your business.<br><em>Our automation.</em></h1>
+      <p>Tell us how your business works. We handle the technical setup, integrations and testing from there.</p>
+    </div>
+    <div class="ob-layout">
+      <aside class="ob-sidebar">
+        <div class="ob-side-heading">ONBOARDING OVERVIEW</div>
+        <p class="ob-side-title">A clear path to launch.</p>
+        <nav aria-label="Setup progress" id="step-nav">
+          <button type="button" data-goto="1"><span class="ob-step-count">01</span><span>Business profile<small>Who you are</small></span></button>
+          <button type="button" data-goto="2"><span class="ob-step-count">02</span><span>Automation design<small>How leads are handled</small></span></button>
+          <button type="button" data-goto="3"><span class="ob-step-count">03</span><span>Connections & handoff<small>What we need access to</small></span></button>
+          <button type="button" data-goto="4"><span class="ob-step-count">04</span><span>Final review<small>Confirm your details</small></span></button>
+        </nav>
+        <div class="ob-side-help"><div class="ob-side-help-symbol">↗</div><strong>We're here to help.</strong><p>Need assistance or prefer a walkthrough? Our team can guide you through setup.</p><a href="/contact.html">Contact Calvren &rarr;</a></div>
+      </aside>
+      <div class="ob-content">
+        <div id="wizard-container" class="ob-panel">
+          <div class="ob-progress-meta"><span id="step-indicator">STEP 1 OF 4</span><span id="saved-indicator">Securely saved to your account</span></div>
+          <div class="ob-progress-track"><div id="progress-bar"></div></div>
+          <form id="onboarding-form" autocomplete="on" novalidate>
+            <section class="ob-page" data-step="1">
+              <span class="ob-eyebrow">01 / YOUR BUSINESS</span><h2>Let's get acquainted.</h2>
+              <p class="ob-section-intro">A few details help us tailor your automation to your business and the people you serve.</p>
+              <div class="ob-field"><label for="business_name">Business name <b>*</b></label><input id="business_name" name="business_name" maxlength="160" required placeholder="e.g. North Shore Plumbing"></div>
+              <div class="ob-form-grid">
+                <div class="ob-field"><label for="industry">Industry <b>*</b></label><select id="industry" name="industry" required><option value="">Select your industry</option><option>Home services</option><option>Health & wellness</option><option>Professional services</option><option>Real estate</option><option>Education</option><option>Hospitality</option><option>Other</option></select></div>
+                <div class="ob-field"><label for="website">Website <span>optional</span></label><input id="website" name="website" type="url" maxlength="300" placeholder="https://yourbusiness.com"></div>
+              </div>
+              <div class="ob-field"><label for="description">What does your business do? <b>*</b></label><textarea id="description" name="description" rows="3" maxlength="1400" required placeholder="A short description of your services and ideal customers"></textarea></div>
+              <div class="ob-form-grid">
+                <div class="ob-field"><label for="contact_name">Primary contact <b>*</b></label><input id="contact_name" name="contact_name" maxlength="120" required placeholder="Full name"></div>
+                <div class="ob-field"><label for="contact_email">Contact email <b>*</b></label><input id="contact_email" name="contact_email" type="email" maxlength="254" required placeholder="you@business.com"></div>
+              </div>
+              <div class="ob-form-grid">
+                <div class="ob-field"><label for="contact_phone">Phone <span>optional</span></label><input id="contact_phone" name="contact_phone" type="tel" maxlength="40" placeholder="+1 604 555 0100"></div>
+                <div class="ob-field"><label for="timezone">Business timezone</label><select id="timezone" name="timezone"><option value="America/Vancouver">Pacific — Vancouver</option><option value="America/Edmonton">Mountain — Calgary</option><option value="America/Winnipeg">Central — Winnipeg</option><option value="America/Toronto">Eastern — Toronto</option><option value="America/Halifax">Atlantic — Halifax</option><option value="America/St_Johns">Newfoundland</option><option value="America/Los_Angeles">Pacific — Los Angeles</option><option value="America/New_York">Eastern — New York</option><option value="Europe/London">London</option><option value="Other">Another timezone — tell us in notes</option></select></div>
+              </div>
+            </section>
+            <section class="ob-page" data-step="2" hidden>
+              <span class="ob-eyebrow">02 / YOUR AUTOMATION</span><h2>Make every enquiry count.</h2>
+              <p class="ob-section-intro">We'll build your lead-response workflow using your own services, questions and availability rules.</p>
+              <div class="ob-field"><label for="services">Services you offer <b>*</b></label><textarea id="services" name="services" rows="3" maxlength="1200" required placeholder="e.g. Leak repairs, drain cleaning, water heater service"></textarea><small>Separate individual services with commas or new lines.</small></div>
+              <div class="ob-form-grid">
+                <div class="ob-field"><label for="service_areas">Service areas</label><input id="service_areas" name="service_areas" maxlength="1000" placeholder="e.g. Vancouver, Burnaby, North Vancouver"></div>
+                <div class="ob-field"><label for="lead_sources">Where do enquiries come from? <b>*</b></label><input id="lead_sources" name="lead_sources" maxlength="800" required placeholder="e.g. Website contact form"></div>
+              </div>
+              <div class="ob-field"><label for="lead_form_url">Website enquiry form URL</label><input id="lead_form_url" name="lead_form_url" maxlength="300" placeholder="https://yourbusiness.com/contact"><small>Calvren will help connect this form. We won't request your password here.</small></div>
+              <div class="ob-field"><label for="business_hours">Business hours <b>*</b></label><textarea id="business_hours" name="business_hours" maxlength="1000" rows="2" required placeholder="e.g. Monday–Friday 9am–5pm; Saturday 10am–2pm; Sunday closed"></textarea></div>
+              <div class="ob-field"><label for="qualifying_questions">What should the AI ask new leads?</label><textarea id="qualifying_questions" name="qualifying_questions" rows="3" maxlength="1500" placeholder="e.g. What service do you need? What city are you located in? Is it urgent?"></textarea></div>
+              <div class="ob-form-grid">
+                <div class="ob-field"><label for="booking_duration">Appointment length</label><select id="booking_duration" name="booking_duration"><option value="30 minutes">30 minutes</option><option value="60 minutes" selected>60 minutes</option><option value="90 minutes">90 minutes</option><option value="120 minutes">120 minutes</option><option value="No automated booking">No automated booking</option></select></div>
+                <div class="ob-field"><label for="booking_buffer">Time between appointments</label><select id="booking_buffer" name="booking_buffer"><option value="0 minutes">None</option><option value="15 minutes" selected>15 minutes</option><option value="30 minutes">30 minutes</option><option value="60 minutes">60 minutes</option></select></div>
+              </div>
+              <div class="ob-field"><label for="booking_rules">Booking limitations or special instructions</label><textarea id="booking_rules" name="booking_rules" rows="2" maxlength="1200" placeholder="e.g. Never book same-day visits. Ask for approval on emergency calls."></textarea></div>
+              <div class="ob-field"><label for="ai_tone">How should your AI sound?</label><select id="ai_tone" name="ai_tone"><option>Warm and professional</option><option>Friendly and conversational</option><option>Clear and concise</option><option>Formal and reassuring</option></select></div>
+            </section>
+            <section class="ob-page" data-step="3" hidden>
+              <span class="ob-eyebrow">03 / YOUR CONNECTIONS</span><h2>We'll handle the technical side.</h2>
+              <p class="ob-section-intro">Provide a few access details. We'll securely arrange permissions and test each integration before launch.</p>
+              <div class="ob-connect"><span class="ob-connect-icon">▦</span><div><strong>Google Calendar</strong><p>We'll ask you to share your selected booking calendar with our service account. You stay in control of your calendar.</p></div><span class="ob-pill">SETUP ASSISTED</span></div>
+              <div class="ob-field"><label for="calendar_email">Calendar owner email <span>optional</span></label><input id="calendar_email" name="calendar_email" maxlength="254" type="email" placeholder="bookings@yourbusiness.com"></div>
+              <div class="ob-connect"><span class="ob-connect-icon">↗</span><div><strong>SMS and lead intake</strong><p>We'll assign or connect an approved SMS number and securely route consenting form enquiries into your automation.</p></div><span class="ob-pill">SETUP ASSISTED</span></div>
+              <div class="ob-form-grid">
+                <div class="ob-field"><label for="handoff_email">Human handoff email <b>*</b></label><input id="handoff_email" name="handoff_email" type="email" maxlength="254" required placeholder="team@yourbusiness.com"></div>
+                <div class="ob-field"><label for="handoff_phone">Emergency contact number <span>optional</span></label><input id="handoff_phone" name="handoff_phone" type="tel" maxlength="40" placeholder="+1 604 555 0100"></div>
+              </div>
+              <div class="ob-field"><label for="handoff_instructions">When should a person take over?</label><textarea id="handoff_instructions" name="handoff_instructions" rows="3" maxlength="1200" placeholder="e.g. Any emergency, refund complaint or request to speak with our office manager."></textarea></div>
+              <div class="ob-sensitive"><strong>For your security</strong><p>Never enter passwords, Twilio tokens, Google private keys, customer data exports or API secrets in this form. We arrange authorized access separately.</p></div>
+            </section>
+            <section class="ob-page" data-step="4" hidden>
+              <span class="ob-eyebrow">04 / FINAL REVIEW</span><h2>Ready for us to begin?</h2><p class="ob-section-intro">Please review what you've shared. We won't activate live messaging or calendar access until you approve the agreed workflow and we finish testing.</p>
+              <div id="review-summary" class="ob-review"></div>
+              <div class="ob-field"><label for="additional_notes">Anything else we should know?</label><textarea id="additional_notes" name="additional_notes" rows="3" maxlength="1500" placeholder="Questions, goals or constraints for your onboarding specialist"></textarea></div>
+              <label class="ob-check"><input type="checkbox" id="consent_data_handling" name="consent_data_handling"><span>I confirm I have authority to arrange business integrations and understand that Calvren will process the business information provided for onboarding, subject to our agreed terms and <a href="/privacy.html" target="_blank" rel="noopener">privacy notice</a>.</span></label>
+              <label class="ob-check"><input type="checkbox" id="approve_workflow_scope" name="approve_workflow_scope"><span>I understand this questionnaire is the starting point for a managed setup. The final workflow scope, messaging consent process, access permissions and launch date require separate confirmation.</span></label>
+            </section>
+            <div id="form-message" class="ob-feedback" role="status" aria-live="polite"></div>
+            <div class="ob-wizard-actions"><button class="ob-button ob-button-muted" id="back-btn" type="button" hidden>&larr; Previous</button><span class="ob-action-spacer"></span><button class="ob-text-button" id="save-btn" type="button">Save and finish later</button><button class="ob-button" id="next-btn" type="button">Continue &rarr;</button><button class="ob-button" id="submit-btn" type="button" hidden>Submit onboarding &rarr;</button></div>
+          </form>
+        </div>
+        <section id="submitted-panel" class="ob-panel ob-complete" hidden>
+          <span class="ob-success-icon">✓</span><span class="ob-eyebrow">IMPLEMENTATION IN PROGRESS</span>
+          <h2>Your next chapter starts here.</h2>
+          <p>We've received your onboarding details. You can track the next milestones below while we prepare your custom automation.</p>
+          <div id="review-timeline" class="ob-timeline"></div>
+          <div id="owner-note" class="ob-owner-note" hidden></div>
+          <div class="ob-complete-actions"><a class="ob-button" href="/onboarding-preview.html">Review this sample &rarr;</a><span class="ob-note">This is a demo. No real project was created.</span></div>
+        </section>
+      </div>
+    </div>
+    <footer class="ob-footer"><span>Calvren interactive onboarding preview • Synthetic data only</span><span>Questions? <a href="/contact.html">We're here to help.</a></span></footer>
+  </div>
+</main>
+</body></html>
