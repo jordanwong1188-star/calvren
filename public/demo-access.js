@@ -28,7 +28,7 @@ function makeDialog(){
     <p class="demo-access-help"><a href="/lead-demo.html">Skip email and try the interactive demo →</a></p>
     <p class="demo-access-fine">If you submit your email, we save it and your email preference privately. No account, password or email verification is required for this simulated demo. The optional introduction includes an unsubscribe link. <a href="/privacy.html">Privacy details</a>.</p>
     <a class="text-link" href="/#demo">Just browsing? Try the quick preview →</a>
-    <p class="demo-access-help">Need a hand? <a href="mailto:calvrenautomation@gmail.com">Contact Jordan</a>.</p>`;
+    <p class="demo-access-help">Need a hand? <a href="mailto:calvrenautomation@gmail.com">Contact Calvren</a>.</p>`;
   document.body.append(dialog);dialog.querySelector(".demo-access-close").addEventListener("click",()=>dialog.close());
   const form=dialog.querySelector("form"),status=dialog.querySelector('[role="status"]'),button=form.querySelector("button"),link=dialog.querySelector("#demo-open-link");
   let waiting=false;
