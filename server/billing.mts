@@ -152,25 +152,13 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       const publicOrigin=deps.env("CALVREN_PUBLIC_URL")||"https://calvren.pages.dev";
       const origin=new URL(publicOrigin).origin;
       const p=new URLSearchParams({
-        mode:"subscription","line_items[0][price]":priceId(deps.env),"line_items[0][quantity]":"1",
+        mode:"subscription",allow_promotion_codes:"true","line_items[0][price]":priceId(deps.env),"line_items[0][quantity]":"1",
         "line_items[1][price]":setupPriceId(deps.env),"line_items[1][quantity]":"1",
         client_reference_id:user.id,"subscription_data[metadata][auth_user_id]":user.id,
         customer_email:user.email,
         success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/payment?checkout=canceled",
       });
       if(existing?.stripe_customer_id)p.set("customer",existing.stripe_customer_id),p.delete("customer_email");
-      // Negotiated code is never a price override: Stripe validates the attached coupon.
-      const input=await request.json().catch(()=>({}));
-      const requested=typeof input?.discount_code==="string"?input.discount_code.trim():"";
-      if(requested){
-        if(requested.toLowerCase()!=="calvren15%"&&requested.toLowerCase()!=="calvren15")
-          return json({error:"That discount code is not valid."},400);
-        const promotion=await stripe(deps,"promotion_codes?"+new URLSearchParams({code:"CALVREN15",active:"true",limit:"10"}));
-        const codes=Array.isArray(promotion.data)?promotion.data:[];
-        const valid=codes.find((code:ObjectRow)=>code.active&&code.code?.toLowerCase()==="calvren15"&&code.promotion?.coupon==="tlQfQM4u");
-        if(!valid||!stripeId(valid.id,"promo"))return json({error:"This discount code is currently unavailable."},400);
-        p.set("discounts[0][promotion_code]",valid.id);
-      }
       const session=await stripe(deps,"checkout/sessions",p);
       if(!/^https:\/\/checkout\.stripe\.com\//.test(session.url||""))throw Error("Invalid Stripe checkout.");
       return json({url:session.url});
