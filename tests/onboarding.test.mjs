@@ -94,7 +94,7 @@ test("cannot submit incomplete or unapproved onboarding",async()=>{
 test("submitted forms are locked from client changes",async()=>{
   const f=fixture({record:{auth_user_id:userId,status:"reviewing",form:validForm,current_step:4,owner_note:"",submitted_at:"2026-10-14"}});
   const result=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding","PUT",{form:validForm,current_step:1}),env));
-  assert.equal(result.status,400);
+  assert.equal(result.status,409);
   assert.equal(f.saved.status,"reviewing");
 });
 test("owners must link a live business before marking an implementation launched",async()=>{
