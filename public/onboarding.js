@@ -203,18 +203,6 @@ async function load(){
     show("access-panel");
   }
 }
-$("signin")?.addEventListener("submit",async event=>{
-  event.preventDefault();
-  const btn=event.currentTarget.querySelector("button"),email=$("signin-email").value.trim();
-  btn.disabled=true;btn.textContent="Sending your link…";
-  try{
-    const {error}=await supabase.auth.signInWithOtp({
-      email,options:{emailRedirectTo:"https://calvren.pages.dev/client",shouldCreateUser:true}
-    });
-    if(error)throw error;
-    btn.textContent="Check your email for a sign-in link ✓";
-  }catch(e){btn.textContent=e.message;btn.disabled=false}
-});
 $("onboarding-form").addEventListener("submit",event=>event.preventDefault());
 $("kickoff_requested")?.addEventListener("change",toggleKickoff);
 $("preview-approval-btn")?.addEventListener("click",()=>{
