@@ -9,6 +9,9 @@ import ts from "typescript";
 const temp=await mkdtemp(join(tmpdir(),"calvren-onboarding-"));
 const source=await readFile(new URL("../server/onboarding.mts",import.meta.url),"utf8");
 const output=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+const mail=await readFile(new URL("../server/customer-email.mts",import.meta.url),"utf8");
+const mailJs=ts.transpileModule(mail,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+await writeFile(join(temp,"customer-email.mjs"),mailJs);
 await writeFile(join(temp,"onboarding.mjs"),output);
 const {handleOnboarding}=await import(pathToFileURL(join(temp,"onboarding.mjs")).href);
 test.after(()=>rm(temp,{recursive:true,force:true}));
@@ -30,14 +33,14 @@ const endpoint=(path,method="GET",body,auth="Bearer verified.user.jwt")=>new Req
   ...(body?{body:JSON.stringify(body)}:{})
 });
 function fixture({active=true,record=null,client=null}={}){
-  let saved=record;
+  let saved=record,linkedClient=client;
   const calls=[];
   const fetch=async(url,init={})=>{
     calls.push([url,init.method||"GET"]);
     if(url.endsWith("/auth/v1/user"))return Response.json({id:userId,email:"alex@example.com",email_confirmed_at:"2026-10-14T00:00:00Z"});
     if(url.includes("/rest/v1/calvren_billing_memberships")){
-      if(init.method==="PATCH")return Response.json([{client_id:JSON.parse(init.body).client_id}]);
-      return Response.json(active?[{subscription_status:"active",current_period_end:"2030-01-01T00:00:00Z",client_id:client}]:[]);
+      if(init.method==="PATCH"){linkedClient=JSON.parse(init.body).client_id;return Response.json([{client_id:linkedClient}]);}
+      return Response.json(active?[{subscription_status:"active",current_period_end:"2030-01-01T00:00:00Z",client_id:linkedClient}]:[]);
     }
     if(url.includes("/rest/v1/calvren_clients"))return Response.json([{id:"plumbing-live",config:{mode:"live",active:true}}]);
     if(url.includes("/rest/v1/calvren_onboarding")){
@@ -102,4 +105,56 @@ test("owners must link a live business before marking an implementation launched
   const result=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding/admin/"+userId,"PATCH",{status:"live"},"Bearer "+TOKEN),env));
   assert.equal(result.status,409);
   assert.notEqual(f.saved.status,"live");
+});
+
+test("optional kickoff request is saved with the questionnaire",async()=>{
+  const f=fixture();
+  const result=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding","POST",{
+    form:{...validForm,kickoff_requested:true,kickoff_availability:"Thursday afternoons Pacific"},current_step:4
+  }),env));
+  assert.equal(result.status,200);
+  assert.equal(f.saved.form.kickoff_requested,true);
+  assert.equal(f.saved.form.kickoff_availability,"Thursday afternoons Pacific");
+});
+test("kickoff request needs preferred times; no time is automatically booked",async()=>{
+  const f=fixture();
+  const result=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding","POST",{
+    form:{...validForm,kickoff_requested:true},current_step:4
+  }),env));
+  assert.equal(result.status,400);
+  assert.equal(f.saved,null);
+});
+test("cannot mark launch live without exact customer approval",async()=>{
+  const f=fixture({record:{auth_user_id:userId,status:"testing",form:validForm,launch_scope:"",
+    scope_approved_at:null,approved_scope:"",owner_note:""}});
+  const admin="/api/onboarding/admin/"+userId;
+  let r=await usingFetch(f.fetch,()=>handleOnboarding(endpoint(admin,"PATCH",{
+    status:"awaiting_approval",launch_scope:"Website enquiries, 9–5 weekday bookings, human escalation."
+  },"Bearer "+TOKEN),env));
+  assert.equal(r.status,200);
+  r=await usingFetch(f.fetch,()=>handleOnboarding(endpoint(admin,"PATCH",{
+    status:"live"
+  },"Bearer "+TOKEN),env));
+  assert.equal(r.status,409);
+  const forgedOwnerApproval=await usingFetch(f.fetch,()=>handleOnboarding(endpoint(admin,"PATCH",{status:"approved"},"Bearer "+TOKEN),env));
+  assert.equal(forgedOwnerApproval.status,409,"Owner must not forge customer authorization.");
+  const unauthorized=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding/approve","POST",{
+    approved:true,scope:"wrong old scope"
+  }),env));
+  assert.equal(unauthorized.status,409);
+  r=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding/approve","POST",{
+    approved:true,scope:"Website enquiries, 9–5 weekday bookings, human escalation."
+  }),env));
+  assert.equal(r.status,200);
+  assert.equal(f.saved.status,"approved");
+  assert.ok(f.saved.scope_approved_at);
+  r=await usingFetch(f.fetch,()=>handleOnboarding(endpoint(admin,"PATCH",{
+    status:"live",launch_scope:"Changed booking hours"
+  },"Bearer "+TOKEN),env));
+  assert.equal(r.status,409);
+  r=await usingFetch(f.fetch,()=>handleOnboarding(endpoint(admin,"PATCH",{
+    status:"live",client_id:"plumbing-live"
+  },"Bearer "+TOKEN),env));
+  assert.equal(r.status,200);
+  assert.equal(f.saved.status,"live");
 });

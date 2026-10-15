@@ -31,6 +31,12 @@
       <h1>Your business.<br><em>Our automation.</em></h1>
       <p>Tell us how your business works. We handle the technical setup, integrations and testing from there.</p>
     </div>
+    <div class="ob-guide-card" aria-label="Setup walkthrough">
+      <div class="ob-guide-icon" aria-hidden="true">▶</div>
+      <div><span class="ob-eyebrow">A GUIDED START</span><strong>Prefer to see how it works?</strong>
+      <p>Our step-by-step setup video is coming soon. For now, follow the four steps below or request a personal kickoff call.</p></div>
+      <span class="ob-guide-tag">VIDEO GUIDE COMING SOON</span>
+    </div>
     <div class="ob-layout">
       <aside class="ob-sidebar">
         <div class="ob-side-heading">ONBOARDING OVERVIEW</div>
@@ -95,6 +101,15 @@
                 <div class="ob-field"><label for="handoff_phone">Emergency contact number <span>optional</span></label><input id="handoff_phone" name="handoff_phone" type="tel" maxlength="40" placeholder="+1 604 555 0100"></div>
               </div>
               <div class="ob-field"><label for="handoff_instructions">When should a person take over?</label><textarea id="handoff_instructions" name="handoff_instructions" rows="3" maxlength="1200" placeholder="e.g. Any emergency, refund complaint or request to speak with our office manager."></textarea></div>
+              <div class="ob-kickoff-card">
+                <span class="ob-eyebrow">OPTIONAL / GUIDED SETUP</span>
+                <h3>Would a quick kickoff call help?</h3>
+                <p>We can walk through your workflow, answer questions and discuss secure account connections. A call is completely optional.</p>
+                <label class="ob-check"><input type="checkbox" id="kickoff_requested" name="kickoff_requested"><span>Yes, I'd like to arrange a 20-minute kickoff call.</span></label>
+                <div class="ob-field" id="kickoff-times-wrap" hidden><label for="kickoff_availability">Preferred days and times <b>*</b></label>
+                <textarea id="kickoff_availability" name="kickoff_availability" rows="2" maxlength="500" placeholder="e.g. Tuesday or Thursday afternoons, Pacific time"></textarea>
+                <small>We'll contact you to confirm a time. Submitting this request does not book a meeting.</small></div>
+              </div>
               <div class="ob-sensitive"><strong>For your security</strong><p>Never enter passwords, Twilio tokens, Google private keys, customer data exports or API secrets in this form. We arrange authorized access separately.</p></div>
             </section>
             <section class="ob-page" data-step="4" hidden>
@@ -114,6 +129,14 @@
           <p>We've received your onboarding details. You can track the next milestones below while we prepare your custom automation.</p>
           <div id="review-timeline" class="ob-timeline"></div>
           <div id="owner-note" class="ob-owner-note" hidden></div>
+          <section id="approval-panel" class="ob-approval-card" hidden aria-labelledby="approval-title">
+            <span class="ob-eyebrow">YOUR FINAL APPROVAL</span><h3 id="approval-title">Review the workflow before we launch.</h3>
+            <p>Read the exact proposed scope below. We will not mark your automation live until you approve this version.</p>
+            <div id="launch-scope-text" class="ob-scope-text"></div>
+            <label class="ob-check"><input type="checkbox" id="launch-approval-check"><span>I have reviewed the workflow above and authorize Calvren to prepare this specific configuration for launch, subject to our agreed terms.</span></label>
+            <button class="ob-button" id="launch-approval-btn" type="button">Approve this workflow →</button>
+            <p class="ob-feedback" id="launch-approval-message" role="status" aria-live="polite"></p>
+          </section>
           <div class="ob-complete-actions"><a class="ob-button" href="/client.html">Open client dashboard &rarr;</a><a class="ob-underlink" href="/contact.html">Ask us a question</a></div>
         </section>
       </div>

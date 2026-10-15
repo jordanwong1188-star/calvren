@@ -31,7 +31,7 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
       return json({ok:true,...await deps.engine().followUps(1)});
     }
     if(path.startsWith("/api/billing/"))return handleBilling(routed,{env,repository:deps.repository});
-    if(path==="/api/onboarding"||path.startsWith("/api/onboarding/admin"))return handleOnboarding(routed,env);
+    if(path==="/api/onboarding"||path==="/api/onboarding/approve"||path.startsWith("/api/onboarding/admin"))return handleOnboarding(routed,env);
     if(path==="/api/demo-access"||path==="/api/demo-access/unsubscribe"){
       if(!url||!key||!deps.repository)return json({error:"Demo signup is temporarily unavailable."},503);
       const signupDeps={repository:deps.repository,storage:new SupabasePrivateStorage({url,key}),env,ip:options.ip};

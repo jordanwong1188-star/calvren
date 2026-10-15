@@ -29,3 +29,20 @@
 .ob-preview-banner span{flex:1;min-width:260px}
 .ob-preview-banner button{color:#214e35;background:transparent;border:1px solid #7f9f7c;border-radius:6px;padding:8px 10px;font-size:11px;font-weight:700}
 @media(max-width:600px){.ob-preview-banner{align-items:start;flex-direction:column}.ob-preview-banner span{min-width:0}}
+
+
+/* Client orientation, optional kickoff call and explicit launch sign-off */
+.ob-guide-card{display:flex;align-items:center;gap:18px;background:linear-gradient(110deg,#ecf2e9,#f7f9f4);border:1px solid #dce7d8;border-radius:12px;padding:21px 25px;margin:-7px 0 38px}
+.ob-guide-icon{display:grid;place-items:center;flex:0 0 49px;height:49px;border:1px solid #b5cbbb;color:#345c42;background:#fff;border-radius:50%;font-size:17px;padding-left:2px}
+.ob-guide-card>div:nth-child(2){flex:1;min-width:0}.ob-guide-card strong{display:block;margin:6px 0;font-family:Georgia,serif;font-size:20px;font-weight:500;color:#244535}.ob-guide-card p{margin:0;font-size:12px;line-height:1.65;color:#65796a}
+.ob-guide-tag{font-size:9px;letter-spacing:1px;color:#6d8873;border:1px solid #b9d0b7;border-radius:20px;padding:9px 12px;white-space:nowrap}
+.ob-kickoff-card{margin-top:24px;border:1px solid #d8e5d6;border-radius:12px;padding:25px;background:#f4f7f0}
+.ob-kickoff-card h3,.ob-approval-card h3{font-family:Georgia,serif;font-size:26px;font-weight:500;color:#264838;margin:10px 0}
+.ob-kickoff-card>p,.ob-approval-card>p{font-size:13px;line-height:1.7;color:#657d69;margin:0 0 18px}
+.ob-kickoff-card .ob-check{border-top:1px solid #dfe9d9;padding-top:20px;margin:18px 0 8px}
+.ob-kickoff-card #kickoff-times-wrap{margin-top:19px}
+.ob-approval-card{margin-top:30px;border:1px solid #c5d7c2;border-radius:12px;background:#f5f8f1;padding:27px}
+.ob-scope-text{white-space:pre-wrap;overflow-wrap:anywhere;background:white;border:1px solid #dae7d9;border-radius:9px;padding:21px;font-size:13px;line-height:1.85;color:#284737;margin:22px 0}
+.ob-approval-card .ob-check{margin-bottom:20px}
+.ob-approval-card .ob-button{display:inline-flex;align-items:center}
+@media(max-width:680px){.ob-guide-card{align-items:flex-start;flex-wrap:wrap;padding:18px}.ob-guide-tag{width:100%;text-align:center}.ob-kickoff-card,.ob-approval-card{padding:19px}.ob-guide-card strong{font-size:18px}}

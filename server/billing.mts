@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { OperatorRepository } from "../netlify/lib/conversion-api.mjs";
+import { sendClientMail } from "./customer-email.mjs";
 
 type Env = (name:string)=>string|undefined;
 export interface BillingDependencies { env:Env; fetch?:typeof fetch; repository?:OperatorRepository|null; }
@@ -36,7 +37,7 @@ async function queryDb(deps:BillingDependencies,path:string,method="GET",body?:u
 }
 async function membership(deps:BillingDependencies,userId:string){
   const rows=await queryDb(deps,"calvren_billing_memberships?"+new URLSearchParams({
-    auth_user_id:"eq."+userId,select:"auth_user_id,stripe_customer_id,stripe_subscription_id,stripe_price_id,subscription_status,current_period_end,client_id",limit:"1"
+    auth_user_id:"eq."+userId,select:"auth_user_id,stripe_customer_id,stripe_subscription_id,stripe_price_id,subscription_status,current_period_end,client_id,welcome_email_sent_at",limit:"1"
   }));
   return rows[0]||null;
 }
@@ -50,6 +51,25 @@ async function userFromToken(request:Request,deps:BillingDependencies){
   const user=await response.json();
   if(!uuid.test(user.id)||typeof user.email!=="string"||!user.email_confirmed_at)return null;
   return {id:user.id as string,email:user.email as string};
+}
+async function verifiedBillingEmail(deps:BillingDependencies,id:string):Promise<string|null>{
+  const {base,key}=dbConfig(deps.env);
+  const response=await (deps.fetch??fetch)(base+"/auth/v1/admin/users/"+id,{
+    headers:{"apikey":key,"Authorization":"Bearer "+key},signal:AbortSignal.timeout(10000)
+  });
+  if(!response.ok)return null;
+  const user=await response.json();
+  return user.id===id&&typeof user.email==="string"&&user.email_confirmed_at?user.email:null;
+}
+async function ensureWelcomeEmail(deps:BillingDependencies,id:string,existingEmail?:string){
+  const member=await membership(deps,id);
+  if(!paid(member)||member?.welcome_email_sent_at)return;
+  const recipient=existingEmail||await verifiedBillingEmail(deps,id);
+  if(!recipient)return;
+  if(await sendClientMail(deps.env,recipient,"welcome",{id:"calvren-welcome-"+id,fetcher:deps.fetch})){
+    await queryDb(deps,"calvren_billing_memberships?auth_user_id=eq."+id,"PATCH",
+      {welcome_email_sent_at:new Date().toISOString()});
+  }
 }
 async function stripe(deps:BillingDependencies,path:string,body?:URLSearchParams){
   const key=stripeKey(deps.env);
@@ -126,6 +146,9 @@ async function webhook(request:Request,deps:BillingDependencies){
     current_period_end:Number.isInteger(expire)?new Date(expire*1000).toISOString():null,
     updated_at:new Date().toISOString()
   });
+  if(rows.length===1&&paid(rows[0])){
+    try{await ensureWelcomeEmail(deps,userId);}catch{console.warn(JSON.stringify({event:"calvren_welcome_mail_retry_later"}));}
+  }
   return json({ok:true,updated:rows.length===1});
 }
 export async function handleBilling(request:Request,deps:BillingDependencies):Promise<Response>{
@@ -138,9 +161,13 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
     const user=await userFromToken(request,deps);
     if(!user)return json({error:"Sign in with your verified email first."},401);
     const existing=await membership(deps,user.id);
-    if(path==="/api/billing/me"&&request.method==="GET")
+    if(path==="/api/billing/me"&&request.method==="GET"){
+      if(paid(existing)&&!existing?.welcome_email_sent_at){
+        try{await ensureWelcomeEmail(deps,user.id,user.email);}catch{console.warn(JSON.stringify({event:"calvren_welcome_mail_retry_later"}));}
+      }
       return json({email:user.email,paid:paid(existing),status:existing?.subscription_status||"none",
         expires_at:existing?.current_period_end||null,activation:existing?.client_id?"connected":"pending"});
+    }
     if(path==="/api/billing/checkout"&&request.method==="POST"){
       if(!billingReady(deps.env))return json({error:"Subscription checkout is not configured yet."},503);
       if(paid(existing))return json({error:"Your subscription is already active. Open your client dashboard."},409);

@@ -21,6 +21,9 @@ try{
   assert.equal(await page.locator("#step-indicator").textContent(),"STEP 2 OF 4");
   await page.locator("#next-btn").click();
   await page.getByText("STEP 3 OF 4").waitFor();
+  await page.locator("#kickoff_requested").check();
+  await page.locator("#kickoff-times-wrap").waitFor({state:"visible"});
+  await page.locator("#kickoff_availability").fill("Thursday afternoons, Pacific");
   await page.locator("#next-btn").click();
   await page.getByText("STEP 4 OF 4").waitFor();
   assert.match(await page.locator("#review-summary").textContent(),/Sample QA Plumbing/);
@@ -29,6 +32,12 @@ try{
   await page.locator("#submit-btn").click();
   await page.locator("#submitted-panel").waitFor({state:"visible"});
   assert.match(await page.locator("#submitted-panel h2").textContent(),/Sample onboarding complete/);
+  await page.locator("#preview-approval-btn").click();
+  await page.locator("#approval-panel").waitFor({state:"visible"});
+  assert.match(await page.locator("#launch-scope-text").textContent(),/SAMPLE FINAL SCOPE/);
+  await page.locator("#launch-approval-check").check();
+  await page.locator("#launch-approval-btn").click();
+  await page.locator("#approval-panel").waitFor({state:"hidden"});
   assert.deepEqual(api,[],"A static sample must never call the protected API or generate real messages.");
   await page.locator("#ob-preview-reset").click();
   await page.locator("#onboarding-app").waitFor({state:"visible"});

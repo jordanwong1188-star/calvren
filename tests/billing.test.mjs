@@ -10,6 +10,9 @@ const temp=await mkdtemp(join(tmpdir(),"calvren-billing-"));
 after(()=>rm(temp,{recursive:true,force:true}));
 const src=await readFile(new URL("../server/billing.mts",import.meta.url),"utf8");
 const js=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+const mail=await readFile(new URL("../server/customer-email.mts",import.meta.url),"utf8");
+const mailJs=ts.transpileModule(mail,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+await writeFile(join(temp,"customer-email.mjs"),mailJs);
 await writeFile(join(temp,"billing.mjs"),js);
 const {handleBilling}=await import(pathToFileURL(join(temp,"billing.mjs")).href);
 const userId="5aafe427-dffc-429c-8a9b-1347f6b2ee4e";
@@ -177,4 +180,11 @@ test("public pricing page has no discount solicitation",async()=>{
   assert.ok(!page.includes("discount-code"));
   assert.ok(!page.includes("Negotiated discount"));
   assert.ok(!client.includes("discount-code"));
+});
+
+test("welcome email integration never triggers before payment is verified",async()=>{
+  const f=fixture();
+  const response=await handleBilling(f.req("checkout","POST",true),f.deps);
+  assert.equal(response.status,200);
+  assert.equal(f.calls.some(c=>c.url.includes("api.resend.com")),false);
 });
