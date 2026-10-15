@@ -12,3 +12,17 @@
   background:#265345;
   border-color:#265345;
 }
+
+/* A single, accessible sign-in / create-account flow. */
+.auth-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 22px;border-bottom:1px solid #dce6dd;padding-bottom:14px}
+.billing-card .auth-tab{border:1px solid #a9bcaf;border-radius:9px;background:#f4f7f2;color:#173b31;padding:11px 18px;font:inherit;font-weight:700;cursor:pointer}
+.billing-card .auth-tab[aria-pressed="true"]{color:#fff;background:#173b31;border-color:#173b31}
+.billing-card .auth-text-button{font:inherit;font-size:14px;color:#173b31;background:transparent;border:0;text-decoration:underline;text-underline-offset:3px;justify-self:start;padding:8px 0;cursor:pointer}
+.billing-card .auth-text-button:hover{color:#286745}
+.billing-card form[hidden],.billing-card div[hidden],.billing-card section[hidden]{display:none!important}
+.billing-card #client-captcha:not([hidden]){margin:18px 0}
+.billing-card #client-new-password{margin-top:22px;padding-top:18px;border-top:1px solid #dce6dd}
+.billing-card [data-auth-view]:focus-visible,.billing-card input:focus-visible{outline:3px solid #a4d16e;outline-offset:2px}
+.billing-card #client-start-area{margin:24px 0}
+.billing-card #client-start-area .button{max-width:100%}
+@media(max-width:480px){.billing-card .auth-tab{flex:1;padding:10px}}
