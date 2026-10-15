@@ -3,3 +3,14 @@
 @media(max-width:900px){.conversion-grid{grid-template-columns:1fr}.conversion-wrap{padding:28px 24px 50px}.operator-readiness{grid-template-columns:repeat(2,minmax(0,1fr))}.conversation-log{max-height:450px}}
 @media(max-width:540px){.conversion-wrap{padding:24px 20px 40px}.conversion-panel{padding:20px}.conversion-top{align-items:start}.conversion-links{gap:12px;justify-content:flex-end;font-size:10px}.conversion-top .brand{font-size:25px}.conversion-state{grid-template-columns:1fr 1fr}.conversion-stat:last-child{grid-column:1/-1}.conversation-message{max-width:97%;padding:12px}.lead-details-grid{grid-template-columns:1fr}.simulation-banner{align-items:start}.operator-toolbar{gap:12px}.operator-toolbar>div{min-width:130px}.conversion-wrap>h1{font-size:55px}}
 @media(prefers-reduced-motion:reduce){.conversion-wrap *{scroll-behavior:auto;transition:none!important}}
+
+/* Owner-only client onboarding review queue */
+.ob-operator-list{display:grid;gap:12px;margin-top:23px}.ob-operator-request{border:1px solid #d9e3d6;border-radius:10px;padding:0;overflow:hidden;background:#f9fbf6}
+.ob-operator-request summary{list-style:none;cursor:pointer;padding:16px 19px;display:flex;justify-content:space-between;gap:12px;align-items:center}.ob-operator-request summary::-webkit-details-marker{display:none}
+.ob-operator-request summary strong{font-size:14px}.ob-operator-request summary span{font-size:11px;text-transform:capitalize;color:#52775b;background:#e4eee1;border-radius:20px;padding:4px 11px}
+.ob-operator-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:18px;border-top:1px solid #e2e8df}
+.ob-operator-field{font-size:12px;display:grid;gap:4px;overflow-wrap:anywhere}.ob-operator-field strong{color:#748879;font-size:10px}.ob-operator-field span{color:#294737;white-space:pre-wrap}
+.ob-operator-controls{display:grid;gap:9px;padding:17px 18px 22px;border-top:1px solid #e2e8df}.ob-operator-controls label{font-size:12px;font-weight:700}
+.ob-operator-controls select,.ob-operator-controls input,.ob-operator-controls textarea{border-radius:7px;border:1px solid #c9d9cc;min-height:39px;padding:9px 12px;font:inherit;font-size:12px;background:white;color:#173b31;max-width:100%}
+.ob-operator-controls button{justify-self:start;padding:10px 19px;background:#173b31;color:white;border:0;border-radius:6px;cursor:pointer}
+@media(max-width:650px){.ob-operator-details{grid-template-columns:1fr}}
