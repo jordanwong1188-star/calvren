@@ -12,7 +12,7 @@ const site=(env:Env)=>{
   catch{return "https://calvren.pages.dev";}
 };
 export async function sendClientMail(env:Env,to:string,kind:MailKind,options:{
-  business?:string; firstName?:string; kickoff?:boolean; scope?:string; id:string; fetcher?:typeof fetch;
+  business?:string; firstName?:string; kickoff?:boolean; scope?:string; id:string; fetcher?:typeof fetch; timeoutMs?:number;
 }):Promise<boolean>{
   const key=env("RESEND_API_KEY")||"",from=env("NOTIFICATION_FROM_EMAIL")||"";
   if(!key||!from||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)||!options.id){
@@ -36,7 +36,7 @@ export async function sendClientMail(env:Env,to:string,kind:MailKind,options:{
   try{
     const response=await (options.fetcher||fetch)("https://api.resend.com/emails",{
       method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json","Idempotency-Key":options.id.slice(0,255)},
-      body:JSON.stringify({from:namedFrom,to:[to],reply_to:"calvrenautomation@gmail.com",subject:specs.subject,text,html}),signal:AbortSignal.timeout(10000),redirect:"error"
+      body:JSON.stringify({from:namedFrom,to:[to],reply_to:"calvrenautomation@gmail.com",subject:specs.subject,text,html}),signal:AbortSignal.timeout(Math.min(10000,Math.max(1000,options.timeoutMs||10000))),redirect:"error"
     });
     if(!response.ok){console.error(JSON.stringify({event:"calvren_client_mail_failed",kind,status:response.status}));return false;}
     return true;
