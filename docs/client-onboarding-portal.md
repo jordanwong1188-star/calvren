@@ -76,3 +76,37 @@ After we review your details, we'll arrange a short setup call for account permi
 If you have questions, reply to this email or reach us at https://calvren.pages.dev/contact.html.
 
 — The Calvren team
+
+
+## Professional client communications & launch approval (October 2026 update)
+
+### Automatic transactional emails from Calvren
+- On confirmed paid Stripe subscription (signed webhook, plus a signed-in dashboard retry), send a branded **Welcome to Calvren — your next steps** email linking to `/onboarding.html`.
+- On completed client onboarding, send **Your Calvren onboarding is received**, including the next steps and (if requested) a note that kickoff scheduling is still pending.
+- After the operator finishes testing, fills in the written final workflow scope and sets **Awaiting approval**, send **Calvren — your workflow is ready for approval**. The link asks the client to sign in and review.
+- All three are service notifications, not marketing. Resend's `Idempotency-Key` and database `*_email_sent_at` markers limit repeated delivery. Failed/unconfigured delivery is logged; it never grants or blocks client access. Retry is driven by a later eligible event, not an unbounded mail loop.
+- Configure **RESEND_API_KEY** and **NOTIFICATION_FROM_EMAIL** in **Supabase → Edge Functions → Secrets**. The FROM sender must be a verified domain identity, e.g. `Calvren <hello@YOUR-VERIFIED-DOMAIN>`. Do **not** paste API keys into GitHub or client forms. Validate with a controlled paid test; until sender/domain is verified, emails are best effort and must not be described as confirmed deliveries.
+
+### Optional kickoff call
+- During Connections & handoff the client can check **Request a 20-minute kickoff call** and provide preferred days/times.
+- This appears in the operator review queue; the client receives an acknowledgement in the onboarding email.
+- **No calendar event is automatically booked.** The owner confirms a suitable time, uses the normal calendar invitation process and completes approved integrations in the call. A booking integration can be added later if the owner supplies a verified scheduling URL.
+- Never request calendars, Google passwords, Twilio credentials or OAuth authorization tokens through the text form.
+
+### Explicit, version-specific client launch approval
+1. Owner reviews intake, implements services and tests real messaging, booking, consent handling and escalation paths.
+2. Owner enters a **Final workflow scope** describing the exact services, lead sources, booking restrictions, escalation, SMS/consent handling and exclusions.
+3. Set status to **Awaiting approval**, which sends the client an email when delivery is configured.
+4. Client opens `/onboarding.html`, reads the exact scope, checks the authorization statement and confirms. The API records `scope_approved_at` and copies `approved_scope`.
+5. Operator then links the correct active live business and marks status **Live**. The API **refuses Live** if it is not currently Approved, the scope changed since approval, or the live business is not linked.
+6. Changing scope clears the previous approval and requires reapproval. The original questionnaire acknowledgement is not itself launch permission. Contractual service terms and a signed DPA, where required, remain separate.
+
+### Future customer setup video
+- A styled **Video guide coming soon** section appears above the form.
+- This is intentional: no broken embeds or fake playable controls. Replace it with the owner's actual published instructional video once the secure player/URL is provided.
+
+### Production go/no-go
+- The onboarding migration `202610150105_calvren_onboarding_approval.sql` must be applied before publishing the updated backend.
+- Deploy the generated Edge Function with the added `server/customer-email.mts` module and the latest `server/router.mts`.
+- Confirm Cloudflare Pages publishes from `main`; exercise the live email magic link, non-test Stripe payment in a controlled environment, saved questionnaire, kickoff capture, confirmation email, operator approval email, explicit sign-off and live launch gate.
+- If Resend sender verification or delivery fails, do not advertise emails as operational until you see a successful provider response.
