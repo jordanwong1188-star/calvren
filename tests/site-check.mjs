@@ -254,6 +254,17 @@ try{
   await unpaidPage.locator("#client-checkout").click();
   await unpaidPage.waitForURL(url=>url.hostname==="checkout.stripe.com");
   assert.equal(checkoutRequests,1,"The dashboard must open Stripe Checkout without a payment/dashboard loop");
+  // The UI must never claim Checkout is live while the backend is missing its keys.
+  await unpaidContext.route("**/api/billing/public",route=>route.fulfill({
+    status:200,contentType:"application/json",
+    body:JSON.stringify({ready:false,message:"Subscription checkout is being configured."})
+  }));
+  await unpaidPage.goto(site+"/payment.html",{waitUntil:"domcontentloaded"});
+  await unpaidPage.waitForFunction(()=>
+    document.getElementById("billing-price-note")?.textContent.includes("temporarily unavailable"));
+  assert.match(await unpaidPage.locator("#billing-price-note").textContent(),/temporarily unavailable/);
+  assert.doesNotMatch(await unpaidPage.locator("#billing-first-payment").textContent(),/not yet active/i);
+  assert.equal(await unpaidPage.locator("#billing-checkout").isDisabled(),true);
   await unpaidContext.close();
 
   for(const path of ["/privacy.html","/thanks.html","/review-thanks.html","/404.html","/shared.js","/app.js","/styles.css","/sitemap.xml"]){
