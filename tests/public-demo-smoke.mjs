@@ -42,8 +42,10 @@ try{
   }
   assert.equal(new Set(Object.values(openings).map(times=>times.join(","))).size,6,
     "Each business day must offer a different set of times.");
-  assert.deepEqual(openings.Friday,["9:00 AM","12:45 PM","3:15 PM"]);
-  assert.deepEqual(openings.Thursday,["8:45 AM","12:15 PM","3:00 PM"]);
+  // Slots can span this week and next: a remaining afternoon opening today
+  // may be listed before next week's morning openings. Compare time sets.
+  assert.deepEqual(openings.Friday.slice().sort(),["9:00 AM","12:45 PM","3:15 PM"].sort());
+  assert.deepEqual(openings.Thursday.slice().sort(),["8:45 AM","12:15 PM","3:00 PM"].sort());
   await page.goto(site+"/case-studies.html",{waitUntil:"networkidle",timeout:30000});
   const studyText=await page.locator("#workflow-studies").innerText();
   for(const name of ["ShinerBros Window Cleaning","ClearCraft Automotive Detailing","Jacob","Dylan"]) {
