@@ -100,8 +100,7 @@ $("billing-checkout")?.addEventListener("click",async()=>{
   const button=$("billing-checkout");button.disabled=true;
   notice("Opening Stripe checkout…");
   try{
-    const typedCode=$("discount-code")?.value.trim()||"";
-    const result=await api("checkout",{method:"POST",body:{discount_code:typedCode}});
+    const result=await api("checkout",{method:"POST"});
     const url=new URL(result.url);
     if(url.protocol!=="https:"||url.hostname!=="checkout.stripe.com")throw Error("Invalid checkout destination.");
     location.assign(url.href);
@@ -128,7 +127,7 @@ async function init(){
       if($("billing-stripe-link")){
         $("billing-price").textContent="CA$99 / month";
         $("billing-first-payment").textContent="CA$448 due initially";
-        $("billing-price-note").textContent="CA$349 setup once, then CA$99 monthly. Taxes, discounts, and the final amount appear in Stripe checkout.";
+        $("billing-price-note").textContent="CA$349 setup once, then CA$99 monthly. Applicable taxes and the final total appear in Stripe checkout.";
         ready=false;
         await check();
         return;
