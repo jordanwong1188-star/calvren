@@ -14,7 +14,7 @@ export async function notifyFormOwner(
   const env=deps.env;
   const apiKey=env?.("RESEND_API_KEY")?.trim();
   const from=env?.("NOTIFICATION_FROM_EMAIL")?.trim();
-  const recipient=env?.("CALVREN_LEAD_NOTIFICATION_EMAIL")?.trim() || "jordan.wong1177@gmail.com";
+  const recipient=env?.("CALVREN_LEAD_NOTIFICATION_EMAIL")?.trim() || "calvrenautomation@gmail.com";
   // A verified Resend domain is required. Never treat a public form email as the sender.
   if(!apiKey||!from||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from)||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)){
