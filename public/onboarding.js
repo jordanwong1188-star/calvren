@@ -147,6 +147,8 @@ function showSubmitted(record){
     row.className="ob-milestone";row.dataset.done=i<=position?"true":"false";
     title.textContent=stages[i][1];detail.textContent=stages[i][2];row.append(title,detail);timeline.append(row);
   }
+  const previewApproval=$("preview-approval-btn");
+  if(previewApproval)previewApproval.hidden=!previewMode||!["submitted","reviewing","testing"].includes(record?.status);
   const approval=$("approval-panel"),scope=$("launch-scope-text");
   if(approval){
     approval.hidden=record?.status!=="awaiting_approval"||!record?.launch_scope;
@@ -215,6 +217,13 @@ $("signin")?.addEventListener("submit",async event=>{
 });
 $("onboarding-form").addEventListener("submit",event=>event.preventDefault());
 $("kickoff_requested")?.addEventListener("change",toggleKickoff);
+$("preview-approval-btn")?.addEventListener("click",()=>{
+  if(!previewMode||!latestRecord)return;
+  const record={...latestRecord,status:"awaiting_approval",
+    launch_scope:"SAMPLE FINAL SCOPE — Website enquiries receive a warm acknowledgement during business hours. The assistant asks about the requested service, service area and urgency. Routine appointments are offered in the linked calendar with a 15-minute buffer. Emergencies and requests for a person go directly to the office team. No marketing SMS or payments are sent. Calvren performs real-provider checks before any launch."};
+  sessionStorage.setItem(previewKey,JSON.stringify(record));
+  showSubmitted(record);
+});
 $("launch-approval-btn")?.addEventListener("click",async()=>{
   const message=$("launch-approval-message"),button=$("launch-approval-btn");
   if(!$("launch-approval-check").checked){message.textContent="Please review and confirm the proposed workflow.";return;}
