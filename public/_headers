@@ -29,3 +29,10 @@
 # Public form logic changes with deployments and must not remain stale.
 /shared.js
   Cache-Control: no-cache, must-revalidate
+
+/onboarding*
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow
+/onboarding.js
+  Cache-Control: no-cache, must-revalidate
