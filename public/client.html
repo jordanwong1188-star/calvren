@@ -1,7 +1,74 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#163b31"><meta name="robots" content="noindex,nofollow"><title>Calvren — My automation</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/billing.css?v=contrast-20261014"><script type="module" src="/client-portal.js?v=live-status-20261015"></script></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#163b31"><meta name="robots" content="noindex,nofollow"><title>Calvren — My automation</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/billing.css?v=password-auth-20261016"><script type="module" src="/client-portal.js?v=password-auth-20261016"></script></head><body>
 <a href="#main" class="skip">Skip to content</a><header class="header"><a class="brand" href="/">calvren<span class="brand-dot">.</span></a><nav id="site-navigation" aria-label="Main navigation"><a href="/">Home</a><a href="/payment">Subscriptions</a><a href="/contact.html">Support</a></nav></header>
-<main id="main" class="document billing-main"><p class="eyebrow">PRIVATE / CLIENT ACCESS</p><h1>Welcome to<br><em>your Calvren.</em></h1><p class="billing-intro">Sign in to view your subscription and, when onboarding is complete, automation activity for your own business. This is separate from Calvren's private operator console.</p><a class="button button-outline" href="/payment">New client? View pricing &amp; checkout <span aria-hidden="true">↗</span></a><p class="billing-small">After requesting your link, check your inbox and spam folder. If it does not arrive or opens the wrong website, <a href="/contact.html">contact Calvren support</a>.</p><p id="client-identity" class="billing-small" hidden></p>
-<section class="billing-card billing-account"><form id="client-login"><h2>Sign in to your client account</h2><label for="client-email">Your email address</label><input id="client-email" type="email" autocomplete="email" required maxlength="254" placeholder="you@yourbusiness.com"><button class="button" type="submit">Send secure sign-in link →</button></form><button id="client-signout" type="button" class="plain-button" hidden>Sign out</button><p id="client-notice" class="billing-notice" role="status" aria-live="polite"></p>
-<div id="client-membership" hidden><h2>Your subscription</h2><p class="billing-small">Stripe-confirmed status</p><p id="client-membership-status" class="billing-price">Checking…</p><p id="client-activation" class="billing-small"></p><div id="client-start-area" hidden><p class="billing-small">Your client account is ready. To activate your managed automation subscription, review the fees and complete payment securely through Stripe.</p><button id="client-checkout" class="button" type="button" disabled>Continue to secure Stripe checkout ↗</button><p id="client-checkout-note" class="billing-small">Checking payment availability…</p></div><div class="billing-actions"><a id="client-onboarding-link" class="button" href="/onboarding.html" hidden>Start or track onboarding →</a><button id="client-manage" type="button" class="button button-outline" hidden>Manage billing ↗</button><a class="button" href="/payment">View subscription plans →</a></div></div></section>
-<section class="billing-card billing-account" id="client-automation" hidden><p class="eyebrow">YOUR AUTOMATION</p><h2>Business activity</h2><p class="billing-small">Only records belonging to your assigned business can appear here. No other customer's data is accessible from this client page.</p><ul id="client-leads" class="billing-benefits"><li>Loading…</li></ul><p class="billing-small">Need to change automation rules, connect your calendar or speak with a person? <a href="/contact.html">Contact Calvren</a>.</p></section></main>
+<main id="main" class="document billing-main">
+<p class="eyebrow">SECURE CALVREN CLIENT PORTAL</p>
+<h1>Your business.<br><em>Your workspace.</em></h1>
+<p class="billing-intro">One account for your subscription, business onboarding, and automation activity. Create an account with your email and password, confirm your email once, then sign in anytime.</p>
+<section class="billing-card billing-account" id="auth-panel">
+  <div class="auth-tabs" role="group" aria-label="Account access">
+    <button type="button" class="auth-tab" data-auth-view="signin" aria-pressed="true">Sign in</button>
+    <button type="button" class="auth-tab" data-auth-view="signup" aria-pressed="false">Create account</button>
+  </div>
+  <form id="client-login" autocomplete="on">
+    <h2>Welcome back.</h2>
+    <label for="client-email">Business email</label><input id="client-email" type="email" autocomplete="email" maxlength="254" required placeholder="you@yourbusiness.com">
+    <label for="client-password">Password</label><input id="client-password" type="password" autocomplete="current-password" required placeholder="Your password">
+    <button class="button" type="submit">Sign in securely →</button>
+    <button class="auth-text-button" data-auth-view="reset" type="button">Forgot password?</button>
+    <button class="auth-text-button" data-auth-view="legacy" type="button">Previously used an email sign-in link?</button>
+  </form>
+  <form id="client-signup" autocomplete="on" hidden>
+    <h2>Create your Calvren account.</h2>
+    <p class="billing-small">Your account is free to create. You won't be charged until you choose and confirm a subscription in Stripe.</p>
+    <label for="signup-email">Business email</label><input id="signup-email" type="email" autocomplete="email" maxlength="254" required placeholder="you@yourbusiness.com">
+    <label for="signup-password">Create password</label><input id="signup-password" type="password" autocomplete="new-password" required minlength="12" maxlength="72" placeholder="At least 12 characters">
+    <label for="signup-password-confirm">Confirm password</label><input id="signup-password-confirm" type="password" autocomplete="new-password" required minlength="12" maxlength="72" placeholder="Enter password again">
+    <button class="button" type="submit">Create account →</button>
+    <p class="billing-small">We'll email you a confirmation link to verify you own this address.</p>
+  </form>
+  <form id="client-reset" hidden>
+    <h2>Reset your password.</h2>
+    <p class="billing-small">We'll send you a secure reset link. For security, the confirmation looks the same whether or not an account exists.</p>
+    <label for="reset-email">Business email</label><input id="reset-email" type="email" autocomplete="email" required maxlength="254" placeholder="you@yourbusiness.com">
+    <button class="button" type="submit">Send password reset link →</button>
+    <button class="auth-text-button" data-auth-view="signin" type="button">Return to sign in</button>
+  </form>
+  <form id="client-legacy" hidden>
+    <h2>Moving from email links?</h2>
+    <p class="billing-small">If you previously signed in without a password, request one final email link. After signing in, choose <strong>Set your password</strong> below to use your new account login.</p>
+    <label for="legacy-email">Existing account email</label><input id="legacy-email" type="email" autocomplete="email" required maxlength="254" placeholder="you@yourbusiness.com">
+    <button class="button" type="submit">Send my existing-account link →</button>
+    <button class="auth-text-button" data-auth-view="signin" type="button">Return to sign in</button>
+  </form>
+  <div id="client-captcha" hidden aria-label="Human verification"></div>
+  <p id="client-notice" class="billing-notice" role="status" aria-live="polite"></p>
+</section>
+<section class="billing-card billing-account" id="signedin-account" hidden>
+  <p class="eyebrow">YOUR ACCOUNT</p><h2>You're signed in.</h2>
+  <p id="client-identity" class="billing-small" hidden></p>
+  <div class="billing-actions">
+    <button id="client-password-toggle" type="button" class="button button-outline">Set or change password</button>
+    <button id="client-signout" type="button" class="button button-outline" hidden>Sign out</button>
+  </div>
+  <form id="client-new-password" hidden>
+    <h3 id="password-form-title">Choose your password</h3>
+    <label for="new-client-password">New password</label><input id="new-client-password" type="password" autocomplete="new-password" minlength="12" maxlength="72" required placeholder="At least 12 characters">
+    <label for="new-client-password-confirm">Confirm new password</label><input id="new-client-password-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="72" required>
+    <button class="button" type="submit">Save new password →</button>
+  </form>
+</section>
+<section class="billing-card billing-account" id="client-membership" hidden>
+  <p class="eyebrow">STEP 2 / YOUR SUBSCRIPTION</p><h2>Your subscription</h2>
+  <p class="billing-small">Status is confirmed by Calvren's billing server and Stripe, not by a payment-page redirect.</p>
+  <p id="client-membership-status" class="billing-price">Checking…</p>
+  <p id="client-activation" class="billing-small"></p>
+  <div id="client-start-area" hidden>
+    <p class="billing-small">CA$349 one-time setup + CA$99/month. The exact total, applicable taxes and any discounts are displayed in Stripe before you pay.</p>
+    <button id="client-checkout" class="button" type="button" disabled>Continue to secure Stripe checkout ↗</button>
+    <p id="client-checkout-note" class="billing-small">Checking payment availability…</p>
+  </div>
+  <div class="billing-actions"><a id="client-onboarding-link" class="button" href="/onboarding.html" hidden>Start or track onboarding →</a><button id="client-manage" type="button" class="button button-outline" hidden>Manage billing ↗</button><a class="button button-outline" href="/payment.html">View plan details →</a></div>
+</section>
+<section class="billing-card billing-account" id="client-automation" hidden><p class="eyebrow">YOUR AUTOMATION</p><h2>Business activity</h2><p class="billing-small">Only records belonging to your assigned business are shown here.</p><ul id="client-leads" class="billing-benefits"><li>Loading…</li></ul><p class="billing-small">Need help or changes? <a href="/contact.html">Contact Calvren support</a>.</p></section>
+</main>
 <footer class="footer section-wrap"><div><a class="brand" href="/">calvren<span class="brand-dot">.</span></a><p>Thoughtful automation. More room to do good work.</p></div><div class="footer-links"><a href="/contact.html">Contact</a><a href="/privacy.html">Privacy</a></div></footer></body></html>
