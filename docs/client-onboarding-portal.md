@@ -110,3 +110,5 @@ If you have questions, reply to this email or reach us at https://calvren.pages.
 - Deploy the generated Edge Function with the added `server/customer-email.mts` module and the latest `server/router.mts`.
 - Confirm Cloudflare Pages publishes from `main`; exercise the live email magic link, non-test Stripe payment in a controlled environment, saved questionnaire, kickoff capture, confirmation email, operator approval email, explicit sign-off and live launch gate.
 - If Resend sender verification or delivery fails, do not advertise emails as operational until you see a successful provider response.
+
+For Calvren-branded signup and login emails, set Supabase Auth templates using [customer email templates](customer-email-templates.md). Customer contact and feedback acknowledgements are now implemented as best-effort transactional messages through Resend after private storage succeeds.

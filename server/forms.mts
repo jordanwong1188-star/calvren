@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { OperatorRepository } from "../netlify/lib/conversion-api.mjs";
 import type { Storage } from "../netlify/lib/workflow-core.mjs";
+import { sendClientMail } from "./customer-email.mjs";
 export interface FormDependencies { repository: OperatorRepository; storage: Storage; env?: (name: string) => string | undefined; fetch?: typeof fetch; ip?: string; }
 class FormError extends Error { constructor(public status: number, message: string) {super(message);} }
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -109,7 +110,7 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
     }
     // An aggregate cap also protects direct backend requests with spoofed forwarding headers.
     for(const [key,maximum,window] of [["global",100,3600],["ip:"+deps.ip,10,3600],["email:"+email,5,86400]] as const){
-      if(!await deps.repository.consumeRateLimit(hash("forms:"+key),maximum,window,stamp))throw new FormError(429,"Too many submissions. Please try later or email Jordan.");
+      if(!await deps.repository.consumeRateLimit(hash("forms:"+key),maximum,window,stamp))throw new FormError(429,"Too many submissions. Please try later or email Calvren support.");
     }
     // Browser retries reuse the same optional request key; hash binds it to the same submission.
     const requestKey=form.get("submission-key") || "";
@@ -125,9 +126,25 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
     // New submissions notify the owner exactly once, without charging for AI processing.
     // Resend's stable idempotency key additionally protects against network retries.
     const notification=write.modified?(form.get("formspree-archived")==="yes"?"handled_by_formspree":await notifyFormOwner(name!,id,data,deps)):"duplicate";
+    // Transactional acknowledgement, separate from the owner notification.
+    // Only a newly stored enquiry or review may trigger one message.
+    // Resend must be configured with a verified sender domain; otherwise save succeeds
+    // without claiming that an email was delivered to the visitor.
+    let acknowledgement:"accepted"|"unavailable"="unavailable";
+    if(write.modified){
+      try{
+        const sent=await sendClientMail(deps.env||(()=>undefined),email,
+          name==="client-insight"?"feedback_received":"enquiry_received",{
+            id:"calvren-form-ack-"+id,firstName:common.name,
+            business:name==="client-insight"?String(data.company||""):String(data.business||""),
+            fetcher:deps.fetch,timeoutMs:3300
+          });
+        acknowledgement=sent?"accepted":"unavailable";
+      }catch{console.warn(JSON.stringify({event:"calvren_form_ack_retry_unavailable",id}));}
+    }
     console.log(JSON.stringify({event:"calvren_public_form_saved",form:name,id,
-      notification}));
+      notification,acknowledgement}));
     // The submission stays saved even if Resend is unavailable or delivery later fails.
     return json({ok:true,id},201);
-  }catch(error){return json({error:error instanceof FormError?error.message:"We couldn’t save this submission. Please try again or email Jordan."},error instanceof FormError?error.status:503);}
+  }catch(error){return json({error:error instanceof FormError?error.message:"We couldn’t save this submission. Please try again or email Calvren support."},error instanceof FormError?error.status:503);}
 }
