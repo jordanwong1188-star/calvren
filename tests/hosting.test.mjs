@@ -42,7 +42,7 @@ function formFixture(overrides={}){
   const writes=[];const rows=new Map();const limits=[];
   const deps={ip:"fixture-ip",repository:{async consumeRateLimit(...args){limits.push(args);return true;}},
     storage:{async get(key){return rows.get(key)??null;},async delete(key){rows.delete(key);},async setJSON(key,data,conditions){const modified=!rows.has(key);writes.push({key,data,conditions});if(modified)rows.set(key,data);return{modified};}},...overrides};
-  const fields={"form-name":"project-enquiry",name:"Jordan Test",email:"test@example.com",message:"Please help us organise new enquiries.",consent:"yes","submission-key":"fixture-request",industry:"Local services"};
+  const fields={"form-name":"project-enquiry",name:"Calvren Test",email:"test@example.com",message:"Please help us organise new enquiries.",consent:"yes","submission-key":"fixture-request",industry:"Local services"};
   const request=extra=>new Request("https://calvren.example/forms",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({...fields,...extra})});
   return{deps,request,writes,rows,limits};
 }
@@ -66,7 +66,7 @@ test("public enquiries notify the designated Gmail once, only after persistence,
   const first=await handlePublicForm(f.request(),f.deps);
   assert.equal(first.status,201);
   const id=(await first.json()).id;
-  assert.equal(calls.length,1);
+  assert.equal(calls.length,2,"New enquiries send an internal alert and one customer receipt.");
   assert.equal(calls[0].url,"https://api.resend.com/emails");
   const message=JSON.parse(calls[0].init.body);
   assert.deepEqual(message.to,["calvrenautomation@gmail.com"]);
@@ -76,16 +76,23 @@ test("public enquiries notify the designated Gmail once, only after persistence,
   assert.equal(calls[0].init.headers["Idempotency-Key"],"calvren-public-form-"+id);
   const duplicate=await handlePublicForm(f.request(),f.deps);
   assert.equal(duplicate.status,201);
-  assert.equal(calls.length,1,"Duplicate browser submissions must not email twice.");
+  assert.equal(calls.length,2,"Duplicate browser submissions must not email twice.");
+  const receipt=JSON.parse(calls[1].init.body);
+  assert.deepEqual(receipt.to,["test@example.com"]);
+  assert.match(receipt.subject,/received your enquiry/i);
+  assert.equal(receipt.reply_to,"calvrenautomation@gmail.com");
 });
-test("Formspree-delivered submissions are privately archived without a second Resend email",async()=>{
+test("Formspree submissions send one customer receipt without duplicating owner notifications",async()=>{
   const f=formFixture(),sends=[];
   f.deps.env=name=>({RESEND_API_KEY:"test-sending-key",NOTIFICATION_FROM_EMAIL:"notifications@example.com"}[name]);
   f.deps.fetch=async (...args)=>{sends.push(args);return new Response("ok",{status:200});};
   const response=await handlePublicForm(f.request({"formspree-archived":"yes"}),f.deps);
   assert.equal(response.status,201);
   assert.equal(f.rows.size,1);
-  assert.equal(sends.length,0,"Formspree handles the email; Supabase is only the backup inbox.");
+  assert.equal(sends.length,1,"Formspree handles internal notifications, Calvren sends customer receipt.");
+  const msg=JSON.parse(sends[0][1].body);
+  assert.deepEqual(msg.to,["test@example.com"]);
+  assert.match(msg.subject,/received your enquiry/i);
 });
 test("missing email configuration and provider errors never discard saved forms",async()=>{
   for(const result of ["missing","provider-down","exception"]){
@@ -96,7 +103,7 @@ test("missing email configuration and provider errors never discard saved forms"
     const response=await handlePublicForm(f.request(),f.deps);
     assert.equal(response.status,201,result);
     assert.equal(f.rows.size,1,result);
-    assert.equal(calls,result==="missing"?0:1);
+    assert.equal(calls,result==="missing"?0:2);
   }
 });
 test("feedback notifications are separate from promotional consent and never imply publication",async()=>{
@@ -106,8 +113,10 @@ test("feedback notifications are separate from promotional consent and never imp
   const response=await handlePublicForm(f.request({"form-name":"client-insight",company:"Demo Co",workflow:"Scheduling",
     experience:"The enquiry process is easier to understand.","feedback-consent":"yes"}),f.deps);
   assert.equal(response.status,201);
-  assert.equal(mail.length,1);
+  assert.equal(mail.length,2);
   assert.deepEqual(mail[0].to,["calvrenautomation@gmail.com"]);
+  assert.deepEqual(mail[1].to,["test@example.com"]);
+  assert.match(mail[1].subject,/thank you for your feedback/i);
   assert.match(mail[0].subject,/client feedback/);
   assert.match(mail[0].text,/Publication permission: Not granted/);
 });
