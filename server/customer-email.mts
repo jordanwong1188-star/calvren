@@ -32,7 +32,7 @@ export async function sendClientMail(env:Env,to:string,kind:MailKind,options:{
   try{
     const response=await (options.fetcher||fetch)("https://api.resend.com/emails",{
       method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json","Idempotency-Key":options.id.slice(0,255)},
-      body:JSON.stringify({from:namedFrom,to:[to],subject:specs.subject,text,html}),signal:AbortSignal.timeout(10000),redirect:"error"
+      body:JSON.stringify({from:namedFrom,to:[to],reply_to:"calvrenautomation@gmail.com",subject:specs.subject,text,html}),signal:AbortSignal.timeout(10000),redirect:"error"
     });
     if(!response.ok){console.error(JSON.stringify({event:"calvren_client_mail_failed",kind,status:response.status}));return false;}
     return true;
