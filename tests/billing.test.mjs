@@ -98,6 +98,8 @@ test("session creation uses authenticated user id, fixed server price, and retur
   assert.equal(response.status,200);
   const request=f.calls.find(x=>x.url.endsWith("/v1/checkout/sessions"));
   const body=new URLSearchParams(request.init.body);
+  assert.equal(body.get("allow_promotion_codes"),"true","Stripe Checkout alone must display promo-code entry.");
+  assert.equal(body.get("discounts[0][promotion_code]"),null,"No website-managed code should be applied.");
   assert.equal(body.get("client_reference_id"),userId);
   assert.equal(body.get("subscription_data[metadata][auth_user_id]"),userId);
   assert.equal(body.get("customer_email"),"client@example.com");
@@ -153,27 +155,26 @@ test("subscription without payment cannot read tenant activity",async()=>{
   assert.equal(f.calls.some(x=>x.url.includes("/calvren_leads")),false);
 });
 
-test("15 percent negotiation alias applies a Stripe coupon only on initial Checkout",async()=>{
-  const f=fixture();
-  const request=new Request("https://calvren.pages.dev/api/billing/checkout",{
-    method:"POST",headers:{"Authorization":"Bearer verified.fake.jwt","Content-Type":"application/json"},
-    body:JSON.stringify({discount_code:"Calvren15%"})
-  });
-  const response=await handleBilling(request,f.deps);
-  assert.equal(response.status,200);
-  const sent=f.calls.find(x=>x.url.endsWith("/v1/checkout/sessions"));
-  const params=new URLSearchParams(sent.init.body);
-  assert.equal(params.get("discounts[0][promotion_code]"),"promo_1UQX7IQ9mewkKyl5lR0GMbi4");
-  assert.equal(params.get("line_items[0][price]"),priceId);
-  assert.equal(params.get("line_items[1][price]"),"price_setup123");
-});
-test("invalid negotiation codes cannot start Stripe checkout",async()=>{
+test("promotion code is entered only in Stripe hosted Checkout, not on Calvren",async()=>{
   const f=fixture();
   const request=new Request("https://calvren.pages.dev/api/billing/checkout",{
     method:"POST",headers:{"Authorization":"Bearer verified.fake.jwt","Content-Type":"application/json"},
     body:JSON.stringify({discount_code:"made-up"})
   });
   const response=await handleBilling(request,f.deps);
-  assert.equal(response.status,400);
-  assert.equal(f.calls.some(x=>x.url.endsWith("/v1/checkout/sessions")),false);
+  assert.equal(response.status,200,"Obsolete site promo field must not affect checkout.");
+  assert.equal(f.calls.some(x=>x.url.includes("/v1/promotion_codes?")),false);
+  const sent=f.calls.find(x=>x.url.endsWith("/v1/checkout/sessions"));
+  const params=new URLSearchParams(sent.init.body);
+  assert.equal(params.get("allow_promotion_codes"),"true");
+  assert.equal(params.get("discounts[0][promotion_code]"),null);
+  assert.equal(params.get("line_items[0][price]"),priceId);
+  assert.equal(params.get("line_items[1][price]"),"price_setup123");
+});
+test("public pricing page has no discount solicitation",async()=>{
+  const page=await readFile(new URL("../public/payment.html",import.meta.url),"utf8");
+  const client=await readFile(new URL("../public/client-portal.js",import.meta.url),"utf8");
+  assert.ok(!page.includes("discount-code"));
+  assert.ok(!page.includes("Negotiated discount"));
+  assert.ok(!client.includes("discount-code"));
 });
