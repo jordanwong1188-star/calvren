@@ -281,7 +281,7 @@ $("operator-auth").addEventListener("submit", async event => {
     $("operator-disconnect").hidden = false;
     status("operator-auth-status", "Connected. Your token is held only in this page's memory.");
     setEditor();
-    if (readiness.database) await refresh();
+    if (readiness.database) { await refresh(); await loadOnboardingQueue(); }
     else status("operator-leads-status", "Set up the Calvren Supabase database to save clients and leads. The browser lead demo works now.");
   } catch (error) {
     if (startEpoch === epoch) {
@@ -381,3 +381,84 @@ $("operator-resume").addEventListener("click", () => {
   });
 });
 window.addEventListener("pagehide", () => disconnect());
+
+
+/** Paid client onboarding requests. This module shares the in-memory owner token;
+ * it never stores the token in the browser or exposes one client's data to another. */
+function onboardingField(title, value){
+  const line=element("div",undefined,"ob-operator-field");
+  line.append(element("strong",title),element("span",String(value||"—")));
+  return line;
+}
+async function operatorOnboardingRequest(path,options={}){
+  if(!token)throw new Error("Connect using the operator token first.");
+  const response=await fetch("/api/onboarding/admin"+path,{
+    method:options.method||"GET",headers:{
+      Authorization:"Bearer "+token,Accept:"application/json",
+      ...(options.body?{"Content-Type":"application/json"}:{})
+    },...(options.body?{body:JSON.stringify(options.body)}:{}),
+    credentials:"omit",cache:"no-store"
+  });
+  const result=await response.json().catch(()=>({error:"Unable to read server response."}));
+  if(!response.ok)throw new Error(result.error||"Unable to load onboarding requests.");
+  return result;
+}
+async function loadOnboardingQueue(){
+  const container=$("operator-onboarding-requests");
+  if(!container||!token)return;
+  status("operator-onboarding-status","Loading onboarding requests…");
+  try{
+    const {records}=await operatorOnboardingRequest("");
+    container.replaceChildren();
+    if(!records.length){
+      container.append(element("p","No onboarding forms yet. A submitted client questionnaire will appear here."));
+    }
+    for(const record of records){
+      const form=record.form||{};
+      const details=element("details",undefined,"ob-operator-request");
+      const summary=element("summary");
+      summary.append(element("strong",form.business_name||"New customer"),element("span",String(record.status).replaceAll("_"," ")));
+      details.append(summary);
+      const sheet=element("div",undefined,"ob-operator-details");
+      for(const [label,value] of [
+        ["Contact",form.contact_name],["Email",form.contact_email],["Industry",form.industry],
+        ["Website",form.website],["Services",form.services],["Business hours",form.business_hours],
+        ["Lead sources",form.lead_sources],["Lead form",form.lead_form_url],
+        ["Qualification",form.qualifying_questions],["Booking",form.booking_duration],
+        ["Calendar owner",form.calendar_email],["Handoff email",form.handoff_email],
+        ["Escalation rules",form.handoff_instructions],["Notes",form.additional_notes]
+      ])sheet.append(onboardingField(label,value));
+      const controls=element("div",undefined,"ob-operator-controls");
+      const label=element("label","Implementation stage");
+      const select=element("select");select.setAttribute("aria-label","Implementation stage");
+      for(const name of ["submitted","reviewing","needs_details","building","testing","live"]){
+        const option=element("option",name.replaceAll("_"," "));option.value=name;
+        if(record.status===name)option.selected=true;
+        select.append(option);
+      }
+      const noteLabel=element("label","Note visible to the customer");
+      const note=element("textarea");note.rows=2;note.maxLength=1200;note.value=record.owner_note||"";
+      const clientLabel=element("label","Assign existing live business ID (optional)");
+      const clientInput=element("input");clientInput.type="text";clientInput.maxLength=100;
+      clientInput.placeholder="e.g. northshore-plumbing-live";
+      const save=element("button","Save status","button");save.type="button";
+      const response=element("p",undefined,"conversion-status");response.setAttribute("role","status");
+      save.addEventListener("click",async()=>{
+        save.disabled=true;response.textContent="Saving…";
+        try{
+          const payload={status:select.value,owner_note:note.value.trim()};
+          if(clientInput.value.trim())payload.client_id=clientInput.value.trim();
+          await operatorOnboardingRequest("/"+encodeURIComponent(record.auth_user_id),{method:"PATCH",body:payload});
+          response.textContent="Saved. The client can see the updated milestone and note.";
+          await loadOnboardingQueue();
+        }catch(error){response.textContent=error.message}
+        finally{save.disabled=false}
+      });
+      controls.append(label,select,noteLabel,note,clientLabel,clientInput,save,response);
+      details.append(sheet,controls);
+      container.append(details);
+    }
+    status("operator-onboarding-status",records.length+" onboarding request(s).");
+  }catch(error){status("operator-onboarding-status",error.message,true)}
+}
+$("operator-onboarding-refresh")?.addEventListener("click",loadOnboardingQueue);

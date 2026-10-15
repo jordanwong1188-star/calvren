@@ -1,0 +1,45 @@
+import {chromium} from "playwright";
+import assert from "node:assert/strict";
+const origin=process.env.CALVREN_TEST_SITE||"http://127.0.0.1:8080";
+const browser=await chromium.launch({headless:true});
+try{
+  const context=await browser.newContext({viewport:{width:1365,height:900}});
+  const page=await context.newPage(),pageErrors=[],api=[];
+  page.on("pageerror",e=>pageErrors.push(e.message));
+  page.on("request",r=>{if(r.url().includes("/api/"))api.push(r.url())});
+  const r=await page.goto(origin+"/onboarding-preview.html",{waitUntil:"load"});
+  assert.equal(r.status(),200);
+  await page.locator("#onboarding-app").waitFor({state:"visible"});
+  assert.equal(await page.locator("#auth-panel").isVisible(),false);
+  assert.equal(await page.locator("#business_name").inputValue(),"North Shore Plumbing (sample)");
+  await page.locator("#business_name").fill("Sample QA Plumbing");
+  await page.locator("#next-btn").click();
+  await page.getByText("STEP 2 OF 4").waitFor();
+  await page.reload({waitUntil:"load"});
+  await page.locator("#onboarding-app").waitFor({state:"visible"});
+  assert.equal(await page.locator("#business_name").inputValue(),"Sample QA Plumbing");
+  assert.equal(await page.locator("#step-indicator").textContent(),"STEP 2 OF 4");
+  await page.locator("#next-btn").click();
+  await page.getByText("STEP 3 OF 4").waitFor();
+  await page.locator("#next-btn").click();
+  await page.getByText("STEP 4 OF 4").waitFor();
+  assert.match(await page.locator("#review-summary").textContent(),/Sample QA Plumbing/);
+  await page.locator("#consent_data_handling").check();
+  await page.locator("#approve_workflow_scope").check();
+  await page.locator("#submit-btn").click();
+  await page.locator("#submitted-panel").waitFor({state:"visible"});
+  assert.match(await page.locator("#submitted-panel h2").textContent(),/Sample onboarding complete/);
+  assert.deepEqual(api,[],"A static sample must never call the protected API or generate real messages.");
+  await page.locator("#ob-preview-reset").click();
+  await page.locator("#onboarding-app").waitFor({state:"visible"});
+  assert.equal(await page.locator("#business_name").inputValue(),"North Shore Plumbing (sample)");
+  assert.deepEqual(pageErrors,[]);
+  for(const width of [375,768,1365]){
+    await page.setViewportSize({width,height:900});
+    await page.reload({waitUntil:"load"});
+    await page.locator("#onboarding-app").waitFor({state:"visible"});
+    const overflow=await page.evaluate(()=>Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)-window.innerWidth);
+    assert.ok(overflow<2,"Preview horizontal overflow at "+width+": "+overflow);
+  }
+  console.log("CALVREN_ONBOARDING_PREVIEW_PASSED: four steps, save/reload, submit, reset, no backend calls, responsive layout.");
+}finally{await browser.close()}

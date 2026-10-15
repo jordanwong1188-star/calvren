@@ -58,6 +58,7 @@ async function check(){
         :"Choose a subscription to activate a client workspace.";
       $("client-manage").hidden=info.status==="none";
       $("client-automation").hidden=!info.paid;
+      if($("client-onboarding-link"))$("client-onboarding-link").hidden=!info.paid;
       if(info.paid)await loadAutomation();
     }catch(error){notice(error.message,true);}
   }else{$("client-membership").hidden=true;}

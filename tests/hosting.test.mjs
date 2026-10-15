@@ -10,7 +10,7 @@ after(()=>rm(directory,{recursive:true,force:true}));
 const modules=[
   ...["contracts","demo-config","validation","time","memory-repository","mock-services","engine"].map(name=>"src/conversion/"+name+".mts"),
   ...["conversion-api","conversion-providers","conversion-repository","workflow-core"].map(name=>"netlify/lib/"+name+".mts"),
-  ...["conversion-runtime","private-storage","forms","demo-access","billing","router"].map(name=>"server/"+name+".mts"),
+  ...["conversion-runtime","private-storage","forms","demo-access","billing","onboarding","router"].map(name=>"server/"+name+".mts"),
   "functions/_middleware.ts"
 ];
 for(const path of modules){
