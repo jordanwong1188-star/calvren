@@ -145,7 +145,7 @@ try{
 
   // Intercept both providers: browser checks must never send test notifications.
   let notificationCount=0,archiveCount=0,providerStatus=503,lastProviderBody="",lastArchiveBody="";
-  const endpoint="https://formspree.io/f/xaeqpaeq";
+  const endpoint="https://formspree.io/f/xrperqkk";
   const intercept=route=>{
     const request=route.request();
     if(request.method()==="POST"&&request.url()===endpoint){
