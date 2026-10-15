@@ -11,12 +11,12 @@ const sampleForm={
   booking_duration:"60 minutes",booking_buffer:"15 minutes",booking_rules:"Do not book emergency jobs automatically.",
   calendar_email:"bookings@example.com",handoff_email:"office@example.com",
   handoff_phone:"+1 604 555 0100",handoff_instructions:"Escalate emergencies and requests for a person.",
-  additional_notes:"",consent_data_handling:false,approve_workflow_scope:false
+  additional_notes:"",kickoff_requested:false,kickoff_availability:"",consent_data_handling:false,approve_workflow_scope:false
 };
 let supabase=null;
 const $=id=>document.getElementById(id);
 const controls=[...document.querySelectorAll("#onboarding-form [name]")];
-let step=1,busy=false,form={},session=null;
+let step=1,busy=false,form={},session=null,latestRecord=null;
 function show(name){
   ["auth-panel","access-panel","onboarding-app"].forEach(id=>$(id).hidden=id!==name);
 }
@@ -28,6 +28,11 @@ async function request(method="GET",body){
   if(previewMode){
     const saved=JSON.parse(sessionStorage.getItem(previewKey)||"null");
     if(method==="GET")return {email:"alex@example.com",record:saved};
+    if(method==="APPROVE"){
+      const record={...saved,status:"approved",scope_approved_at:new Date().toISOString()};
+      sessionStorage.setItem(previewKey,JSON.stringify(record));
+      return {record};
+    }
     const record={
       form:body.form,current_step:body.current_step,
       status:method==="POST"?"submitted":"draft",
@@ -40,8 +45,8 @@ async function request(method="GET",body){
   const {data}=await supabase.auth.getSession();
   const token=data.session?.access_token;
   if(!token)throw Error("Please sign in again.");
-  const response=await fetch("/api/onboarding",{
-    method,headers:{Authorization:"Bearer "+token,Accept:"application/json",...(body?{"Content-Type":"application/json"}:{})},
+  const response=await fetch(method==="APPROVE"?"/api/onboarding/approve":"/api/onboarding",{
+    method:method==="APPROVE"?"POST":method,headers:{Authorization:"Bearer "+token,Accept:"application/json",...(body?{"Content-Type":"application/json"}:{})},
     ...(body?{body:JSON.stringify(body)}:{}),credentials:"omit",cache:"no-store"
   });
   const result=await response.json().catch(()=>({error:"The server returned an unexpected response."}));
@@ -54,11 +59,18 @@ function collect(){
     else form[input.name]=input.value;
   }
 }
+function toggleKickoff(){
+  const checked=$("kickoff_requested")?.checked===true;
+  const wrap=$("kickoff-times-wrap"),field=$("kickoff_availability");
+  if(wrap)wrap.hidden=!checked;
+  if(field)field.required=checked;
+}
 function restore(){
   for(const input of controls){
     if(input.type==="checkbox")input.checked=form[input.name]===true;
     else if(form[input.name]!==undefined)input.value=form[input.name];
   }
+  toggleKickoff();
 }
 function render(){
   for(const page of document.querySelectorAll(".ob-page"))page.hidden=Number(page.dataset.step)!==step;
@@ -75,7 +87,7 @@ function render(){
   message("");
 }
 function review(){
-  const labels=[["Business",form.business_name],["Industry",form.industry],["Services",form.services],["Enquiries",form.lead_sources],["Hours",form.business_hours],["Handoff email",form.handoff_email],["Booking",form.booking_duration]];
+  const labels=[["Business",form.business_name],["Industry",form.industry],["Services",form.services],["Enquiries",form.lead_sources],["Hours",form.business_hours],["Handoff email",form.handoff_email],["Booking",form.booking_duration],["Kickoff call",form.kickoff_requested?"Requested — "+(form.kickoff_availability||"confirming availability"):"Not requested"]];
   const container=$("review-summary");
   container.replaceChildren();
   for(const [title,value] of labels){
@@ -111,6 +123,7 @@ async function save(nextStep=step,submit=false){
   finally{busy=false;buttons.forEach(b=>b.disabled=false)}
 }
 function showSubmitted(record){
+  latestRecord=record;
   $("wizard-container").hidden=true;
   $("submitted-panel").hidden=false;
   if(previewMode){
@@ -123,6 +136,8 @@ function showSubmitted(record){
     ["reviewing","Implementation review","We review your services, workflow rules and next steps."],
     ["building","Connections and configuration","We arrange authorized integrations and set up your automation."],
     ["testing","Quality assurance","We test actual messaging, availability and handoff paths."],
+    ["awaiting_approval","Final workflow approval","Check the exact workflow scope before launch."],
+    ["approved","Approved and preparing launch","Thank you. Your approval has been recorded."],
     ["live","Launched","Your automation is connected to your business."],
   ];
   const timeline=$("review-timeline");timeline.replaceChildren();
@@ -131,6 +146,13 @@ function showSubmitted(record){
     const row=document.createElement("div"),title=document.createElement("strong"),detail=document.createElement("p");
     row.className="ob-milestone";row.dataset.done=i<=position?"true":"false";
     title.textContent=stages[i][1];detail.textContent=stages[i][2];row.append(title,detail);timeline.append(row);
+  }
+  const approval=$("approval-panel"),scope=$("launch-scope-text");
+  if(approval){
+    approval.hidden=record?.status!=="awaiting_approval"||!record?.launch_scope;
+    if(scope)scope.textContent=record?.launch_scope||"";
+    $("launch-approval-check").checked=false;
+    $("launch-approval-message").textContent="";
   }
   const note=$("owner-note");
   note.hidden=!record?.owner_note;
@@ -192,6 +214,18 @@ $("signin")?.addEventListener("submit",async event=>{
   }catch(e){btn.textContent=e.message;btn.disabled=false}
 });
 $("onboarding-form").addEventListener("submit",event=>event.preventDefault());
+$("kickoff_requested")?.addEventListener("change",toggleKickoff);
+$("launch-approval-btn")?.addEventListener("click",async()=>{
+  const message=$("launch-approval-message"),button=$("launch-approval-btn");
+  if(!$("launch-approval-check").checked){message.textContent="Please review and confirm the proposed workflow.";return;}
+  if(!latestRecord?.launch_scope){message.textContent="Refresh to see the latest workflow.";return;}
+  button.disabled=true;message.textContent="Recording your approval…";
+  try{
+    const answer=await request("APPROVE",{approved:true,scope:latestRecord.launch_scope});
+    showSubmitted(answer.record);
+  }catch(error){message.textContent=error.message;}
+  finally{button.disabled=false;}
+});
 $("next-btn").addEventListener("click",async()=>{
   collect();if(!validateCurrent())return;
   await save(Math.min(4,step+1));
