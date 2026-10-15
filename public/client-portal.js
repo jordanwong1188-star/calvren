@@ -47,7 +47,7 @@ async function check(){
     button.hidden=!user;
     button.disabled=!user||!ready;
     if(user&&ready)notice("You're signed in. Continue to Stripe's secure checkout.");
-    else if(user&&!ready)notice("Stripe subscription checkout is not active yet. Contact Calvren for an onboarding quote.");
+    else if(user&&!ready)notice("Secure online checkout is temporarily unavailable. Please contact the Calvren team to get started.");
   }else if(user){
     try{
       const info=await api("me");
@@ -145,10 +145,10 @@ async function init(){
       $("billing-price").textContent=ready?
         money(data.amount,data.currency)+" / "+(data.interval_count===1?data.interval:data.interval_count+" "+data.interval+"s"):
         "Custom onboarding";
-      $("billing-first-payment").textContent=ready?money(data.first_payment,data.currency)+" due initially":"CA$448 due initially (checkout not yet active)";
+      $("billing-first-payment").textContent=ready?money(data.first_payment,data.currency)+" due initially":"CA$448 standard initial payment";
       $("billing-price-note").textContent=ready?(data.test_mode?
         "Stripe TEST MODE — no real charge will be made.":"Amount and taxes are confirmed by Stripe before you pay."):
-        "Recurring service pricing is agreed in your proposal. Online checkout is being configured.";
+        "Secure online checkout is temporarily unavailable. Contact the Calvren team to arrange your subscription.";
     }catch{$("billing-price-note").textContent="Payment details are temporarily unavailable.";}
   }
   if(!isBilling){
