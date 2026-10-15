@@ -149,12 +149,14 @@ export async function handleOnboarding(request:Request,env:Environment):Promise<
       });
       const record=updated[0]||null;
       if(record&&payload.status==="awaiting_approval"&&!record.scope_review_email_sent_at){
-        const email=await verifiedUserEmail(env,id).catch(()=>null);
-        if(email&&await sendClientMail(env,email,"scope_ready",{
-          business:record.form?.business_name,id:"calvren-scope-"+id+"-"+createHash("sha256").update(record.launch_scope||"").digest("hex").slice(0,24)
-        })){
-          await database(env,"calvren_onboarding?auth_user_id=eq."+id,"PATCH",{scope_review_email_sent_at:new Date().toISOString()});
-        }
+        try{
+          const email=await verifiedUserEmail(env,id).catch(()=>null);
+          if(email&&await sendClientMail(env,email,"scope_ready",{
+            business:record.form?.business_name,id:"calvren-scope-"+id+"-"+createHash("sha256").update(record.launch_scope||"").digest("hex").slice(0,24)
+          })){
+            await database(env,"calvren_onboarding?auth_user_id=eq."+id,"PATCH",{scope_review_email_sent_at:new Date().toISOString()});
+          }
+        }catch{console.warn(JSON.stringify({event:"calvren_scope_email_retry_later"}));}
       }
       return json({record});
     }
@@ -188,10 +190,12 @@ export async function handleOnboarding(request:Request,env:Environment):Promise<
       owner_note:current?.owner_note||""
     });
     if(submit&&rows[0]&&!rows[0].confirmation_email_sent_at){
-      if(await sendClientMail(env,user.email,"submitted",{business:form.business_name,kickoff:form.kickoff_requested,
-        id:"calvren-onboarding-"+user.id})){
-        await database(env,"calvren_onboarding?auth_user_id=eq."+user.id,"PATCH",{confirmation_email_sent_at:new Date().toISOString()});
-      }
+      try{
+        if(await sendClientMail(env,user.email,"submitted",{business:form.business_name,kickoff:form.kickoff_requested,
+          id:"calvren-onboarding-"+user.id})){
+          await database(env,"calvren_onboarding?auth_user_id=eq."+user.id,"PATCH",{confirmation_email_sent_at:new Date().toISOString()});
+        }
+      }catch{console.warn(JSON.stringify({event:"calvren_onboarding_email_retry_later"}));}
     }
     return json({record:expose(rows[0]||null,member.client_id||null)});
   }catch(error){
