@@ -36,3 +36,7 @@
   X-Robots-Tag: noindex, nofollow
 /onboarding.js
   Cache-Control: no-cache, must-revalidate
+
+# Keep authenticated billing and checkout logic current after each deployment.
+/client-portal.js
+  Cache-Control: no-cache, must-revalidate
