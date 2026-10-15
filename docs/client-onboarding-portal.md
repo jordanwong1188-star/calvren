@@ -17,6 +17,16 @@
 7. View implementation milestones and any owner note at /onboarding.html.
 8. Access automation activity after Calvren has linked an active live client configuration and tested providers.
 
+## Test the sample in Cloudflare Pages (no payment or backend changes)
+
+- Production remains **https://calvren.pages.dev** on the `main` branch.
+- The isolated development branch is `feature/client-onboarding-portal-20261014` (draft PR #1).
+- In Cloudflare Dashboard → Workers & Pages → Calvren → Deployments, locate a **Preview** deployment for that branch. Git-linked Cloudflare Pages supports automatic preview builds of non-production branches if branch controls allow them.
+- If no deployment exists, go to Settings → Builds → Branch control; allow preview deployment for this branch (or all non-production branches). Confirm build command `npm run build:cloudflare`, build output `public`, and the repository source. Do not change the production branch or merge the PR.
+- Click **Visit deployment** and append `/onboarding-preview.html` to the verified Cloudflare preview URL.
+- Preview data stays in your browser's `sessionStorage`; no Supabase, Stripe, email, messaging or live customer records are changed. Use the **Restart sample** control to reset.
+- The real paid-client `/onboarding.html` flow is not suitable for preview testing until its Supabase migration and authenticated client/server integration are explicitly approved and deployed.
+
 ## Owner operating procedure
 
 1. Open /operator.html using your private operator token. Do not share it with clients.
