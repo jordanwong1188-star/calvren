@@ -109,7 +109,7 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
     }
     // An aggregate cap also protects direct backend requests with spoofed forwarding headers.
     for(const [key,maximum,window] of [["global",100,3600],["ip:"+deps.ip,10,3600],["email:"+email,5,86400]] as const){
-      if(!await deps.repository.consumeRateLimit(hash("forms:"+key),maximum,window,stamp))throw new FormError(429,"Too many submissions. Please try later or email Jordan.");
+      if(!await deps.repository.consumeRateLimit(hash("forms:"+key),maximum,window,stamp))throw new FormError(429,"Too many submissions. Please try later or email Calvren support.");
     }
     // Browser retries reuse the same optional request key; hash binds it to the same submission.
     const requestKey=form.get("submission-key") || "";
@@ -129,5 +129,5 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
       notification}));
     // The submission stays saved even if Resend is unavailable or delivery later fails.
     return json({ok:true,id},201);
-  }catch(error){return json({error:error instanceof FormError?error.message:"We couldn’t save this submission. Please try again or email Jordan."},error instanceof FormError?error.status:503);}
+  }catch(error){return json({error:error instanceof FormError?error.message:"We couldn’t save this submission. Please try again or email Calvren support."},error instanceof FormError?error.status:503);}
 }
