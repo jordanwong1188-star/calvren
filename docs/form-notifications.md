@@ -4,7 +4,7 @@ Calvren's canonical production site is **https://calvren.pages.dev**.
 
 All three public forms submit to the Formspree endpoint supplied by the owner:
 
-`https://formspree.io/f/xaeqpaeq`
+`https://formspree.io/f/xrperqkk`
 
 - Homepage workflow enquiry (`workflow-enquiry`)
 - Contact-page project enquiry (`project-enquiry`)
@@ -14,7 +14,7 @@ The live website sends to Formspree first. **Only when Formspree responds succes
 
 ## Owner setup — required for notifications
 
-1. Log in to [Formspree](https://formspree.io) and select the form with endpoint `xaeqpaeq`.
+1. Log in to [Formspree](https://formspree.io) and select the form with endpoint `xrperqkk`.
 2. Check the form's **target/notification email** is **calvrenautomation@gmail.com**. Verify the address if prompted.
 3. Check the form's Workflow/Notifications settings so an email notification is actually enabled. A successfully stored Formspree submission does not, on its own, prove that Gmail delivered a notification.
 4. Test at [the live contact form](https://calvren.pages.dev/contact.html) with a fresh, consented test enquiry.
