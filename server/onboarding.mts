@@ -120,6 +120,8 @@ export async function handleOnboarding(request:Request,env:Environment):Promise<
       const nextScope=payload.launch_scope===undefined?current.launch_scope||"":payload.launch_scope;
       if(typeof nextScope!=="string"||nextScope.length>2400)return json({error:"The proposed workflow summary is too long."},400);
       const scopeChanged=nextScope.trim()!==(current.launch_scope||"");
+      if(payload.status==="approved"&&(current.status!=="approved"||scopeChanged))
+        return json({error:"Only the authenticated customer can approve the final workflow."},409);
       if(scopeChanged&&current.status==="live")return json({error:"Contact the client to agree a new scope before changing a launched workflow."},409);
       if(payload.status==="awaiting_approval"&&!nextScope.trim())return json({error:"Write the final workflow summary before requesting client approval."},400);
       if(payload.status==="awaiting_approval"&&!["testing","awaiting_approval","approved"].includes(current.status))
