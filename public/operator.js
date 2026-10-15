@@ -418,10 +418,11 @@ async function loadOnboardingQueue(){
       const details=element("details",undefined,"ob-operator-request");
       const summary=element("summary");
       summary.append(element("strong",form.business_name||"New customer"),element("span",String(record.status).replaceAll("_"," ")));
+      if(form.kickoff_requested)summary.append(element("span","· Kickoff requested"));
       details.append(summary);
       const sheet=element("div",undefined,"ob-operator-details");
       for(const [label,value] of [
-        ["Contact",form.contact_name],["Email",form.contact_email],["Industry",form.industry],
+        ["Contact",form.contact_name],["Email",form.contact_email],["Industry",form.industry],["Timezone",form.timezone],
         ["Website",form.website],["Services",form.services],["Business hours",form.business_hours],
         ["Lead sources",form.lead_sources],["Lead form",form.lead_form_url],
         ["Qualification",form.qualifying_questions],["Booking",form.booking_duration],
