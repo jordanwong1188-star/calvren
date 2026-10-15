@@ -100,6 +100,6 @@ test("submitted forms are locked from client changes",async()=>{
 test("owners must link a live business before marking an implementation launched",async()=>{
   const f=fixture({record:{auth_user_id:userId,status:"submitted",form:validForm,current_step:4,owner_note:""}});
   const result=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding/admin/"+userId,"PATCH",{status:"live"},"Bearer "+TOKEN),env));
-  assert.equal(result.status,503);
+  assert.equal(result.status,409);
   assert.notEqual(f.saved.status,"live");
 });
