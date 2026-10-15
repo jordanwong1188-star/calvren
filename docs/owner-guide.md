@@ -4,7 +4,7 @@ Owner: Jordan Wong
 Website: https://calvren.netlify.app  
 Private workspace: https://calvren.netlify.app/admin.html  
 Website submissions: https://app.netlify.com/projects/calvren/forms  
-Contact: Jordan.wong1177@gmail.com · 236-988-8283
+Contact: calvrenautomation@gmail.com · 236-988-8283
 
 ## Activate the AI service
 
@@ -41,7 +41,7 @@ During activation, check Netlify Forms as the source of truth. Submissions made 
 
 Website submissions are saved in Netlify Forms. This does not establish that email notifications are configured.
 
-In Netlify, open the forms notification settings and add an email notification for `workflow-enquiry`, `project-enquiry` and, if wanted, `client-insight`, addressed to Jordan.wong1177@gmail.com. Verify delivery with your controlled test submission.
+In Netlify, open the forms notification settings and add an email notification for `workflow-enquiry`, `project-enquiry` and, if wanted, `client-insight`, addressed to calvrenautomation@gmail.com. Verify delivery with your controlled test submission.
 
 Until notification delivery is verified, check both Netlify Forms and the private workspace daily. Do not assume a lack of notification means there were no enquiries.
 

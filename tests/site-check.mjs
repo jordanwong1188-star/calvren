@@ -80,7 +80,7 @@ try{
       await page.setViewportSize({width,height:1000});
       await visit(path);
       await noOverflow(path,width);
-      assert.ok(await page.locator('a[href="mailto:Jordan.wong1177@gmail.com"]').count()>0);
+      assert.ok(await page.locator('a[href="mailto:calvrenautomation@gmail.com"]').count()>0);
       assert.ok(await page.locator('a[href="tel:+12369888283"]').count()>0);
       if(width<=860){
         const toggle=page.locator(".menu-toggle");
@@ -185,7 +185,7 @@ try{
     assert.equal(archiveCount,0,"Failed Formspree delivery must not be acknowledged as saved.");
     assert.equal(await page.locator(config.name).inputValue(),"Calvren QA");
     assert.equal(await form.locator('button[type="submit"]').isEnabled(),true);
-    assert.match(await form.locator("[data-form-error]").textContent(),/Jordan.wong1177@gmail.com/);
+    assert.match(await form.locator("[data-form-error]").textContent(),/calvrenautomation@gmail.com/);
     providerStatus=200;
     await form.locator('button[type="submit"]').click();
     await page.waitForURL(url=>normalisePath(url.pathname)===normalisePath(config.action));

@@ -62,7 +62,7 @@ document.querySelectorAll("[data-lead-form]").forEach(form=>{
       }catch{console.warn("Calvren private copy is temporarily unavailable.");}
       location.assign(form.dataset.successUrl||"/thanks.html");
     }catch{
-      error.textContent="We couldn’t submit this right now. Please try again, or email Jordan.wong1177@gmail.com.";
+      error.textContent="We couldn’t submit this right now. Please try again, or email calvrenautomation@gmail.com.";
       error.hidden=false;button.disabled=false;button.removeAttribute("aria-busy");button.innerHTML=original;
     }
   });
