@@ -33,14 +33,14 @@ const endpoint=(path,method="GET",body,auth="Bearer verified.user.jwt")=>new Req
   ...(body?{body:JSON.stringify(body)}:{})
 });
 function fixture({active=true,record=null,client=null}={}){
-  let saved=record;
+  let saved=record,linkedClient=client;
   const calls=[];
   const fetch=async(url,init={})=>{
     calls.push([url,init.method||"GET"]);
     if(url.endsWith("/auth/v1/user"))return Response.json({id:userId,email:"alex@example.com",email_confirmed_at:"2026-10-14T00:00:00Z"});
     if(url.includes("/rest/v1/calvren_billing_memberships")){
-      if(init.method==="PATCH")return Response.json([{client_id:JSON.parse(init.body).client_id}]);
-      return Response.json(active?[{subscription_status:"active",current_period_end:"2030-01-01T00:00:00Z",client_id:client}]:[]);
+      if(init.method==="PATCH"){linkedClient=JSON.parse(init.body).client_id;return Response.json([{client_id:linkedClient}]);}
+      return Response.json(active?[{subscription_status:"active",current_period_end:"2030-01-01T00:00:00Z",client_id:linkedClient}]:[]);
     }
     if(url.includes("/rest/v1/calvren_clients"))return Response.json([{id:"plumbing-live",config:{mode:"live",active:true}}]);
     if(url.includes("/rest/v1/calvren_onboarding")){
