@@ -220,6 +220,42 @@ try{
   }
   await native.close();
 
+  // Regression: a signed-in but unpaid customer must be able to reach Stripe directly
+  // from the client dashboard. Mock providers to avoid any actual payment or email.
+  const unpaidContext=await browser.newContext();
+  let checkoutRequests=0;
+  await unpaidContext.route("https://esm.sh/@supabase/supabase-js@2.57.0",route=>route.fulfill({
+    status:200,contentType:"text/javascript",
+    headers:{"Access-Control-Allow-Origin":"*"},
+    body:'export function createClient(){const user={email:"fixture@example.com"};return {auth:{getSession:async()=>({data:{session:{user,access_token:"fixture-auth-token"}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})}}}'
+  }));
+  await unpaidContext.route("**/api/billing/*",route=>{
+    const url=new URL(route.request().url());
+    if(url.pathname==="/api/billing/public")return route.fulfill({status:200,contentType:"application/json",
+      body:JSON.stringify({ready:true,amount:9900,setup_amount:34900,first_payment:44800,currency:"cad",interval:"month",interval_count:1,test_mode:false})});
+    if(url.pathname==="/api/billing/me")return route.fulfill({status:200,contentType:"application/json",
+      body:JSON.stringify({email:"fixture@example.com",paid:false,status:"none",activation:"pending"})});
+    if(url.pathname==="/api/billing/checkout"){
+      checkoutRequests++;
+      assert.equal(route.request().headers().authorization,"Bearer fixture-auth-token");
+      assert.equal(route.request().method(),"POST");
+      return route.fulfill({status:200,contentType:"application/json",
+        body:JSON.stringify({url:"https://checkout.stripe.com/c/pay/cs_test_synthetic_unpaid"})});
+    }
+    return route.abort();
+  });
+  await unpaidContext.route("https://checkout.stripe.com/**",route=>route.fulfill({status:200,
+    contentType:"text/html",body:"<title>Synthetic Stripe Checkout</title>"}));
+  const unpaidPage=await unpaidContext.newPage();
+  await unpaidPage.goto(site+"/client.html",{waitUntil:"domcontentloaded"});
+  await unpaidPage.locator("#client-checkout").waitFor({state:"visible"});
+  assert.equal(await unpaidPage.locator("#client-checkout").isEnabled(),true);
+  assert.equal(await unpaidPage.locator("#client-membership-status").textContent(),"No subscription yet");
+  await unpaidPage.locator("#client-checkout").click();
+  await unpaidPage.waitForURL(url=>url.hostname==="checkout.stripe.com");
+  assert.equal(checkoutRequests,1,"The dashboard must open Stripe Checkout without a payment/dashboard loop");
+  await unpaidContext.close();
+
   for(const path of ["/privacy.html","/thanks.html","/review-thanks.html","/404.html","/shared.js","/app.js","/styles.css","/sitemap.xml"]){
     const asset=await context.request.get(site+path);
     assert.equal(asset.status(),200,path+" must load");

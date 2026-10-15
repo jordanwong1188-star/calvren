@@ -52,10 +52,15 @@ async function check(){
     try{
       const info=await api("me");
       $("client-membership").hidden=false;
-      $("client-membership-status").textContent=info.paid?"Active subscription":info.status==="none"?"No subscription":info.status;
+      $("client-membership-status").textContent=info.paid?"Active subscription":info.status==="none"?"No subscription yet":info.status;
       $("client-activation").textContent=info.paid?(info.activation==="connected"?
         "Your automation workspace is connected.":"Payment confirmed. Calvren will connect your business's tools before live automation starts.")
         :"Choose a subscription to activate a client workspace.";
+      const startArea=$("client-start-area"),startButton=$("client-checkout"),startNote=$("client-checkout-note");
+      if(startArea)startArea.hidden=!!info.paid;
+      if(startButton)startButton.disabled=!ready;
+      if(startNote)startNote.textContent=ready?
+        "Stripe will show the exact total before you confirm. Opening Checkout will not charge you.":"Secure checkout is temporarily unavailable. Please contact Calvren support.";
       $("client-manage").hidden=info.status==="none";
       $("client-automation").hidden=!info.paid;
       if($("client-onboarding-link"))$("client-onboarding-link").hidden=!info.paid;
@@ -96,8 +101,9 @@ if(login)login.addEventListener("submit",async event=>{
   finally{button.disabled=false;}
 });
 $("client-signout")?.addEventListener("click",async()=>{await supabase.auth.signOut();location.assign("/payment");});
-$("billing-checkout")?.addEventListener("click",async()=>{
-  const button=$("billing-checkout");button.disabled=true;
+async function startCheckout(button){
+  if(!button||!ready)return;
+  button.disabled=true;
   notice("Opening Stripe checkout…");
   try{
     const result=await api("checkout",{method:"POST"});
@@ -105,7 +111,10 @@ $("billing-checkout")?.addEventListener("click",async()=>{
     if(url.protocol!=="https:"||url.hostname!=="checkout.stripe.com")throw Error("Invalid checkout destination.");
     location.assign(url.href);
   }catch(error){notice(error.message,true);button.disabled=false;}
-});
+}
+for(const id of ["billing-checkout","client-checkout"]){
+  $(id)?.addEventListener("click",event=>startCheckout(event.currentTarget));
+}
 $("client-manage")?.addEventListener("click",async()=>{
   const button=$("client-manage");button.disabled=true;
   try{
@@ -141,6 +150,13 @@ async function init(){
         "Stripe TEST MODE — no real charge will be made.":"Amount and taxes are confirmed by Stripe before you pay."):
         "Recurring service pricing is agreed in your proposal. Online checkout is being configured.";
     }catch{$("billing-price-note").textContent="Payment details are temporarily unavailable.";}
+  }
+  if(!isBilling){
+    try{
+      const response=await fetch("/api/billing/public",{headers:{"Accept":"application/json"}});
+      const data=await response.json();
+      ready=response.ok&&!!data.ready;
+    }catch{ready=false;}
   }
   if(new URLSearchParams(location.search).get("checkout")==="success")
     notice("Thanks. Stripe is confirming your subscription; your access will appear once its signed payment event arrives.");
