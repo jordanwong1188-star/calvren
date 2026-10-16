@@ -14,7 +14,7 @@ function download(name,value){
 function clearWorkspace(){
   token="";leads=[];readiness=null;$("admin-token").value="";$("lead-list").replaceChildren();$("service-state").replaceChildren();
   $("workspace").hidden=true;$("disconnect").hidden=true;$("auth-status").textContent="Not connected.";
-  $("workflow-form").reset();$("workflow-status").textContent="";$("inbox-status").textContent="";$("lead-search").value="";$("lead-filter").value="all";
+  $("workflow-form").reset();$("workflow-status").textContent="";$("inbox-status").textContent="";$("lead-search").value="";$("lead-filter").value="all";$("sales-filter").value="all";
 }
 function renderStatus(data){
   readiness=data;$("service-state").replaceChildren();
@@ -35,8 +35,16 @@ function renderStatus(data){
 async function loadStatus(){renderStatus(await api("/api/status"));}
 async function loadLeads(){const data=await api("/api/leads");if(!Array.isArray(data.leads))throw new Error("Unexpected inbox response.");leads=data.leads;renderLeads();}
 function renderLeads(){
-  const query=$("lead-search").value.trim().toLowerCase(),filter=$("lead-filter").value;
-  const visible=leads.filter(lead=>(filter==="all"||lead.status===filter)&&(!query||[lead.name,lead.email,lead.phone||"",lead.business||"",lead.challenge||"",lead.enquiry,lead.utmCampaign||""].join(" ").toLowerCase().includes(query)));
+  const query=$("lead-search").value.trim().toLowerCase(),filter=$("lead-filter").value,salesFilter=$("sales-filter").value;
+  const visible=leads.filter(lead=>(filter==="all"||lead.status===filter)&&
+    (salesFilter==="all"||(lead.salesStage||"new")===salesFilter)&&
+    (!query||[lead.name,lead.email,lead.phone||"",lead.business||"",lead.challenge||"",lead.enquiry,lead.utmCampaign||""].join(" ").toLowerCase().includes(query)));
+  // Overdue callbacks rise to the top without changing the stored records.
+  visible.sort((a,b)=>{
+    const due=x=>x.nextFollowUpAt&&new Date(x.nextFollowUpAt).getTime()<=Date.now()&&
+      !["won","lost"].includes(x.salesStage||"new")?1:0;
+    return due(b)-due(a)||b.createdAt.localeCompare(a.createdAt);
+  });
   $("lead-count").textContent=visible.length+" of "+leads.length+" loaded enquiries · up to 100 per view";
   $("lead-list").replaceChildren();
   for(const lead of visible){
@@ -56,6 +64,38 @@ function renderLeads(){
       card.append(textNode("p",lead.automation.summary,"lead-summary"),textNode("p","Priority: "+lead.automation.priority),textNode("p",lead.automation.replyDraft,"reply-copy"),textNode("p","Next action: "+lead.automation.nextAction,"lead-summary"));
     }else card.append(textNode("p","This enquiry is saved. Prepare an AI draft when the provider is ready, or review the original enquiry and respond manually.","lead-summary"));
     if(lead.processingError)card.append(textNode("p",lead.processingError,"processing-note"));
+    const pipeline=document.createElement("div");pipeline.className="sales-followup";
+    const stageLabel=textNode("label","Sales follow-up status"),stage=document.createElement("select");
+    const stages=[["new","Not contacted"],["contacted","Contacted"],["call_scheduled","Call scheduled"],
+      ["proposal_sent","Proposal sent"],["won","Won client"],["lost","Lost"]];
+    for(const [value,title] of stages){const item=document.createElement("option");item.value=value;item.textContent=title;stage.append(item);}
+    stage.value=lead.salesStage||"new";
+    const noteLabel=textNode("label","Call notes"),notes=document.createElement("textarea");
+    notes.maxLength=1000;notes.rows=2;notes.placeholder="What did the owner say? What happens next?";
+    notes.value=lead.salesNote||"";
+    const dateLabel=textNode("label","Next callback (optional)"),date=document.createElement("input");
+    date.type="datetime-local";
+    if(lead.nextFollowUpAt){const stamp=new Date(lead.nextFollowUpAt);
+      if(Number.isFinite(stamp.getTime()))date.value=new Date(stamp.getTime()-stamp.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+    if(lead.nextFollowUpAt&&new Date(lead.nextFollowUpAt).getTime()<=Date.now()&&
+      !["won","lost"].includes(lead.salesStage||"new"))
+      pipeline.append(textNode("strong","Callback due — follow up with this lead.","sales-due"));
+    const save=textNode("button","Save sales follow-up","button button-outline");save.type="button";
+    save.disabled=lead.status==="archived";
+    save.addEventListener("click",async()=>{
+      if(busy)return;busy=true;save.disabled=true;$("inbox-status").textContent="Saving sales follow-up…";
+      try{
+        const when=date.value?new Date(date.value):null;
+        if(when&&!Number.isFinite(when.getTime()))throw Error("Select a valid callback date.");
+        await api("/api/leads/"+encodeURIComponent(lead.id),"PATCH",{
+          salesStage:stage.value,salesNote:notes.value,nextFollowUpAt:when?when.toISOString():null
+        });
+        await loadLeads();$("inbox-status").textContent="Sales follow-up saved privately. No customer message sent.";
+      }catch(error){$("inbox-status").textContent=error.message;}
+      finally{busy=false;save.disabled=false;}
+    });
+    pipeline.append(stageLabel,stage,noteLabel,notes,dateLabel,date,save);
+    card.append(pipeline);
     const actions=document.createElement("div");actions.className="admin-actions";
     function action(label,task,className=""){
       const button=textNode("button",label,"button button-outline "+className);button.type="button";
@@ -128,6 +168,7 @@ $("refresh-leads").addEventListener("click",()=>refresh(loadLeads,"inbox-status"
 $("refresh-status").addEventListener("click",()=>refresh(loadStatus,"auth-status","Service configuration checked."));
 $("lead-search").addEventListener("input",renderLeads);
 $("lead-filter").addEventListener("change",renderLeads);
+$("sales-filter").addEventListener("change",renderLeads);
 $("export-leads").addEventListener("click",()=>{
   if(busy||!leads.length)return;download("calvren-enquiries-"+new Date().toISOString().slice(0,10)+".json",leads);
   $("inbox-status").textContent=leads.length+" loaded records exported. This export does not include separate Netlify Forms submissions.";
