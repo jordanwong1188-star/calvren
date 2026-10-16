@@ -295,13 +295,13 @@ export async function handleWorkflow(request: Request, deps: Dependencies): Prom
       if (!record(update)) fail(400, "Use a valid lead update.");
       if (saved.status === "archived") fail(409, "Archived records cannot be changed.");
       let changed: Lead;
-      if (shape(update, ["status"])) {
+      if (Object.keys(update).length === 1 && Object.hasOwn(update, "status")) {
         if (update.status !== "approved" && update.status !== "archived")
           fail(400, "Status must be approved or archived.");
         if (update.status === "approved" && !saved.automation)
           fail(409, "Generate a draft before marking it reviewed.");
         changed = { ...saved, status: update.status, updatedAt: now(deps) };
-      } else if (shape(update, ["salesStage","salesNote","nextFollowUpAt"])) {
+      } else if (Object.keys(update).length === 3 && ["salesStage","salesNote","nextFollowUpAt"].every(key => Object.hasOwn(update,key))) {
         const validStages=["new","contacted","call_scheduled","proposal_sent","won","lost"];
         if (typeof update.salesStage !== "string" || !validStages.includes(update.salesStage) ||
             !text(update.salesNote, 0, 1000) ||
