@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#163b31"><meta name="robots" content="noindex,nofollow"><title>Calvren — My automation</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/billing.css?v=password-auth-20261016"><script type="module" src="/client-portal.js?v=password-auth-20261016"></script></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#163b31"><meta name="robots" content="noindex,nofollow"><title>Calvren — My automation</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/billing.css?v=auth-8-email-20261016"><script type="module" src="/client-portal.js?v=auth-8-email-20261016"></script></head><body>
 <a href="#main" class="skip">Skip to content</a><header class="header"><a class="brand" href="/">calvren<span class="brand-dot">.</span></a><nav id="site-navigation" aria-label="Main navigation"><a href="/">Home</a><a href="/payment">Subscriptions</a><a href="/contact.html">Support</a></nav></header>
 <main id="main" class="document billing-main">
 <p class="eyebrow">SECURE CALVREN CLIENT PORTAL</p>
@@ -21,8 +21,8 @@
     <h2>Create your Calvren account.</h2>
     <p class="billing-small">Your account is free to create. You won't be charged until you choose and confirm a subscription in Stripe.</p>
     <label for="signup-email">Business email</label><input id="signup-email" type="email" autocomplete="email" maxlength="254" required placeholder="you@yourbusiness.com">
-    <label for="signup-password">Create password</label><input id="signup-password" type="password" autocomplete="new-password" required minlength="12" maxlength="72" placeholder="At least 12 characters">
-    <label for="signup-password-confirm">Confirm password</label><input id="signup-password-confirm" type="password" autocomplete="new-password" required minlength="12" maxlength="72" placeholder="Enter password again">
+    <label for="signup-password">Create password</label><input id="signup-password" type="password" autocomplete="new-password" required minlength="8" maxlength="72" placeholder="At least 8 characters">
+    <label for="signup-password-confirm">Confirm password</label><input id="signup-password-confirm" type="password" autocomplete="new-password" required minlength="8" maxlength="72" placeholder="Enter password again">
     <button class="button" type="submit">Create account →</button>
     <p class="billing-small">We'll email you a confirmation link to verify you own this address.</p>
   </form>
@@ -41,8 +41,8 @@
     <button class="auth-text-button" data-auth-view="signin" type="button">Return to sign in</button>
   </form>
   <div id="client-captcha" hidden aria-label="Human verification"></div>
-  <p id="client-notice" class="billing-notice" role="status" aria-live="polite"></p>
-</section>
+  </section>
+<p id="client-notice" class="billing-notice account-notice" role="status" aria-live="polite"></p>
 <section class="billing-card billing-account" id="signedin-account" hidden>
   <p class="eyebrow">YOUR ACCOUNT</p><h2>You're signed in.</h2>
   <p id="client-identity" class="billing-small" hidden></p>
@@ -52,8 +52,8 @@
   </div>
   <form id="client-new-password" hidden>
     <h3 id="password-form-title">Choose your password</h3>
-    <label for="new-client-password">New password</label><input id="new-client-password" type="password" autocomplete="new-password" minlength="12" maxlength="72" required placeholder="At least 12 characters">
-    <label for="new-client-password-confirm">Confirm new password</label><input id="new-client-password-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="72" required>
+    <label for="new-client-password">New password</label><input id="new-client-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required placeholder="At least 8 characters">
+    <label for="new-client-password-confirm">Confirm new password</label><input id="new-client-password-confirm" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
     <button class="button" type="submit">Save new password →</button>
   </form>
 </section>
