@@ -9,6 +9,9 @@ export type Lead = Input & {
   id: string; status: "new" | "draft" | "approved" | "archived";
   createdAt: string; updatedAt: string; automation: Draft | null;
   processingError: string | null; source: "manual" | "website";
+  // Website consultation metadata is optional for older enquiries and manual intake.
+  phone?: string; challenge?: string; preferredCallTime?: string; callbackConsent?: boolean;
+  utmSource?: string; utmMedium?: string; utmCampaign?: string;
 };
 export type WriteConditions = { onlyIfNew?: boolean; onlyIfMatch?: never } | { onlyIfNew?: never; onlyIfMatch?: string };
 export interface Storage {
@@ -105,7 +108,8 @@ function draft(value: unknown): value is Draft {
 function savedLead(value: unknown): Lead {
   if (!record(value)) fail(500, "Stored lead data could not be read.");
   const allowed = ["name", "email", "businessType", "enquiry", "business", "id", "status",
-    "createdAt", "updatedAt", "automation", "processingError", "source"];
+    "createdAt", "updatedAt", "automation", "processingError", "source",
+    "phone", "challenge", "preferredCallTime", "callbackConsent", "utmSource", "utmMedium", "utmCampaign"];
   if (Object.keys(value).some(key => !allowed.includes(key)) ||
     !text(value.name, 1, 120) || !text(value.email, 3, 254) ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email) ||
@@ -119,7 +123,12 @@ function savedLead(value: unknown): Lead {
     (value.status === "new" && value.automation !== null) ||
     (value.business !== undefined && !text(value.business, 0, 160)) ||
     (value.source !== undefined && value.source !== "manual" && value.source !== "website") ||
-    (value.processingError !== undefined && value.processingError !== null && !text(value.processingError, 1, 500)))
+    (value.processingError !== undefined && value.processingError !== null && !text(value.processingError, 1, 500)) ||
+    (value.phone !== undefined && (!text(value.phone, 7, 40) || !/^[+\\d\\s().-]+$/.test(value.phone) || value.phone.replace(/\\D/g,"").length<7)) ||
+    (value.challenge !== undefined && !text(value.challenge, 1, 100)) ||
+    (value.preferredCallTime !== undefined && !["","Weekday morning","Weekday afternoon","Weekday evening"].includes(value.preferredCallTime as string)) ||
+    (value.callbackConsent !== undefined && typeof value.callbackConsent !== "boolean") ||
+    (["utmSource","utmMedium","utmCampaign"] as const).some(key=>value[key]!==undefined && (typeof value[key]!=="string" || !/^[a-zA-Z0-9 _.-]{0,80}$/.test(value[key] as string))))
     fail(500, "Stored lead data could not be read.");
   return { ...value, business: value.business ?? "", source: value.source ?? "manual",
     processingError: value.processingError ?? null } as Lead;
@@ -319,7 +328,17 @@ export async function handleSubmission(request: Request, deps: Dependencies): Pr
     const digest = createHash("sha256").update("calvren-form:" + payload.id).digest("hex").slice(0, 32).split("");
     digest[12] = "4"; digest[16] = (8 | (parseInt(digest[16], 16) & 3)).toString(16);
     const hex = digest.join(""), id = [hex.slice(0,8), hex.slice(8,12), hex.slice(12,16), hex.slice(16,20), hex.slice(20)].join("-");
-    const result = await create(parsed, "website", id, deps);
+    // Legacy form submissions remain readable; callback permissions are never inferred.
+    let callback: Partial<Lead>={};
+    if(data.callback_consent==="yes"&&typeof data.phone==="string"&&
+      /^[+\\d\\s().-]{7,40}$/.test(data.phone)&&data.phone.replace(/\\D/g,"").length>=7){
+      const safe=(key:string)=>typeof data[key]==="string"&&/^[a-zA-Z0-9 _.-]{0,80}$/.test(data[key])?data[key] as string:"";
+      callback={phone:data.phone,callbackConsent:true,
+        challenge:typeof data.challenge==="string"&&data.challenge.length<=100?data.challenge:"Other",
+        preferredCallTime:["Weekday morning","Weekday afternoon","Weekday evening"].includes(data.preferred_call_time as string)?data.preferred_call_time as string:"",
+        utmSource:safe("utm_source"),utmMedium:safe("utm_medium"),utmCampaign:safe("utm_campaign")};
+    }
+    const result = await create({...parsed,...callback}, "website", id, deps);
     return json({ accepted: true, id: result.lead.id, duplicate: result.duplicate === true }, 202);
   } catch (error) {
     if (record(error) && error.calvren === true && error.status === 409 &&
