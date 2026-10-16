@@ -62,6 +62,7 @@ Supabase Auth sends these three events using **different email templates**. Calv
 | Confirm signup | Welcome to Calvren — confirm your email | `confirm-signup.html` |
 | Reset password | Reset your Calvren password | `reset-password.html` |
 | Magic Link | Your Calvren one-time sign-in link | `magic-link.html` |
+| Password changed security notification (enable separately) | Your Calvren password was changed | `password-changed.html` |
 
 Each HTML file retains `{{ .ConfirmationURL }}` as an actual Supabase template placeholder. Do **not** replace it with a static Calvren URL or password. Test the confirmation, recovery, and existing-user sign-in link by sending them to an owned test inbox after saving in Supabase. Sign-in with an existing **password** sends no login email by default; do not describe that as a broken email flow. If appropriate, enable Supabase's **Password changed** security notification (a separate template/setting) and customize its wording.
 
