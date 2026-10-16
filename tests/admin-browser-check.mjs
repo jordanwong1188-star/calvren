@@ -64,7 +64,7 @@ export async function checkOwnerWorkspace({page,site,screenshot}){
     await tracked.locator(".sales-followup textarea").fill("Owner asked for another call on Monday.");
     await tracked.locator('.sales-followup input[type="datetime-local"]').fill("2026-10-19T14:00");
     await tracked.getByRole("button",{name:"Save sales follow-up"}).click();
-    await page.waitForFunction(()=>document.querySelector('[data-lead-id="'+ids[0]+'"] .sales-followup select').value==="contacted");
+    await page.waitForFunction(() => document.querySelector('[data-lead-id="00000000-0000-4000-8000-000000000001"] .sales-followup select')?.value==="contacted");
     assert.equal(records[0].salesStage,"contacted");
     assert.match(records[0].salesNote,/Owner asked/);
     assert.ok(records[0].nextFollowUpAt);
