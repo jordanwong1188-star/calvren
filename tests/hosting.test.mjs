@@ -26,6 +26,17 @@ const {handleDemoSignup,handleDemoUnsubscribe}=await load("server/demo-access");
 const {onRequest}=await load("functions/_middleware");
 const token="hosting-fixture-operator-token-at-least-32-characters";
 const env=name=>({CALVREN_ADMIN_TOKEN:token,SUPABASE_URL:"https://fixture.supabase.co",SUPABASE_SECRET_KEY:"sb_secret_fixture"}[name]);
+test("audit call-to-action on both marketing pages includes explicit contact permission and channel details",async()=>{
+  for(const path of ["index.html","contact.html"]){
+    const html=await readFile(new URL("../public/"+path,import.meta.url),"utf8");
+    for(const field of ["phone","business","challenge","callback_consent","consent","utm_source","utm_medium","utm_campaign"])
+      assert.match(html,new RegExp('name="'+field+'"'),path+": "+field);
+    assert.match(html,/FREE 10-MINUTE LEAD RESPONSE AUDIT/);
+    assert.match(html,/Request my free 10-minute audit/);
+    assert.match(html,/name="phone"[^>]*required/);
+    assert.match(html,/name="callback_consent"[^>]*required/);
+  }
+});
 test("portable backend preserves custom operator authentication and defaults to demo",async()=>{
   const url="https://fixture.supabase.co/functions/v1/calvren/api/conversion/status";
   let response=await handleServer(new Request(url),{env});
@@ -42,7 +53,10 @@ function formFixture(overrides={}){
   const writes=[];const rows=new Map();const limits=[];
   const deps={ip:"fixture-ip",repository:{async consumeRateLimit(...args){limits.push(args);return true;}},
     storage:{async get(key){return rows.get(key)??null;},async delete(key){rows.delete(key);},async setJSON(key,data,conditions){const modified=!rows.has(key);writes.push({key,data,conditions});if(modified)rows.set(key,data);return{modified};}},...overrides};
-  const fields={"form-name":"project-enquiry",name:"Calvren Test",email:"test@example.com",message:"Please help us organise new enquiries.",consent:"yes","submission-key":"fixture-request",industry:"Local services"};
+  const fields={"form-name":"project-enquiry",name:"Calvren Test",email:"test@example.com",message:"Please help us organise new enquiries.",consent:"yes",callback_consent:"yes",
+    phone:"+1 604 555 0123",business:"Fixture Business",challenge:"Slow responses to customer enquiries",
+    preferred_call_time:"Weekday afternoon",utm_source:"instagram",utm_medium:"social",utm_campaign:"vancouver_launch",
+    "submission-key":"fixture-request",industry:"Local services"};
   const request=extra=>new Request("https://calvren.example/forms",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({...fields,...extra})});
   return{deps,request,writes,rows,limits};
 }
@@ -53,6 +67,12 @@ test("public forms save private enquiries without AI processing and retry with a
   const second=await handlePublicForm(f.request(),f.deps);assert.equal((await second.json()).id,id);
   assert.equal(f.rows.size,1);assert.equal(f.writes[0].data.status,"new");assert.equal(f.writes[0].data.automation,null);
   assert.equal(f.writes[0].conditions.onlyIfNew,true);
+  assert.equal(f.writes[0].data.phone,"+1 604 555 0123");
+  assert.equal(f.writes[0].data.challenge,"Slow responses to customer enquiries");
+  assert.equal(f.writes[0].data.preferredCallTime,"Weekday afternoon");
+  assert.equal(f.writes[0].data.utmSource,"instagram");
+  assert.equal(f.writes[0].data.utmCampaign,"vancouver_launch");
+  assert.equal(f.writes[0].data.callbackConsent,true);
   assert.ok(f.limits.every(([hash])=>/^[a-f0-9]{64}$/.test(hash)));
 });
 test("public enquiries notify the designated Gmail once, only after persistence, without leaking tokens",async()=>{
@@ -73,6 +93,9 @@ test("public enquiries notify the designated Gmail once, only after persistence,
   assert.equal(message.reply_to,"test@example.com");
   assert.match(message.subject,/New website enquiry/);
   assert.match(message.text,/Please help us organise new enquiries/);
+  assert.match(message.text,/Callback phone: \+1 604 555 0123/);
+  assert.match(message.text,/Main challenge: Slow responses/);
+  assert.match(message.text,/Campaign: instagram/);
   assert.equal(calls[0].init.headers["Idempotency-Key"],"calvren-public-form-"+id);
   const duplicate=await handlePublicForm(f.request(),f.deps);
   assert.equal(duplicate.status,201);
@@ -123,6 +146,11 @@ test("feedback notifications are separate from promotional consent and never imp
 test("public forms enforce consent, honeypot, field bounds and rate limits",async()=>{
   const f=formFixture();
   assert.equal((await handlePublicForm(f.request({consent:""}),f.deps)).status,400);
+  assert.equal((await handlePublicForm(f.request({callback_consent:""}),f.deps)).status,400);
+  assert.equal((await handlePublicForm(f.request({phone:"123"}),f.deps)).status,400);
+  assert.equal((await handlePublicForm(f.request({phone:"604-555-XXXX"}),f.deps)).status,400);
+  assert.equal((await handlePublicForm(f.request({business:""}),f.deps)).status,400);
+  assert.equal((await handlePublicForm(f.request({challenge:"Anything at all"}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({website:"bot"}),f.deps)).status,200);
   assert.equal((await handlePublicForm(f.request({email:"bad"}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({message:"x".repeat(3001)}),f.deps)).status,400);
