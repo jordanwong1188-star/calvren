@@ -130,7 +130,7 @@ $("client-signup")?.addEventListener("submit",async event=>{
   event.preventDefault();const form=event.currentTarget,button=form.querySelector('[type="submit"]');button.disabled=true;
   try{
     const password=$("signup-password").value;
-    if(password.length<12)throw Error("Use at least 12 characters for your password.");
+    if(password.length<8)throw Error("Use at least 8 characters for your password.");
     if(password!==$("signup-password-confirm").value)throw Error("The passwords don't match.");
     const {data,error}=await supabase.auth.signUp({
       email:$("signup-email").value.trim().toLowerCase(),password,
@@ -173,7 +173,7 @@ $("client-new-password")?.addEventListener("submit",async event=>{
   event.preventDefault();const form=event.currentTarget,button=form.querySelector('[type="submit"]');button.disabled=true;
   try{
     const password=$("new-client-password").value;
-    if(password.length<12)throw Error("Use at least 12 characters.");
+    if(password.length<8)throw Error("Use at least 8 characters.");
     if(password!==$("new-client-password-confirm").value)throw Error("The passwords don't match.");
     const {error}=await supabase.auth.updateUser({password});
     if(error)throw error;
@@ -245,7 +245,8 @@ async function init(){
   if(new URLSearchParams(location.search).get("checkout")==="success")
     notice("Thanks. Stripe is confirming your subscription; your access will appear once its signed payment event arrives.");
   await check();
-  if(returnedError)notice("Your sign-in link could not be used: "+returnedError.replaceAll("+"," ")+". Request a fresh link.",true);
+  if(returnedError)notice("Your account link could not be used: "+returnedError.replaceAll("+"," ")+". Request a fresh link.",true);
+  else if(recovery&&user)notice("Choose a new password below to finish resetting your account.");
 }
 supabase.auth.onAuthStateChange(event=>{
   if(event==="PASSWORD_RECOVERY"){recovery=true;passwordPanelOpen=true;}
