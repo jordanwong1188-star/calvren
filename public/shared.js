@@ -32,7 +32,18 @@ if("IntersectionObserver" in window&&!reducedMotion.matches){
   });
   reducedMotion.addEventListener("change",event=>{if(event.matches){document.querySelectorAll(".reveal-ready").forEach(node=>node.classList.add("is-revealed"));observer.disconnect();}});
 }
+// Campaign attribution is explicit URL metadata only (no cookies or cross-site referrers).
+// Discard unexpected values rather than recording arbitrary query strings.
+const campaignParams=new URLSearchParams(location.search);
+const campaignValue=key=>{
+  const value=(campaignParams.get(key)||"").trim();
+  return /^[a-zA-Z0-9 _.-]{1,80}$/.test(value)?value:"";
+};
 document.querySelectorAll("[data-lead-form]").forEach(form=>{
+  for(const key of ["utm_source","utm_medium","utm_campaign"]){
+    const input=form.querySelector('[name="'+key+'"]');
+    if(input)input.value=campaignValue(key);
+  }
   form.addEventListener("submit",async event=>{
     event.preventDefault();
     const button=form.querySelector('button[type="submit"]'),error=form.querySelector("[data-form-error]");
