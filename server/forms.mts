@@ -33,6 +33,13 @@ export async function notifyFormOwner(
     "Customer email: "+String(data.email||""),
     feedback?"Company: "+String(data.company||""):"Business: "+String(data.business||""),
     feedback?"Workflow: "+String(data.workflow||""):"Business type: "+String(data.businessType||""),
+    ...(feedback?[]:[
+      "Callback phone: "+String(data.phone||""),
+      "Main challenge: "+String(data.challenge||""),
+      "Preferred call time: "+String(data.preferredCallTime||"No preference"),
+      "Callback consent: "+(data.callbackConsent===true?"Explicitly requested":"Not given"),
+      "Campaign: "+[data.utmSource,data.utmMedium,data.utmCampaign].filter(Boolean).join(" / ")
+    ]),
     "",
     feedback?"Customer feedback:":"Enquiry:",
     String(feedback?data.experience||"":data.enquiry||""),
@@ -100,11 +107,31 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
       prefix="feedback/";
     }else{
       if(form.get("consent")!=="yes")throw new FormError(400,"Consent to process your enquiry is required.");
-      const industry=field("industry",0,80), workflow=field("workflow",0,80);
+      if(form.get("callback_consent")!=="yes")throw new FormError(400,"Consent to a requested callback is required.");
+      const phone=field("phone",7,40);
+      if(!/^[+\d\s().-]+$/.test(phone)||phone.replace(/\D/g,"").length<7)
+        throw new FormError(400,"Use a valid callback phone number.");
+      const business=field("business",1,160);
+      const challenge=field("challenge",1,100);
+      const knownChallenges=[
+        "Slow responses to customer enquiries",
+        "Too much time spent answering questions",
+        "Booking and scheduling appointments",
+        "Following up with potential customers",
+        "Other"
+      ];
+      if(!knownChallenges.includes(challenge))throw new FormError(400,"Choose a main challenge.");
+      const preferredCallTime=field("preferred_call_time",0,40);
+      if(!["","Weekday morning","Weekday afternoon","Weekday evening"].includes(preferredCallTime))
+        throw new FormError(400,"Choose a valid preferred call time.");
+      const utm=(key:string)=>{const value=field(key,0,80);return /^[a-zA-Z0-9 _.-]{0,80}$/.test(value)?value:"";};
+      const industry=field("industry",1,80), workflow=field("workflow",0,80);
       const businessType=workflow==="real-estate"||industry==="Real estate"?"real-estate":
         workflow==="local-services"||industry==="Local services"?"local-services":
         workflow==="professional"||industry==="Professional services"?"professional":"general-business";
-      data={...common,business:field("business",0,160),businessType,enquiry:field("message",15,3000),
+      data={...common,business,phone,challenge,preferredCallTime,callbackConsent:true,
+        utmSource:utm("utm_source"),utmMedium:utm("utm_medium"),utmCampaign:utm("utm_campaign"),
+        businessType,enquiry:field("message",15,3000),
         status:"new",source:"website",createdAt:stamp,updatedAt:stamp,automation:null,processingError:null};
       prefix="leads/";
     }
