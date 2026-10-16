@@ -214,6 +214,29 @@ test("only records with drafts can be reviewed; archived records cannot regenera
   assert.equal((await call(f, "/api/leads/" + id, "PATCH", { status: "archived" })).body.lead.status, "archived");
   assert.equal((await call(f, "/api/leads/" + id + "/draft", "POST")).response.status, 409);
 });
+test("private sales tracker can save stages, notes and follow-ups without sending customers messages",async()=>{
+  const f=fixture();await call(f,"/api/workflow","POST",input);
+  const path="/api/leads/"+id;
+  const next="2026-11-02T17:00:00.000Z";
+  const updated=await call(f,path,"PATCH",{salesStage:"contacted",salesNote:"Called owner; send a demo link.",nextFollowUpAt:next});
+  assert.equal(updated.response.status,200);
+  assert.equal(updated.body.lead.salesStage,"contacted");
+  assert.equal(updated.body.lead.nextFollowUpAt,next);
+  assert.equal(updated.body.lead.salesNote,"Called owner; send a demo link.");
+  const listed=(await call(f,"/api/leads")).body.leads[0];
+  assert.equal(listed.salesStage,"contacted");
+  assert.equal(listed.salesNote,"Called owner; send a demo link.");
+  assert.equal(f.calls.length,1,"Updating sales notes must not call OpenAI again or send a customer message.");
+  for(const invalid of [
+    {salesStage:"unsafe",salesNote:"x",nextFollowUpAt:null},
+    {salesStage:"won",salesNote:"x".repeat(1001),nextFollowUpAt:null},
+    {salesStage:"new",salesNote:"safe",nextFollowUpAt:"not-a-date"},
+    {salesStage:"new",salesNote:"safe",nextFollowUpAt:null,role:"admin"}
+  ]){
+    assert.equal((await call(f,path,"PATCH",invalid)).response.status,400);
+  }
+  assert.equal((await call(f,path,"PATCH",{salesStage:"won",salesNote:"Closed",nextFollowUpAt:null})).body.lead.salesStage,"won");
+});
 test("permanent deletion removes the record and missing IDs return404", async () => {
   const f = fixture();
   await call(f, "/api/workflow", "POST", input);
@@ -275,6 +298,20 @@ test("verified website intake uses authoritative form metadata and preserves bus
   assert.equal(records[0].source, "website");
   assert.equal(records[0].business, "Example Realty");
   assert.equal(records[0].businessType, "real-estate");
+});
+test("verified Formspree intake preserves explicitly consented callback details",async()=>{
+  const f=fixture();
+  const result=await submission(f,{data:{name:input.name,email:input.email,message:input.enquiry,
+    consent:"yes",callback_consent:"yes",phone:"+1 604 555 0123",
+    business:"Example Realty",challenge:"Slow responses to customer enquiries",
+    preferred_call_time:"Weekday afternoon",utm_source:"google",utm_campaign:"fall_test"}});
+  assert.equal(result.response.status,202);
+  const lead=(await call(f,"/api/leads")).body.leads[0];
+  assert.equal(lead.callbackConsent,true);
+  assert.equal(lead.phone,"+1 604 555 0123");
+  assert.equal(lead.preferredCallTime,"Weekday afternoon");
+  assert.equal(lead.utmSource,"google");
+  assert.equal(lead.utmCampaign,"fall_test");
 });
 test("repeat platform event IDs are atomic duplicates and cannot overwrite prior input", async () => {
   const f = fixture();
