@@ -129,7 +129,7 @@ function savedLead(value: unknown): Lead {
     (value.processingError !== undefined && value.processingError !== null && !text(value.processingError, 1, 500)) ||
     (value.phone !== undefined && (!text(value.phone, 7, 40) || !/^[+\d\s().-]+$/.test(value.phone) || value.phone.replace(/\D/g,"").length<7)) ||
     (value.challenge !== undefined && !text(value.challenge, 1, 100)) ||
-    (value.preferredCallTime !== undefined && !["","Weekday morning","Weekday afternoon","Weekday evening"].includes(value.preferredCallTime as string)) ||
+    (value.preferredCallTime !== undefined && !text(value.preferredCallTime, 0, 160)) ||
     (value.callbackConsent !== undefined && typeof value.callbackConsent !== "boolean") ||
     (["utmSource","utmMedium","utmCampaign"] as const).some(key=>value[key]!==undefined && (typeof value[key]!=="string" || !/^[a-zA-Z0-9 _.-]{0,80}$/.test(value[key] as string))) ||
     (value.salesStage !== undefined && !["new","contacted","call_scheduled","proposal_sent","won","lost"].includes(value.salesStage as string)) ||
@@ -360,7 +360,7 @@ export async function handleSubmission(request: Request, deps: Dependencies): Pr
       const safe=(key:string)=>typeof data[key]==="string"&&/^[a-zA-Z0-9 _.-]{0,80}$/.test(data[key])?data[key] as string:"";
       callback={phone:data.phone,callbackConsent:true,
         challenge:typeof data.challenge==="string"&&data.challenge.length<=100?data.challenge:"Other",
-        preferredCallTime:["Weekday morning","Weekday afternoon","Weekday evening"].includes(data.preferred_call_time as string)?data.preferred_call_time as string:"",
+        preferredCallTime:text(data.preferred_call_time,0,160)?data.preferred_call_time.trim():"",
         utmSource:safe("utm_source"),utmMedium:safe("utm_medium"),utmCampaign:safe("utm_campaign")};
     }
     const result = await create({...parsed,...callback}, "website", id, deps);
