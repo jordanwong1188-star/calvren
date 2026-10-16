@@ -280,6 +280,7 @@ try{
         signUp:async(payload)=>{record("signup",{email:payload.email,passwordLength:payload.password.length});return {data:{session:null},error:null};},
         signInWithPassword:async(payload)=>{record("password",{email:payload.email});return {error:{message:"Synthetic credentials are not valid"}};},
         resetPasswordForEmail:async(email,options)=>{record("reset",{email,redirectTo:options.redirectTo});return {error:null};},
+        resend:async(payload)=>{record("resend",{type:payload.type,email:payload.email,redirectTo:payload.options.emailRedirectTo});return {error:null};},
         signInWithOtp:async(payload)=>{record("legacy",{email:payload.email,shouldCreateUser:payload.options.shouldCreateUser});return {error:null};}
       }};}`
   }));
@@ -303,8 +304,14 @@ try{
   await accountPage.locator("#signup-password-confirm").fill("Eight123");
   await accountPage.locator("#client-signup button[type=submit]").click();
   await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="signup"));
-  assert.match(await accountPage.locator("#client-notice").textContent(),/confirmation link/i);
-  await accountPage.locator('[data-auth-view="reset"]').click();
+  assert.equal(await accountPage.locator("#client-verify").isVisible(),true,
+    "Signup should show a clear confirmation step rather than silently returning to sign-in");
+  assert.equal(await accountPage.locator("#verify-email").inputValue(),"new@example.com");
+  assert.match(await accountPage.locator("#client-notice").textContent(),/confirmation email/i);
+  await accountPage.locator("#client-verify button[type=submit]").click();
+  await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="resend"));
+  assert.match(await accountPage.locator("#client-notice").textContent(),/verification email requested/i);
+  await accountPage.locator('#client-verify [data-auth-view="reset"]').click();
   await accountPage.locator("#reset-email").fill("new@example.com");
   await accountPage.locator("#client-reset button[type=submit]").click();
   await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="reset"));
@@ -315,6 +322,9 @@ try{
   await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="legacy"));
   const calls=await accountPage.evaluate(()=>globalThis.__calvrenAuthCalls);
   assert.equal(calls.find(x=>x.kind==="signup").payload.passwordLength,8);
+  assert.equal(calls.find(x=>x.kind==="resend").payload.type,"signup");
+  assert.equal(calls.find(x=>x.kind==="resend").payload.email,"new@example.com");
+  assert.equal(calls.find(x=>x.kind==="resend").payload.redirectTo,"https://calvren.pages.dev/client");
   assert.equal(calls.find(x=>x.kind==="reset").payload.redirectTo,"https://calvren.pages.dev/client");
   assert.equal(calls.find(x=>x.kind==="legacy").payload.shouldCreateUser,false);
   await accountContext.close();
