@@ -17,7 +17,7 @@ export function createConversionDependencies(options: RuntimeOptions): Conversio
   const has = (...names: string[]): boolean => names.every(name => !!env(name)?.trim());
   const readiness = (): Readiness => {
     const providers = {
-      openai: has("OPENAI_API_KEY"),
+      openai: has("Secret API Key ChatGPT"),
       twilio: has("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "CALVREN_PUBLIC_URL"),
       google: has("GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"),
       notifications: has("RESEND_API_KEY", "NOTIFICATION_FROM_EMAIL"),
