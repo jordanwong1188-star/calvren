@@ -121,9 +121,7 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
         "Other"
       ];
       if(!knownChallenges.includes(challenge))throw new FormError(400,"Choose a main challenge.");
-      const preferredCallTime=field("preferred_call_time",0,40);
-      if(!["","Weekday morning","Weekday afternoon","Weekday evening"].includes(preferredCallTime))
-        throw new FormError(400,"Choose a valid preferred call time.");
+      const preferredCallTime=field("preferred_call_time",0,160);
       const utm=(key:string)=>{const value=field(key,0,80);return /^[a-zA-Z0-9 _.-]{0,80}$/.test(value)?value:"";};
       const industry=field("industry",1,80), workflow=field("workflow",0,80);
       const businessType=workflow==="real-estate"||industry==="Real estate"?"real-estate":
