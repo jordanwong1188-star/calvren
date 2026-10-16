@@ -36,7 +36,7 @@ async function loadStatus(){renderStatus(await api("/api/status"));}
 async function loadLeads(){const data=await api("/api/leads");if(!Array.isArray(data.leads))throw new Error("Unexpected inbox response.");leads=data.leads;renderLeads();}
 function renderLeads(){
   const query=$("lead-search").value.trim().toLowerCase(),filter=$("lead-filter").value;
-  const visible=leads.filter(lead=>(filter==="all"||lead.status===filter)&&(!query||[lead.name,lead.email,lead.business||"",lead.enquiry].join(" ").toLowerCase().includes(query)));
+  const visible=leads.filter(lead=>(filter==="all"||lead.status===filter)&&(!query||[lead.name,lead.email,lead.phone||"",lead.business||"",lead.challenge||"",lead.enquiry,lead.utmCampaign||""].join(" ").toLowerCase().includes(query)));
   $("lead-count").textContent=visible.length+" of "+leads.length+" loaded enquiries · up to 100 per view";
   $("lead-list").replaceChildren();
   for(const lead of visible){
@@ -45,6 +45,12 @@ function renderLeads(){
     card.append(textNode("h3",lead.name+(lead.automation?" · "+lead.automation.category:"")),textNode("span",label,"tag"));
     const received=new Date(lead.createdAt).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"});
     card.append(textNode("p",lead.email+"\n"+(lead.business?lead.business+" · ":"")+lead.businessType+" · "+(lead.source==="website"?"Website enquiry":"Manual intake")+"\nReceived "+received,"lead-meta"));
+    if(lead.phone&&lead.callbackConsent){
+      card.append(textNode("p","Callback: "+lead.phone+" · "+(lead.preferredCallTime||"Anytime"),"lead-meta"));
+    }
+    if(lead.challenge)card.append(textNode("p","Main challenge: "+lead.challenge,"lead-summary"));
+    if(lead.utmSource||lead.utmMedium||lead.utmCampaign)
+      card.append(textNode("p","Campaign: "+[lead.utmSource,lead.utmMedium,lead.utmCampaign].filter(Boolean).join(" / "),"lead-meta"));
     const original=document.createElement("details");original.append(textNode("summary","Original enquiry"),textNode("p",lead.enquiry));card.append(original);
     if(lead.automation){
       card.append(textNode("p",lead.automation.summary,"lead-summary"),textNode("p","Priority: "+lead.automation.priority),textNode("p",lead.automation.replyDraft,"reply-copy"),textNode("p","Next action: "+lead.automation.nextAction,"lead-summary"));
@@ -58,6 +64,13 @@ function renderLeads(){
         try{await task();}catch(error){$("inbox-status").textContent=error.message;}
         finally{busy=false;button.disabled=false;}
       });actions.append(button);
+    }
+    if(lead.phone&&lead.callbackConsent){
+      const dial=lead.phone.replace(/[^\\d+]/g,"");
+      if(/^\\+?\\d{7,16}$/.test(dial)){
+        const call=textNode("a","Call lead","button button-outline");
+        call.href="tel:"+dial;call.title="Open the phone dialer to call this prospect";actions.append(call);
+      }
     }
     if(!lead.automation&&lead.status!=="archived")action("Prepare / retry draft",async()=>{
       const data=await api("/api/leads/"+encodeURIComponent(lead.id)+"/draft","POST",{});
