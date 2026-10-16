@@ -154,7 +154,7 @@ export function createOpenAIService(options: ProviderOptions): AIService {
   return {
     async analyze({ client, bundle, reason }) {
       requireAutomation(client, bundle.lead);
-      const schema = responseSchema(client), key = setting(options, "OPENAI_API_KEY");
+      const schema = responseSchema(client), key = setting(options, "Secret API Key ChatGPT");
       const model = options.env("OPENAI_MODEL")?.trim() || "gpt-4o-mini";
       if (!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/.test(model))
         failure("CONFIGURATION_INVALID", "OPENAI_MODEL is invalid.", 503);
@@ -578,7 +578,7 @@ export function createResendNotificationService(options: ProviderOptions): Notif
 export function createLiveProviders(options: ProviderOptions): {
   ai: AIService; messaging: MessagingService; calendar: CalendarService; notifications: NotificationService;
 } {
-  const required = ["OPENAI_API_KEY", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN",
+  const required = ["Secret API Key ChatGPT", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN",
     "GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY", "RESEND_API_KEY",
     "NOTIFICATION_FROM_EMAIL", "CALVREN_PUBLIC_URL"];
   const missing = required.filter(name => !options.env(name)?.trim());
