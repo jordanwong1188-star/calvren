@@ -10,7 +10,7 @@ const isBilling=!!$("billing-checkout");
 const captchaSiteKey=document.querySelector('meta[name="calvren-turnstile-site-key"]')?.content?.trim()||"";
 let captchaToken="",captchaWidget=null,recovery=false,passwordPanelOpen=false;
 function selectAuthView(view){
-  for(const [id,form] of [["signin","client-login"],["signup","client-signup"],["reset","client-reset"],["legacy","client-legacy"]]){
+  for(const [id,form] of [["signin","client-login"],["signup","client-signup"],["reset","client-reset"],["legacy","client-legacy"],["verify","client-verify"]]){
     if($(form))$(form).hidden=view!==id;
   }
   document.querySelectorAll(".auth-tab").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.authView===view)));
@@ -18,6 +18,19 @@ function selectAuthView(view){
 }
 function captchaOptions(){if(!captchaSiteKey)return {};if(!captchaToken)throw Error("Complete the security check.");return {captchaToken};}
 function resetCaptcha(){captchaToken="";if(captchaWidget!==null&&window.turnstile)window.turnstile.reset(captchaWidget);}
+function showVerification(email){
+  if($("verify-email"))$("verify-email").value=email;
+  selectAuthView("verify");
+  notice("Check your inbox for your Calvren confirmation email. If you already have an account, sign in or reset your password.");
+}
+function friendlyAuthError(error){
+  const message=error?.message||"Please try again.";
+  if(error?.status===429||/rate limit|only request this after|too many requests/i.test(message))
+    return "Too many emails requested. Wait a minute before trying again.";
+  if(/invalid login credentials/i.test(message))
+    return "Email or password isn't correct. If you've already registered, try Forgot password instead of creating another account.";
+  return message;
+}
 function setupCaptcha(){
   if(!captchaSiteKey||!$("client-captcha"))return;
   $("client-captcha").hidden=false;
@@ -123,24 +136,42 @@ $("client-login")?.addEventListener("submit",async event=>{
     });
     if(error)throw error;
     form.reset();await check();notice("Signed in. Continue to your subscription below.");
-  }catch(e){notice(e.message||"Sign-in failed. Please check your details.",true);}
+  }catch(e){
+    if(e?.code==="email_not_confirmed"||/email not confirmed/i.test(e?.message||"")){
+      showVerification($("client-email").value.trim().toLowerCase());
+      notice("Your email isn't confirmed yet. Use the link in your inbox or request another one below.");
+    }else notice(friendlyAuthError(e),true);
+  }
   finally{button.disabled=false;resetCaptcha();}
 });
 $("client-signup")?.addEventListener("submit",async event=>{
   event.preventDefault();const form=event.currentTarget,button=form.querySelector('[type="submit"]');button.disabled=true;
   try{
+    const email=$("signup-email").value.trim().toLowerCase();
     const password=$("signup-password").value;
     if(password.length<8)throw Error("Use at least 8 characters for your password.");
     if(password!==$("signup-password-confirm").value)throw Error("The passwords don't match.");
     const {data,error}=await supabase.auth.signUp({
-      email:$("signup-email").value.trim().toLowerCase(),password,
+      email,password,
       options:{emailRedirectTo:clientRedirectUrl,...captchaOptions()}
     });
     if(error)throw error;
     form.reset();
     if(data?.session){await check();notice("Your account is ready. Continue to your subscription.");}
-    else{selectAuthView("signin");notice("Check your inbox for a confirmation link, then sign in using your password.");}
-  }catch(e){notice(e.message||"Unable to create account.",true);}
+    else showVerification(email);
+  }catch(e){notice(friendlyAuthError(e),true);}
+  finally{button.disabled=false;resetCaptcha();}
+});
+$("client-verify")?.addEventListener("submit",async event=>{
+  event.preventDefault();const button=event.currentTarget.querySelector('[type="submit"]');button.disabled=true;
+  try{
+    const email=$("verify-email").value.trim().toLowerCase();
+    const {error}=await supabase.auth.resend({
+      type:"signup",email,options:{emailRedirectTo:clientRedirectUrl,...captchaOptions()}
+    });
+    if(error)throw error;
+    notice("Verification email requested. Check your inbox and spam folder. If your account is already confirmed, sign in instead.");
+  }catch(e){notice(friendlyAuthError(e),true);}
   finally{button.disabled=false;resetCaptcha();}
 });
 $("client-reset")?.addEventListener("submit",async event=>{
