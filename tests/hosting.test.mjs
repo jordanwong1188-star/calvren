@@ -35,6 +35,7 @@ test("audit call-to-action on both marketing pages includes explicit contact per
     assert.match(html,/Request my free 10-minute audit/);
     assert.match(html,/name="phone"[^>]*required/);
     assert.match(html,/name="callback_consent"[^>]*required/);
+    assert.match(html,/name="preferred_call_time" type="text" maxlength="160"/);
   }
 });
 test("portable backend preserves custom operator authentication and defaults to demo",async()=>{
@@ -55,7 +56,7 @@ function formFixture(overrides={}){
     storage:{async get(key){return rows.get(key)??null;},async delete(key){rows.delete(key);},async setJSON(key,data,conditions){const modified=!rows.has(key);writes.push({key,data,conditions});if(modified)rows.set(key,data);return{modified};}},...overrides};
   const fields={"form-name":"project-enquiry",name:"Calvren Test",email:"test@example.com",message:"Please help us organise new enquiries.",consent:"yes",callback_consent:"yes",
     phone:"+1 604 555 0123",business:"Fixture Business",challenge:"Slow responses to customer enquiries",
-    preferred_call_time:"Weekday afternoon",utm_source:"instagram",utm_medium:"social",utm_campaign:"vancouver_launch",
+    preferred_call_time:"Tuesdays after 5:30 PM, or Friday noon",utm_source:"instagram",utm_medium:"social",utm_campaign:"vancouver_launch",
     "submission-key":"fixture-request",industry:"Local services"};
   const request=extra=>new Request("https://calvren.example/forms",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({...fields,...extra})});
   return{deps,request,writes,rows,limits};
@@ -69,7 +70,7 @@ test("public forms save private enquiries without AI processing and retry with a
   assert.equal(f.writes[0].conditions.onlyIfNew,true);
   assert.equal(f.writes[0].data.phone,"+1 604 555 0123");
   assert.equal(f.writes[0].data.challenge,"Slow responses to customer enquiries");
-  assert.equal(f.writes[0].data.preferredCallTime,"Weekday afternoon");
+  assert.equal(f.writes[0].data.preferredCallTime,"Tuesdays after 5:30 PM, or Friday noon");
   assert.equal(f.writes[0].data.utmSource,"instagram");
   assert.equal(f.writes[0].data.utmCampaign,"vancouver_launch");
   assert.equal(f.writes[0].data.callbackConsent,true);
@@ -151,6 +152,8 @@ test("public forms enforce consent, honeypot, field bounds and rate limits",asyn
   assert.equal((await handlePublicForm(f.request({phone:"604-555-XXXX"}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({business:""}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({challenge:"Anything at all"}),f.deps)).status,400);
+  assert.equal((await handlePublicForm(f.request({preferred_call_time:"x".repeat(161)}),f.deps)).status,400);
+  assert.equal((await handlePublicForm(f.request({preferred_call_time:"Anytime\u0001"}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({website:"bot"}),f.deps)).status,200);
   assert.equal((await handlePublicForm(f.request({email:"bad"}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({message:"x".repeat(3001)}),f.deps)).status,400);
