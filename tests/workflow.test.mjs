@@ -37,7 +37,7 @@ function memory() {
 }
 function fixture(settings = {}) {
   const blobs = memory(), calls = [];
-  const values = { CALVREN_ADMIN_TOKEN: token, OPENAI_API_KEY: "synthetic-provider-key",
+  const values = { CALVREN_ADMIN_TOKEN: token, "Secret API Key ChatGPT": "synthetic-provider-key",
     CALVREN_DATA_ENV: "production", ...settings.values };
   const deps = {
     env: name => values[name], environment: settings.environment ?? "production",
@@ -91,7 +91,7 @@ test("readiness reports configuration only and production context controls persi
   const result = await call(f, "/api/status");
   assert.equal(result.response.status, 200);
   assert.deepEqual(result.body, { providerConfigured: true, persistentStorage: true,
-    websiteIntake: true, environment: "production", model: "gpt-4o-mini" });
+    websiteIntake: true, environment: "production", model: "gpt-6-luna" });
   assert.equal(JSON.stringify(result.body).includes(token), false);
   assert.equal(persistentStorage("deploy-preview", "production"), false);
   assert.equal(persistentStorage("production", undefined), false);
@@ -133,18 +133,21 @@ test("valid intake is persisted before provider processing, then saved as an act
   assert.equal(result.body.lead.source, "manual");
   const payload = JSON.parse(f.calls[0].options.body);
   assert.equal(f.calls[0].url, "https://api.openai.com/v1/chat/completions");
+  assert.equal(payload.model, "gpt-6-luna");
+  assert.equal(payload.reasoning_effort, "none");
+  assert.equal(f.calls[0].options.headers.Authorization, "Bearer synthetic-provider-key");
   assert.equal(payload.response_format.json_schema.strict, true);
   assert.equal(JSON.parse(payload.messages[1].content).email, undefined);
   assert.match(payload.messages[0].content, /Never claim an email was sent/);
   assert.equal(result.response.headers.get("Cache-Control"), "no-store");
 });
 test("missing AI key retains the enquiry and returns a retryable new record", async () => {
-  const f = fixture({ values: { OPENAI_API_KEY: undefined } });
+  const f = fixture({ values: { "Secret API Key ChatGPT": undefined } });
   const result = await call(f, "/api/workflow", "POST", input);
   assert.equal(result.response.status, 201);
   assert.equal(result.body.lead.status, "new");
   assert.equal(result.body.lead.automation, null);
-  assert.match(result.body.warning, /OPENAI_API_KEY/);
+  assert.match(result.body.warning, /Calvren.s OpenAI API secret/);
   assert.equal((await saved(f)).enquiry, input.enquiry);
   assert.equal(f.calls.length, 0);
 });
@@ -181,17 +184,18 @@ test("refused, truncated, malformed and out-of-schema provider output never beco
     assert.ok(result.body.warning);
   }
 });
-test("invalid model retains intake without provider calls", async () => {
-  const f = fixture({ values: { OPENAI_MODEL: "invalid model value" } });
+test("obsolete OPENAI_MODEL override cannot change GPT-6 Luna selection", async () => {
+  const f = fixture({ values: { OPENAI_MODEL: "gpt-4o-mini" } });
   const result = await call(f, "/api/workflow", "POST", input);
   assert.equal(result.response.status, 201);
-  assert.match(result.body.warning, /OPENAI_MODEL/);
-  assert.equal(f.calls.length, 0);
+  assert.equal(result.body.lead.status, "draft");
+  assert.equal(JSON.parse(f.calls[0].options.body).model, "gpt-6-luna");
+  assert.equal(f.calls.length, 1);
 });
 test("retry processes the saved original record and generated drafts do not duplicate provider work", async () => {
-  const f = fixture({ values: { OPENAI_API_KEY: undefined } });
+  const f = fixture({ values: { "Secret API Key ChatGPT": undefined } });
   await call(f, "/api/workflow", "POST", input);
-  f.values.OPENAI_API_KEY = "synthetic-provider-key";
+  f.values["Secret API Key ChatGPT"] = "synthetic-provider-key";
   let result = await call(f, "/api/leads/" + id + "/draft", "POST");
   assert.equal(result.response.status, 200);
   assert.equal(result.body.lead.status, "draft");
@@ -200,10 +204,10 @@ test("retry processes the saved original record and generated drafts do not dupl
   assert.equal(f.calls.length, 1);
 });
 test("only records with drafts can be reviewed; archived records cannot regenerate", async () => {
-  const f = fixture({ values: { OPENAI_API_KEY: undefined } });
+  const f = fixture({ values: { "Secret API Key ChatGPT": undefined } });
   await call(f, "/api/workflow", "POST", input);
   assert.equal((await call(f, "/api/leads/" + id, "PATCH", { status: "approved" })).response.status, 409);
-  f.values.OPENAI_API_KEY = "synthetic-provider-key";
+  f.values["Secret API Key ChatGPT"] = "synthetic-provider-key";
   await call(f, "/api/leads/" + id + "/draft", "POST");
   assert.equal((await call(f, "/api/leads/" + id, "PATCH", { status: "approved" })).body.lead.status, "approved");
   assert.equal((await call(f, "/api/leads/" + id + "/draft", "POST")).response.status, 409);
@@ -318,7 +322,7 @@ test("distinct submission IDs remain distinct even for identical enquiries", asy
   assert.equal((await call(f, "/api/leads")).body.leads.length, 2);
 });
 test("an AI outage during website intake retains a retryable record", async () => {
-  const f = fixture({ values: { OPENAI_API_KEY: undefined } });
+  const f = fixture({ values: { "Secret API Key ChatGPT": undefined } });
   assert.equal((await submission(f)).body.accepted, true);
   const record = (await call(f, "/api/leads")).body.leads[0];
   assert.equal(record.status, "new");
