@@ -174,6 +174,14 @@ try{
     await page.locator(config.name).fill("Calvren QA");
     await page.locator(config.email).fill("qa@example.com");
     await page.locator(config.message).fill("Synthetic browser test for preserving feedback and enquiry fields.");
+    if(config.formName!=="client-insight"){
+      await form.locator('[name="business"]').fill("Calvren QA Services");
+      await form.locator('[name="phone"]').fill("+1 604 555 0123");
+      await form.locator('[name="industry"]').selectOption({label:"Plumbing"});
+      await form.locator('[name="challenge"]').selectOption({label:"Slow responses to customer enquiries"});
+      await form.locator('[name="preferred_call_time"]').selectOption({label:"Weekday afternoon"});
+      await form.locator('[name="callback_consent"]').check();
+    }
     if(config.formName==="client-insight"){
       await page.locator("#review-company").fill("Synthetic test company");
       await page.locator("#review-workflow").fill("Synthetic test workflow");
@@ -201,6 +209,12 @@ try{
     assert.equal(values.get("formspree-archived"),"yes");
     assert.equal(values.get("website"),"");
     assert.equal(values.get("_gotcha"),"");
+    if(config.formName!=="client-insight"){
+      assert.equal(values.get("phone"),"+1 604 555 0123");
+      assert.equal(values.get("business"),"Calvren QA Services");
+      assert.equal(values.get("callback_consent"),"yes");
+      assert.equal(values.get("challenge"),"Slow responses to customer enquiries");
+    }
     if(config.formName==="client-insight")assert.equal(values.has("publication-permission"),false);
   }
   await page.unroute("**/*",intercept);
