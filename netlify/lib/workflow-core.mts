@@ -12,6 +12,8 @@ export type Lead = Input & {
   // Website consultation metadata is optional for older enquiries and manual intake.
   phone?: string; challenge?: string; preferredCallTime?: string; callbackConsent?: boolean;
   utmSource?: string; utmMedium?: string; utmCampaign?: string;
+  salesStage?: "new" | "contacted" | "call_scheduled" | "proposal_sent" | "won" | "lost";
+  salesNote?: string; nextFollowUpAt?: string | null;
 };
 export type WriteConditions = { onlyIfNew?: boolean; onlyIfMatch?: never } | { onlyIfNew?: never; onlyIfMatch?: string };
 export interface Storage {
@@ -109,7 +111,8 @@ function savedLead(value: unknown): Lead {
   if (!record(value)) fail(500, "Stored lead data could not be read.");
   const allowed = ["name", "email", "businessType", "enquiry", "business", "id", "status",
     "createdAt", "updatedAt", "automation", "processingError", "source",
-    "phone", "challenge", "preferredCallTime", "callbackConsent", "utmSource", "utmMedium", "utmCampaign"];
+    "phone", "challenge", "preferredCallTime", "callbackConsent", "utmSource", "utmMedium", "utmCampaign",
+    "salesStage", "salesNote", "nextFollowUpAt"];
   if (Object.keys(value).some(key => !allowed.includes(key)) ||
     !text(value.name, 1, 120) || !text(value.email, 3, 254) ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email) ||
@@ -128,7 +131,12 @@ function savedLead(value: unknown): Lead {
     (value.challenge !== undefined && !text(value.challenge, 1, 100)) ||
     (value.preferredCallTime !== undefined && !["","Weekday morning","Weekday afternoon","Weekday evening"].includes(value.preferredCallTime as string)) ||
     (value.callbackConsent !== undefined && typeof value.callbackConsent !== "boolean") ||
-    (["utmSource","utmMedium","utmCampaign"] as const).some(key=>value[key]!==undefined && (typeof value[key]!=="string" || !/^[a-zA-Z0-9 _.-]{0,80}$/.test(value[key] as string))))
+    (["utmSource","utmMedium","utmCampaign"] as const).some(key=>value[key]!==undefined && (typeof value[key]!=="string" || !/^[a-zA-Z0-9 _.-]{0,80}$/.test(value[key] as string))) ||
+    (value.salesStage !== undefined && !["new","contacted","call_scheduled","proposal_sent","won","lost"].includes(value.salesStage as string)) ||
+    (value.salesNote !== undefined && !text(value.salesNote, 0, 1000)) ||
+    (value.nextFollowUpAt !== undefined && value.nextFollowUpAt !== null &&
+      (typeof value.nextFollowUpAt !== "string" || !/^\\d{4}-\\d{2}-\\d{2}T/.test(value.nextFollowUpAt) ||
+      !Number.isFinite(Date.parse(value.nextFollowUpAt)))))
     fail(500, "Stored lead data could not be read.");
   return { ...value, business: value.business ?? "", source: value.source ?? "manual",
     processingError: value.processingError ?? null } as Lead;
@@ -284,11 +292,28 @@ export async function handleWorkflow(request: Request, deps: Dependencies): Prom
         return json({ deleted: true, id });
       }
       const update = await body(request);
-      if (!shape(update, ["status"]) || (update.status !== "approved" && update.status !== "archived"))
-        fail(400, "Status must be approved or archived.");
+      if (!record(update)) fail(400, "Use a valid lead update.");
       if (saved.status === "archived") fail(409, "Archived records cannot be changed.");
-      if (update.status === "approved" && !saved.automation) fail(409, "Generate a draft before marking it reviewed.");
-      const changed: Lead = { ...saved, status: update.status, updatedAt: now(deps) };
+      let changed: Lead;
+      if (shape(update, ["status"])) {
+        if (update.status !== "approved" && update.status !== "archived")
+          fail(400, "Status must be approved or archived.");
+        if (update.status === "approved" && !saved.automation)
+          fail(409, "Generate a draft before marking it reviewed.");
+        changed = { ...saved, status: update.status, updatedAt: now(deps) };
+      } else if (shape(update, ["salesStage","salesNote","nextFollowUpAt"])) {
+        const validStages=["new","contacted","call_scheduled","proposal_sent","won","lost"];
+        if (typeof update.salesStage !== "string" || !validStages.includes(update.salesStage) ||
+            !text(update.salesNote, 0, 1000) ||
+            (update.nextFollowUpAt !== null &&
+              (typeof update.nextFollowUpAt !== "string" ||
+              !/^\\d{4}-\\d{2}-\\d{2}T/.test(update.nextFollowUpAt) ||
+              !Number.isFinite(Date.parse(update.nextFollowUpAt)))))
+          fail(400, "Use a valid sales stage, note and follow-up date.");
+        changed = { ...saved, salesStage: update.salesStage as Lead["salesStage"],
+          salesNote: update.salesNote.trim(), nextFollowUpAt: update.nextFollowUpAt as string | null,
+          updatedAt: now(deps) };
+      } else fail(400, "Only a review status or sales follow-up update is allowed.");
       const result = await blobs.setJSON(key, changed, { onlyIfMatch: entry.etag });
       if (!result.modified) fail(409, "The record changed. Refresh the inbox.");
       return json({ lead: changed });
