@@ -135,7 +135,7 @@ function savedLead(value: unknown): Lead {
     (value.salesStage !== undefined && !["new","contacted","call_scheduled","proposal_sent","won","lost"].includes(value.salesStage as string)) ||
     (value.salesNote !== undefined && !text(value.salesNote, 0, 1000)) ||
     (value.nextFollowUpAt !== undefined && value.nextFollowUpAt !== null &&
-      (typeof value.nextFollowUpAt !== "string" || !/^\\d{4}-\\d{2}-\\d{2}T/.test(value.nextFollowUpAt) ||
+      (typeof value.nextFollowUpAt !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(value.nextFollowUpAt) ||
       !Number.isFinite(Date.parse(value.nextFollowUpAt)))))
     fail(500, "Stored lead data could not be read.");
   return { ...value, business: value.business ?? "", source: value.source ?? "manual",
@@ -307,7 +307,7 @@ export async function handleWorkflow(request: Request, deps: Dependencies): Prom
             !text(update.salesNote, 0, 1000) ||
             (update.nextFollowUpAt !== null &&
               (typeof update.nextFollowUpAt !== "string" ||
-              !/^\\d{4}-\\d{2}-\\d{2}T/.test(update.nextFollowUpAt) ||
+              !/^\d{4}-\d{2}-\d{2}T/.test(update.nextFollowUpAt) ||
               !Number.isFinite(Date.parse(update.nextFollowUpAt)))))
           fail(400, "Use a valid sales stage, note and follow-up date.");
         changed = { ...saved, salesStage: update.salesStage as Lead["salesStage"],
