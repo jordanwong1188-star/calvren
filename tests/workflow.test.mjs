@@ -304,12 +304,12 @@ test("verified Formspree intake preserves explicitly consented callback details"
   const result=await submission(f,{data:{name:input.name,email:input.email,message:input.enquiry,
     consent:"yes",callback_consent:"yes",phone:"+1 604 555 0123",
     business:"Example Realty",challenge:"Slow responses to customer enquiries",
-    preferred_call_time:"Weekday afternoon",utm_source:"google",utm_campaign:"fall_test"}});
+    preferred_call_time:"After 6 PM on Tuesdays and Thursdays",utm_source:"google",utm_campaign:"fall_test"}});
   assert.equal(result.response.status,202);
   const lead=(await call(f,"/api/leads")).body.leads[0];
   assert.equal(lead.callbackConsent,true);
   assert.equal(lead.phone,"+1 604 555 0123");
-  assert.equal(lead.preferredCallTime,"Weekday afternoon");
+  assert.equal(lead.preferredCallTime,"After 6 PM on Tuesdays and Thursdays");
   assert.equal(lead.utmSource,"google");
   assert.equal(lead.utmCampaign,"fall_test");
 });
