@@ -7,6 +7,7 @@ export async function checkOwnerWorkspace({page,site,screenshot}){
   let records=ids.map((id,i)=>({
     id,name:i===0?"QA <img src=x onerror=alert(1)>":"Synthetic QA "+i,
     email:"qa"+i+"@example.com",business:"Browser test company",businessType:"professional",
+    ...(i===0?{phone:"+1 604 555 0123",callbackConsent:true,challenge:"Slow responses to customer enquiries",utmCampaign:"demo_qa"}:{}),
     enquiry:"Synthetic browser check: we would like to organise incoming enquiries more clearly.",
     status:["new","draft","approved"][i],source:i===0?"website":"manual",
     processingError:i===0?"The provider was temporarily unavailable. Your enquiry remains saved.":null,
@@ -31,7 +32,12 @@ export async function checkOwnerWorkspace({page,site,screenshot}){
     if(path.endsWith("/draft")){
       retryCount++;record.automation={...automation};record.processingError=null;record.status="draft";return respond({lead:record});
     }
-    if(request.method()==="PATCH"){record.status=request.postDataJSON().status;return respond({lead:record});}
+    if(request.method()==="PATCH"){
+      const update=request.postDataJSON();
+      if("salesStage" in update)Object.assign(record,update);
+      else record.status=update.status;
+      return respond({lead:record});
+    }
     if(request.method()==="DELETE"){deleteCount++;records=records.filter(row=>row.id!==id);return respond({deleted:true,id});}
     throw new Error("Unexpected mock API request "+path);
   };
@@ -52,6 +58,19 @@ export async function checkOwnerWorkspace({page,site,screenshot}){
     await page.locator("#lead-search").fill("qa1@example.com");
     assert.equal(await page.locator(".lead-card").count(),1);
     await page.locator("#lead-search").fill("");
+    const tracked=page.locator('[data-lead-id="'+ids[0]+'"]');
+    assert.equal(await tracked.getByRole("link",{name:"Call lead"}).getAttribute("href"),"tel:+16045550123");
+    await tracked.locator(".sales-followup select").selectOption("contacted");
+    await tracked.locator(".sales-followup textarea").fill("Owner asked for another call on Monday.");
+    await tracked.locator('.sales-followup input[type="datetime-local"]').fill("2026-10-19T14:00");
+    await tracked.getByRole("button",{name:"Save sales follow-up"}).click();
+    await page.waitForFunction(()=>document.querySelector('[data-lead-id="'+ids[0]+'"] .sales-followup select').value==="contacted");
+    assert.equal(records[0].salesStage,"contacted");
+    assert.match(records[0].salesNote,/Owner asked/);
+    assert.ok(records[0].nextFollowUpAt);
+    await page.locator("#sales-filter").selectOption("contacted");
+    assert.equal(await page.locator(".lead-card").count(),1);
+    await page.locator("#sales-filter").selectOption("all");
     for(const width of [320,375,768,1440]){
       await page.setViewportSize({width,height:1000});
       const layout=await page.evaluate(()=>({body:document.body.scrollWidth,document:document.documentElement.scrollWidth}));
