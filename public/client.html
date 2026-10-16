@@ -1,9 +1,9 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#163b31"><meta name="robots" content="noindex,nofollow"><title>Calvren — My automation</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/billing.css?v=auth-8-email-20261016"><script type="module" src="/client-portal.js?v=auth-8-email-20261016"></script></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#163b31"><meta name="robots" content="noindex,nofollow"><title>Calvren — My automation</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/billing.css?v=verify-flow-20261016"><script type="module" src="/client-portal.js?v=verify-flow-20261016"></script></head><body>
 <a href="#main" class="skip">Skip to content</a><header class="header"><a class="brand" href="/">calvren<span class="brand-dot">.</span></a><nav id="site-navigation" aria-label="Main navigation"><a href="/">Home</a><a href="/payment">Subscriptions</a><a href="/contact.html">Support</a></nav></header>
 <main id="main" class="document billing-main">
 <p class="eyebrow">SECURE CALVREN CLIENT PORTAL</p>
 <h1>Your business.<br><em>Your workspace.</em></h1>
-<p class="billing-intro">One account for your subscription, business onboarding, and automation activity. Create an account with your email and password, confirm your email once, then sign in anytime.</p>
+<p class="billing-intro">One account for your subscription, business onboarding, and automation activity. Create your account with an email and password. Confirm your email once to protect your account, then sign in normally.</p>
 <section class="billing-card billing-account" id="auth-panel">
   <div class="auth-tabs" role="group" aria-label="Account access">
     <button type="button" class="auth-tab" data-auth-view="signin" aria-pressed="true">Sign in</button>
@@ -39,6 +39,17 @@
     <label for="legacy-email">Existing account email</label><input id="legacy-email" type="email" autocomplete="email" required maxlength="254" placeholder="you@yourbusiness.com">
     <button class="button" type="submit">Send my existing-account link →</button>
     <button class="auth-text-button" data-auth-view="signin" type="button">Return to sign in</button>
+  </form>
+  <form id="client-verify" hidden>
+    <h2>Check your email.</h2>
+    <p class="billing-small">If this is a new account, check your inbox for a confirmation link from Calvren. Open it to finish setting up your account.</p>
+    <p class="billing-small">Already registered? You can sign in with your password instead. If the message hasn't arrived, check your spam or junk folder.</p>
+    <label for="verify-email">Email address</label><input id="verify-email" type="email" autocomplete="email" maxlength="254" required placeholder="you@yourbusiness.com">
+    <button class="button" type="submit">Resend verification email →</button>
+    <p class="billing-small">Please wait at least a minute before resending. You won't need to create another account.</p>
+    <button class="auth-text-button" data-auth-view="signin" type="button">Already confirmed? Sign in</button>
+    <button class="auth-text-button" data-auth-view="signup" type="button">Use a different email</button>
+    <button class="auth-text-button" data-auth-view="reset" type="button">Forgot your password?</button>
   </form>
   <div id="client-captcha" hidden aria-label="Human verification"></div>
   </section>
