@@ -124,7 +124,7 @@ function savedLead(value: unknown): Lead {
     (value.business !== undefined && !text(value.business, 0, 160)) ||
     (value.source !== undefined && value.source !== "manual" && value.source !== "website") ||
     (value.processingError !== undefined && value.processingError !== null && !text(value.processingError, 1, 500)) ||
-    (value.phone !== undefined && (!text(value.phone, 7, 40) || !/^[+\\d\\s().-]+$/.test(value.phone) || value.phone.replace(/\\D/g,"").length<7)) ||
+    (value.phone !== undefined && (!text(value.phone, 7, 40) || !/^[+\d\s().-]+$/.test(value.phone) || value.phone.replace(/\D/g,"").length<7)) ||
     (value.challenge !== undefined && !text(value.challenge, 1, 100)) ||
     (value.preferredCallTime !== undefined && !["","Weekday morning","Weekday afternoon","Weekday evening"].includes(value.preferredCallTime as string)) ||
     (value.callbackConsent !== undefined && typeof value.callbackConsent !== "boolean") ||
@@ -331,7 +331,7 @@ export async function handleSubmission(request: Request, deps: Dependencies): Pr
     // Legacy form submissions remain readable; callback permissions are never inferred.
     let callback: Partial<Lead>={};
     if(data.callback_consent==="yes"&&typeof data.phone==="string"&&
-      /^[+\\d\\s().-]{7,40}$/.test(data.phone)&&data.phone.replace(/\\D/g,"").length>=7){
+      /^[+\d\s().-]{7,40}$/.test(data.phone)&&data.phone.replace(/\D/g,"").length>=7){
       const safe=(key:string)=>typeof data[key]==="string"&&/^[a-zA-Z0-9 _.-]{0,80}$/.test(data[key])?data[key] as string:"";
       callback={phone:data.phone,callbackConsent:true,
         challenge:typeof data.challenge==="string"&&data.challenge.length<=100?data.challenge:"Other",
