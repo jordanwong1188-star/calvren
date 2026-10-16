@@ -26,3 +26,8 @@
 .billing-card #client-start-area{margin:24px 0}
 .billing-card #client-start-area .button{max-width:100%}
 @media(max-width:480px){.billing-card .auth-tab{flex:1;padding:10px}}
+
+/* Keep authentication, checkout and password-reset feedback visible after login. */
+.document.billing-main .account-notice{max-width:880px;margin:14px 0;padding:12px 16px;border-radius:10px;background:#edf3ea;color:#173b31;min-height:0}
+.document.billing-main .account-notice:empty{display:none}
+.document.billing-main .account-notice.form-error{color:#a12836;background:#fff0f0}

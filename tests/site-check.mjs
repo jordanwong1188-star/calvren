@@ -293,8 +293,14 @@ try{
   await accountPage.locator('[data-auth-view="signup"]').first().click();
   assert.equal(await accountPage.locator("#client-signup").isVisible(),true);
   await accountPage.locator("#signup-email").fill("new@example.com");
-  await accountPage.locator("#signup-password").fill("TestPasswordLong123!");
-  await accountPage.locator("#signup-password-confirm").fill("TestPasswordLong123!");
+  assert.equal(await accountPage.locator("#signup-password").getAttribute("minlength"),"8");
+  assert.equal(await accountPage.locator("#new-client-password").getAttribute("minlength"),"8");
+  await accountPage.locator("#signup-password").fill("Seven77");
+  await accountPage.locator("#signup-password-confirm").fill("Seven77");
+  assert.equal(await accountPage.locator("#signup-password").evaluate(node=>node.checkValidity()),false,
+    "Signup must reject 7 characters in the browser");
+  await accountPage.locator("#signup-password").fill("Eight123");
+  await accountPage.locator("#signup-password-confirm").fill("Eight123");
   await accountPage.locator("#client-signup button[type=submit]").click();
   await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="signup"));
   assert.match(await accountPage.locator("#client-notice").textContent(),/confirmation link/i);
@@ -308,10 +314,55 @@ try{
   await accountPage.locator("#client-legacy button[type=submit]").click();
   await accountPage.waitForFunction(()=>globalThis.__calvrenAuthCalls?.some(x=>x.kind==="legacy"));
   const calls=await accountPage.evaluate(()=>globalThis.__calvrenAuthCalls);
-  assert.equal(calls.find(x=>x.kind==="signup").payload.passwordLength,20);
+  assert.equal(calls.find(x=>x.kind==="signup").payload.passwordLength,8);
   assert.equal(calls.find(x=>x.kind==="reset").payload.redirectTo,"https://calvren.pages.dev/client");
   assert.equal(calls.find(x=>x.kind==="legacy").payload.shouldCreateUser,false);
   await accountContext.close();
+
+  // Simulate successful password sign-in with a fresh user session, and confirm
+  // the success message remains visible outside the now-hidden sign-in panel.
+  const signedInContext=await browser.newContext();
+  await signedInContext.route("https://esm.sh/@supabase/supabase-js@2.57.0",route=>route.fulfill({
+    status:200,contentType:"text/javascript",headers:{"Access-Control-Allow-Origin":"*"},
+    body:`export function createClient(){
+      let session=null;
+      return {auth:{
+        getSession:async()=>({data:{session}}),
+        onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),
+        signInWithPassword:async({email,password})=>{
+          if(email==="returning@example.com"&&password==="Eight123"){
+            session={access_token:"fixture-auth-token",user:{email}};
+            return {data:{session},error:null};
+          }
+          return {error:{message:"Invalid login credentials"}};
+        },
+        updateUser:async({password})=>({data:{user:session.user},error:password.length>=8?null:{message:"Too short"}})
+      }};}`
+  }));
+  await signedInContext.route("**/api/billing/public",route=>route.fulfill({
+    status:200,contentType:"application/json",body:'{"ready":true,"amount":9900,"setup_amount":34900,"first_payment":44800,"currency":"cad","interval":"month","test_mode":false}'
+  }));
+  await signedInContext.route("**/api/billing/me",route=>route.fulfill({
+    status:200,contentType:"application/json",body:'{"paid":false,"status":"none","activation":"pending"}'
+  }));
+  const signedInPage=await signedInContext.newPage();
+  await signedInPage.goto(site+"/client.html",{waitUntil:"domcontentloaded"});
+  await signedInPage.locator("#client-email").fill("returning@example.com");
+  await signedInPage.locator("#client-password").fill("Eight123");
+  await signedInPage.locator("#client-login button[type=submit]").click();
+  await signedInPage.locator("#signedin-account").waitFor({state:"visible"});
+  await signedInPage.waitForFunction(()=>document.querySelector("#client-notice")?.textContent.includes("Signed in"));
+  assert.equal(await signedInPage.locator("#auth-panel").isVisible(),false);
+  assert.equal(await signedInPage.locator("#client-notice").isVisible(),true);
+  assert.match(await signedInPage.locator("#client-notice").textContent(),/Signed in/i);
+  assert.equal(await signedInPage.locator("#client-checkout").isEnabled(),true);
+  await signedInPage.locator("#client-password-toggle").click();
+  await signedInPage.locator("#new-client-password").fill("Eight123");
+  await signedInPage.locator("#new-client-password-confirm").fill("Eight123");
+  await signedInPage.locator("#client-new-password button[type=submit]").click();
+  await signedInPage.waitForFunction(()=>document.querySelector("#client-notice")?.textContent.includes("Password saved"));
+  assert.equal(await signedInPage.locator("#client-notice").isVisible(),true);
+  await signedInContext.close();
   await visit("/onboarding.html");
   assert.equal(await page.locator("#signin").count(),0);
   assert.equal(await page.locator('#auth-panel a[href="/client.html?next=onboarding"]').count(),1);

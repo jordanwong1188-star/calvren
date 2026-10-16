@@ -3,7 +3,7 @@
 ## Simplified customer experience
 1. Customer opens the site and chooses Pricing or Client access.
 2. Client account page `/client.html` has **Sign in** and **Create account** tabs.
-3. New clients choose an email and a strong password (at least 12 characters), then confirm the email once via Supabase Auth.
+3. New clients choose an email and a strong password (at least 8 characters), then confirm the email once via Supabase Auth.
 4. Returning clients sign in with email and password. The verified session persists on the same website for the client dashboard, Stripe Checkout, and onboarding.
 5. An unpaid user sees a direct **Continue to secure Stripe checkout** action. Calvren only marks the customer paid from verified Stripe webhook and subscription status, never from the success redirect.
 6. The customer can request a password reset through Supabase Auth. On returning from the secure recovery link, they set a new password.
@@ -52,3 +52,18 @@ Pricing is CA$349 one-time setup plus CA$99 monthly, before applicable taxes/dis
 - For a live end-to-end test, use a legitimately authorized small transaction and refund if appropriate, after fees/taxes and billing implications are understood. No automated test or unpaid Checkout preview proves a completed live payment works.
 
 The UI and scripted CI can verify flow wiring but **cannot guarantee that payment links work 100% or that SMTP/Stripe live provider delivery succeeds** without those controlled real-world tests.
+
+## Customizing confirmation, reset, and existing-client link emails
+
+Supabase Auth sends these three events using **different email templates**. Calvren source files do not automatically change the hosted Supabase templates. In [Supabase Authentication → Email Templates](https://supabase.com/dashboard/project/xjfsukhfmkgvlfpgjevg/auth/templates), manually update the subject and HTML with the corresponding prepared files in `docs/auth-email-templates/`:
+
+| Supabase template | Suggested subject | HTML file |
+| --- | --- | --- |
+| Confirm signup | Welcome to Calvren — confirm your email | `confirm-signup.html` |
+| Reset password | Reset your Calvren password | `reset-password.html` |
+| Magic Link | Your Calvren one-time sign-in link | `magic-link.html` |
+| Password changed security notification (enable separately) | Your Calvren password was changed | `password-changed.html` |
+
+Each HTML file retains `{{ .ConfirmationURL }}` as an actual Supabase template placeholder. Do **not** replace it with a static Calvren URL or password. Test the confirmation, recovery, and existing-user sign-in link by sending them to an owned test inbox after saving in Supabase. Sign-in with an existing **password** sends no login email by default; do not describe that as a broken email flow. If appropriate, enable Supabase's **Password changed** security notification (a separate template/setting) and customize its wording.
+
+Also check **Authentication → Settings → Password security** and set minimum password length to **8** if the project policy is stricter. The website now accepts 8, but the server must also accept 8 for this to work. Keep email confirmations enabled and keep password links restricted to the Calvren redirect URL.
