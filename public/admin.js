@@ -66,8 +66,8 @@ function renderLeads(){
       });actions.append(button);
     }
     if(lead.phone&&lead.callbackConsent){
-      const dial=lead.phone.replace(/[^\\d+]/g,"");
-      if(/^\\+?\\d{7,16}$/.test(dial)){
+      const dial=lead.phone.replace(/[^\d+]/g,"");
+      if(/^\\+?\d{7,16}$/.test(dial)){
         const call=textNode("a","Call lead","button button-outline");
         call.href="tel:"+dial;call.title="Open the phone dialer to call this prospect";actions.append(call);
       }
