@@ -137,6 +137,8 @@ test("Responses API sends business config, history and strict dynamic schema ser
   const call = f.calls[0], body = JSON.parse(call.init.body);
   assert.equal(call.url, "https://api.openai.com/v1/responses");
   assert.equal(call.init.headers.Authorization, "Bearer synthetic-openai-key");
+  // Even when an obsolete OPENAI_MODEL override is set, only Luna may be billed.
+  assert.equal(body.model, "gpt-6-luna");
   assert.equal(body.store, false);
   assert.equal(body.text.format.strict, true);
   assert.equal(body.text.format.type, "json_schema");
