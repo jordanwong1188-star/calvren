@@ -74,7 +74,7 @@ function json(value, status = 200) { return new Response(JSON.stringify(value), 
 function clone(value) { return structuredClone(value); }
 function fixture(handler) {
   const values = {
-    OPENAI_API_KEY: "synthetic-openai-key", OPENAI_MODEL: "gpt-4o-mini",
+    "Secret API Key ChatGPT": "synthetic-openai-key", OPENAI_MODEL: "gpt-4o-mini",
     TWILIO_ACCOUNT_SID: ACCOUNT, TWILIO_AUTH_TOKEN: "synthetic-twilio-token",
     TWILIO_PHONE_NUMBER: client.phone_number, CALVREN_PUBLIC_URL: "https://calvren.example",
     GOOGLE_SERVICE_ACCOUNT_EMAIL: "calvren@demo-project.iam.gserviceaccount.com",
@@ -103,10 +103,10 @@ function aiPayload(action = defaultAction) {
 function errorCode(code) { return error => error.code === code; }
 
 test("live factory refuses missing settings without returning secret values", () => {
-  const f = fixture(); delete f.values.OPENAI_API_KEY;
+  const f = fixture(); delete f.values["Secret API Key ChatGPT"];
   assert.throws(() => createLiveProviders(f.options), error => {
     assert.equal(error.code, "CONFIGURATION_INCOMPLETE");
-    assert.match(error.message, /OPENAI_API_KEY/);
+    assert.match(error.message, /Secret API Key ChatGPT/);
     assert.doesNotMatch(error.message, /synthetic-twilio-token/);
     return true;
   });
@@ -136,6 +136,7 @@ test("Responses API sends business config, history and strict dynamic schema ser
   assert.deepEqual(result.answers, { service: "Leak repair" });
   const call = f.calls[0], body = JSON.parse(call.init.body);
   assert.equal(call.url, "https://api.openai.com/v1/responses");
+  assert.equal(call.init.headers.Authorization, "Bearer synthetic-openai-key");
   assert.equal(body.store, false);
   assert.equal(body.text.format.strict, true);
   assert.equal(body.text.format.type, "json_schema");
