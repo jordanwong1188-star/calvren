@@ -351,6 +351,7 @@ try{
   await signedInPage.locator("#client-password").fill("Eight123");
   await signedInPage.locator("#client-login button[type=submit]").click();
   await signedInPage.locator("#signedin-account").waitFor({state:"visible"});
+  await signedInPage.waitForFunction(()=>document.querySelector("#client-notice")?.textContent.includes("Signed in"));
   assert.equal(await signedInPage.locator("#auth-panel").isVisible(),false);
   assert.equal(await signedInPage.locator("#client-notice").isVisible(),true);
   assert.match(await signedInPage.locator("#client-notice").textContent(),/Signed in/i);
