@@ -35,7 +35,7 @@ function fixture({member=null,clientId=null}={}){
     if(url.includes("/rest/v1/calvren_leads"))return Response.json([
       {data:{id:"1",status:"qualified",created_at:"2026-10-13T00:00:00Z"}}]);
     if(url.endsWith("/v1/prices/price_setup123"))return Response.json({id:"price_setup123",active:true,unit_amount:34900,currency:"cad",recurring:null});
-    if(url.endsWith("/v1/prices/"+priceId))return Response.json({id:priceId,active:true,unit_amount:15900,
+    if(url.endsWith("/v1/prices/"+priceId))return Response.json({id:priceId,active:true,unit_amount:9900,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
     if(url.endsWith("/v1/subscriptions/"+subId))return Response.json({
       id:subId,customer:customerId,status:"active",metadata:{auth_user_id:userId},
@@ -62,7 +62,13 @@ test("billing public price only comes from configured Stripe price",async()=>{
   const f=fixture();
   const response=await handleBilling(f.req("public"),f.deps);
   assert.equal(response.status,200);
-  assert.deepEqual(await response.json(),{ready:true,amount:15900,setup_amount:34900,first_payment:50800,currency:"cad",interval:"month",interval_count:1,test_mode:true});
+  const value=await response.json();
+  assert.equal(value.ready,true);
+  assert.equal(value.amount,9900);
+  assert.equal(value.first_payment,44800);
+  assert.equal(value.plans.starter.ready,true);
+  assert.equal(value.plans.growth.ready,false);
+  assert.equal(value.plans.pro.checkout,"proposal");
 });
 test("server billing accepts least-privilege restricted Stripe test keys",async()=>{
   const f=fixture();
@@ -109,7 +115,7 @@ test("session creation uses authenticated user id, fixed server price, and retur
   assert.equal(body.get("line_items[0][price]"),priceId);
   assert.equal(body.get("line_items[1][price]"),"price_setup123");
   assert.equal(body.get("success_url"),"https://calvren.pages.dev/client.html?checkout=success");
-  assert.equal(body.get("cancel_url"),"https://calvren.pages.dev/payment?checkout=canceled");
+  assert.equal(body.get("cancel_url"),"https://calvren.pages.dev/payment?plan=starter&checkout=canceled");
 });
 test("signed checkout completion fetches current subscription before granting access",async()=>{
   const f=fixture();
@@ -187,4 +193,40 @@ test("welcome email integration never triggers before payment is verified",async
   const response=await handleBilling(f.req("checkout","POST",true),f.deps);
   assert.equal(response.status,200);
   assert.equal(f.calls.some(c=>c.url.includes("api.resend.com")),false);
+});
+
+test("Growth is blocked until the verified recurring Stripe price is configured",async()=>{
+  const f=fixture();
+  const response=await handleBilling(f.req("checkout","POST",true,{
+    body:JSON.stringify({plan:"growth"}),headers:{"Content-Type":"application/json"}
+  }),f.deps);
+  assert.equal(response.status,503);
+  assert.equal(f.calls.some(c=>c.url.endsWith("/v1/checkout/sessions")),false);
+});
+test("Pro, unknown, and forged plan selections never open checkout",async()=>{
+  const f=fixture();
+  for(const plan of ["pro","enterprise",null,{"admin":true}]){
+    const response=await handleBilling(f.req("checkout","POST",true,{
+      body:JSON.stringify({plan}),headers:{"Content-Type":"application/json"}
+    }),f.deps);
+    assert.equal(response.status,400);
+  }
+  assert.equal(f.calls.some(c=>c.url.endsWith("/v1/checkout/sessions")),false);
+});
+test("clients cannot override the Stripe price ID in the request body",async()=>{
+  const f=fixture();
+  const response=await handleBilling(f.req("checkout","POST",true,{
+    body:JSON.stringify({plan:"starter",price_id:"price_attacker"}),headers:{"Content-Type":"application/json"}
+  }),f.deps);
+  assert.equal(response.status,200);
+  const call=f.calls.find(c=>c.url.endsWith("/v1/checkout/sessions"));
+  assert.equal(new URLSearchParams(call.init.body).get("line_items[0][price]"),priceId);
+});
+test("verified subscriber resolves Starter features without trusting client claims",async()=>{
+  const f=fixture({member:{stripe_price_id:priceId,subscription_status:"active",current_period_end:"2030-01-01T00:00:00Z"}});
+  const response=await handleBilling(f.req("me","GET",true),f.deps);
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.plan,"starter");
+  assert.deepEqual(body.included_features,["lead_response","booking"]);
 });
