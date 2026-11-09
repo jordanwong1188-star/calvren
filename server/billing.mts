@@ -185,7 +185,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
   try{
     if(path==="/api/billing/public"&&request.method==="GET")return publicConfig(deps);
     if(path==="/api/billing/webhook"&&request.method==="POST")return webhook(request,deps);
-    if(!["/api/billing/me","/api/billing/checkout","/api/billing/portal","/api/billing/automation"].includes(path))
+    if(!["/api/billing/me","/api/billing/checkout","/api/billing/portal","/api/billing/automation","/api/billing/report"].includes(path))
       return json({error:"Not found."},404);
     const user=await userFromToken(request,deps);
     if(!user)return json({error:"Sign in with your verified email first."},401);
@@ -252,6 +252,37 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       }));
       if(!/^https:\/\/billing\.stripe\.com\//.test(portal.url||""))throw Error("Invalid billing portal.");
       return json({url:portal.url});
+    }
+    if(path==="/api/billing/report"&&request.method==="GET"){
+      if(!paid(existing))return json({error:"An active subscription is required."},403);
+      const plan=planForPrice(deps.env,existing?.stripe_price_id);
+      if(plan!=="growth"&&plan!=="pro")return json({error:"Monthly reports require a Growth or Pro subscription."},403);
+      if(!existing?.client_id)return json({status:"setup_pending",message:"Your business connection is being activated."});
+      const month=new URL(request.url).searchParams.get("month")||new Date().toISOString().slice(0,7);
+      if(!/^20\d\d-(?:0[1-9]|1[0-2])$/.test(month))return json({error:"Invalid report month."},400);
+      const first=new Date(month+"-01T00:00:00.000Z");
+      const next=new Date(Date.UTC(first.getUTCFullYear(),first.getUTCMonth()+1,1)).getTime();
+      const start=first.getTime();
+      // No client-controlled tenant ID is accepted. Never include lead contact details in reports.
+      const filter=new URLSearchParams({client_id:"eq."+existing.client_id,limit:"1000"});
+      const [leads,appointments]=await Promise.all([
+        queryDb(deps,"calvren_leads?"+new URLSearchParams({...Object.fromEntries(filter),select:"data"})),
+        queryDb(deps,"calvren_appointments?"+new URLSearchParams({...Object.fromEntries(filter),select:"starts_at,data"}))
+      ]);
+      const inMonth=(value:unknown)=>{
+        if(typeof value!=="string")return false;
+        const date=Date.parse(value);
+        return Number.isFinite(date)&&date>=start&&date<next;
+      };
+      const periodLeads=leads.filter(row=>inMonth(row.data?.created_at));
+      const periodAppointments=appointments.filter(row=>inMonth(row.starts_at));
+      return json({status:"connected",plan,month,
+        metrics:{
+          leads:periodLeads.length,
+          qualified:periodLeads.filter(row=>["qualified","booking","booked","won"].includes(row.data?.status)).length,
+          booked_appointments:periodAppointments.filter(row=>row.data?.status==="booked").length
+        },
+        partial:leads.length>=1000||appointments.length>=1000});
     }
     if(path==="/api/billing/automation"&&request.method==="GET"){
       if(!paid(existing))return json({error:"An active subscription is required."},403);
