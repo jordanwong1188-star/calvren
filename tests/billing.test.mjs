@@ -230,3 +230,34 @@ test("verified subscriber resolves Starter features without trusting client clai
   assert.equal(body.plan,"starter");
   assert.deepEqual(body.included_features,["lead_response","booking"]);
 });
+
+test("monthly reporting is paywalled, plan-gated and scoped to the linked business",async()=>{
+  const starter=fixture({member:{stripe_price_id:priceId,subscription_status:"active",
+    current_period_end:"2030-01-01T00:00:00Z",client_id:"abc_plumbing"}});
+  assert.equal((await handleBilling(starter.req("report?month=2026-10","GET",true),starter.deps)).status,403);
+  const growth=fixture({member:{stripe_price_id:"price_growth123",subscription_status:"active",
+    current_period_end:"2030-01-01T00:00:00Z",client_id:"abc_plumbing"}});
+  growth.deps.env=name=>name==="STRIPE_GROWTH_PRICE_ID"?"price_growth123":env(name);
+  const baseFetch=growth.deps.fetch;
+  growth.deps.fetch=(url,init)=>{
+    if(url.includes("/rest/v1/calvren_leads?"))return Response.json([
+      {data:{created_at:"2026-10-02T12:00:00Z",status:"new"}},
+      {data:{created_at:"2026-10-04T12:00:00Z",status:"qualified"}},
+      {data:{created_at:"2026-09-18T12:00:00Z",status:"booked"}}
+    ]);
+    if(url.includes("/rest/v1/calvren_appointments?"))return Response.json([
+      {starts_at:"2026-10-10T12:00:00Z",data:{status:"booked"}},
+      {starts_at:"2026-11-10T12:00:00Z",data:{status:"booked"}}
+    ]);
+    return baseFetch(url,init);
+  };
+  const response=await handleBilling(growth.req("report?month=2026-10","GET",true),growth.deps);
+  assert.equal(response.status,200);
+  const report=await response.json();
+  assert.equal(report.plan,"growth");
+  assert.deepEqual(report.metrics,{leads:2,qualified:1,booked_appointments:1});
+  assert.equal(report.partial,false);
+  for(const call of growth.calls.filter(c=>c.url.includes("/rest/v1/calvren_")))
+    assert.ok(call.url.includes("client_id=eq.abc_plumbing")||call.url.includes("billing_memberships"));
+  assert.equal((await handleBilling(growth.req("report?month=bad","GET",true),growth.deps)).status,400);
+});
