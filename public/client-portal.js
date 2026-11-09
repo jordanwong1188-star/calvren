@@ -135,7 +135,12 @@ async function check(){
       $("client-manage").hidden=info.status==="none";
       $("client-automation").hidden=!info.paid;
       if($("client-onboarding-link"))$("client-onboarding-link").hidden=!info.paid;
-      if(info.paid)await loadAutomation();
+      if($("client-monthly-report"))$("client-monthly-report").hidden=!(
+        info.paid&&Array.isArray(info.included_features)&&info.included_features.includes("monthly_reports"));
+      if(info.paid){
+        await loadAutomation();
+        if(info.included_features?.includes("monthly_reports"))await loadMonthlyReport();
+      }
     }catch(error){notice(error.message,true);}
   }else if($("client-membership")){$("client-membership").hidden=true;}
 }
@@ -156,6 +161,21 @@ function renderModuleEntitlements(info){
     li.textContent=label+" — "+(included?"Included in plan; activation subject to onboarding":"Not included");
     list.append(li);
   }
+}
+async function loadMonthlyReport(){
+  const target=$("client-monthly-report-results");
+  if(!target)return;
+  try{
+    const data=await api("report");
+    if(data.status!=="connected"){
+      target.textContent=data.message||"Your report will be available after your business is connected.";
+      return;
+    }
+    const label=new Date(data.month+"-01T12:00:00Z").toLocaleDateString("en-CA",{month:"long",year:"numeric",timeZone:"UTC"});
+    target.textContent=label+": "+data.metrics.leads+" new leads · "+data.metrics.qualified+
+      " qualified or booked leads · "+data.metrics.booked_appointments+" booked appointments"+
+      (data.partial?" (partial data; ask Calvren for the full report)":"")+".";
+  }catch(error){target.textContent="Your report is currently unavailable. Please contact Calvren.";}
 }
 async function loadAutomation(){
   try{
