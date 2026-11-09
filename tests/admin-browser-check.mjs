@@ -64,6 +64,8 @@ export async function checkOwnerWorkspace({page,site,screenshot}){
     await tracked.locator(".sales-followup textarea").fill("Owner asked for another call on Monday.");
     await tracked.locator('.sales-followup input[type="datetime-local"]').fill("2026-10-19T14:00");
     await tracked.getByRole("button",{name:"Save sales follow-up"}).click();
+    // Wait for the asynchronous PATCH and refreshed inbox, not merely the edited select value.
+    await page.waitForFunction(() => document.querySelector("#inbox-status")?.textContent.includes("Sales follow-up saved privately."));
     await page.waitForFunction(() => document.querySelector('[data-lead-id="00000000-0000-4000-8000-000000000001"] .sales-followup select')?.value==="contacted");
     assert.equal(records[0].salesStage,"contacted");
     assert.match(records[0].salesNote,/Owner asked/);
