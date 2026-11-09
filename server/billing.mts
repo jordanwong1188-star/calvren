@@ -264,10 +264,13 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       const next=new Date(Date.UTC(first.getUTCFullYear(),first.getUTCMonth()+1,1)).getTime();
       const start=first.getTime();
       // No client-controlled tenant ID is accepted. Never include lead contact details in reports.
-      const filter=new URLSearchParams({client_id:"eq."+existing.client_id,limit:"1000"});
       const [leads,appointments]=await Promise.all([
-        queryDb(deps,"calvren_leads?"+new URLSearchParams({...Object.fromEntries(filter),select:"data"})),
-        queryDb(deps,"calvren_appointments?"+new URLSearchParams({...Object.fromEntries(filter),select:"starts_at,data"}))
+        queryDb(deps,"calvren_leads?"+new URLSearchParams({
+          client_id:"eq."+existing.client_id,select:"data",limit:"1000"
+        })),
+        queryDb(deps,"calvren_appointments?"+new URLSearchParams({
+          client_id:"eq."+existing.client_id,select:"starts_at,data",limit:"1000"
+        }))
       ]);
       const inMonth=(value:unknown)=>{
         if(typeof value!=="string")return false;
