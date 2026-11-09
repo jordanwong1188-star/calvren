@@ -208,9 +208,13 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       if(raw.trim()){
         try{
           const payload=JSON.parse(raw);
-          if(!payload||typeof payload!=="object"||Array.isArray(payload)||!["starter","growth"].includes(payload.plan))
-            return json({error:"Choose Starter or Growth. Pro requires a custom proposal."},400);
-          plan=payload.plan as CalvrenPlan;
+          if(!payload||typeof payload!=="object"||Array.isArray(payload))
+            return json({error:"Invalid checkout request."},400);
+          if(Object.hasOwn(payload,"plan")){
+            if(!["starter","growth"].includes(payload.plan))
+              return json({error:"Choose Starter or Growth. Pro requires a custom proposal."},400);
+            plan=payload.plan as CalvrenPlan;
+          }
         }catch{return json({error:"Invalid checkout request."},400);}
       }
       const selectedPrice=configuredPrice(deps.env,plan);
