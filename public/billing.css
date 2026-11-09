@@ -31,3 +31,26 @@
 .document.billing-main .account-notice{max-width:880px;margin:14px 0;padding:12px 16px;border-radius:10px;background:#edf3ea;color:#173b31;min-height:0}
 .document.billing-main .account-notice:empty{display:none}
 .document.billing-main .account-notice.form-error{color:#a12836;background:#fff0f0}
+
+
+/* Selectable subscription plans. Pro never opens unverified online checkout. */
+.billing-plan-section{margin-top:32px}
+.billing-plan-section>h2{font-size:clamp(25px,3vw,38px);margin:8px 0}
+.billing-plan-section>.billing-small{max-width:850px}
+.billing-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:25px 0 8px}
+.billing-plan-option{position:relative;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:14px;min-height:300px;padding:24px;color:#173b31;background:#fff;border:1px solid #cbdcd0;border-radius:18px;font:inherit;cursor:pointer;transition:border-color .16s,box-shadow .16s,transform .16s}
+.billing-plan-option:hover{transform:translateY(-2px);border-color:#427a5e}
+.billing-plan-option:focus-visible{outline:3px solid #173b31;outline-offset:2px}
+.billing-plan-option[aria-pressed="true"]{outline:3px solid #2f6b50;outline-offset:1px}
+.billing-plan-option.featured{background:#f3f9ef;border-color:#427a5e}
+.billing-plan-name{font-size:18px;font-weight:800}
+.billing-plan-option strong{font-size:clamp(30px,3vw,42px);line-height:1.1}
+.billing-plan-option strong span{font-size:14px;font-weight:500}
+.billing-plan-option>span:not(.billing-plan-name):not(.billing-plan-action):not(.billing-plan-chip){font-size:14px;line-height:1.5}
+.billing-plan-option small{font-size:12px;line-height:1.5;color:#537365}
+.billing-plan-option .billing-plan-action{margin-top:auto;font-size:14px;font-weight:800}
+.billing-plan-chip{position:absolute;top:-12px;right:15px;padding:5px 9px;border-radius:999px;background:#173b31;color:#fff;font-size:10px;letter-spacing:.06em;font-weight:800}
+.billing-initial{font-size:clamp(22px,2.2vw,30px);margin-top:8px}
+#billing-plan-quote[hidden],#billing-checkout[hidden]{display:none!important}
+#billing-plan-quote:not([hidden]){display:inline-flex}
+@media(max-width:850px){.billing-plans{grid-template-columns:1fr}.billing-plan-option{min-height:0;padding:23px}}
