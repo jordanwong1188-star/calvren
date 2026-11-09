@@ -41,3 +41,18 @@ html{scroll-padding-top:120px}
 .sales-followup input,.sales-followup select,.sales-followup textarea{width:100%;min-width:0;box-sizing:border-box;font:inherit;padding:11px;border:1px solid var(--line);border-radius:8px;color:var(--ink);background:var(--paper)}
 .sales-followup .sales-due{color:#a23d24;font-size:12px}
 .sales-followup .button{justify-self:start}
+
+
+/* Calvren three-tier automation hub */
+.calvren-pricing{scroll-margin-top:100px}
+.calvren-pricing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:34px}
+.calvren-tier{background:#fff;border:1px solid #d7e4dc;border-radius:20px;padding:30px;display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 30px rgba(17,44,32,.045)}
+.calvren-tier h3{font-size:clamp(23px,2.4vw,31px);line-height:1.15;margin:0}
+.calvren-tier p{line-height:1.6;margin:0}
+.calvren-tier .eyebrow{color:#547161;font-size:12px;letter-spacing:.12em}
+.calvren-tier .calvren-tier-amount{color:#173b31;font-size:clamp(32px,3.2vw,47px);font-weight:800;line-height:1.1}
+.calvren-tier-amount span{font-size:14px;font-weight:500;margin-left:5px;color:#527466}
+.calvren-tier ul{padding-left:20px;line-height:1.95;margin:0 0 15px;flex:1}
+.calvren-tier .button{justify-content:center;text-align:center}
+.calvren-tier-featured{border:2px solid #2d5948;background:#f1f7ee;box-shadow:0 22px 50px rgba(18,62,46,.11)}
+@media(max-width:900px){.calvren-pricing-grid{grid-template-columns:1fr;max-width:660px}.calvren-tier{padding:25px}}
