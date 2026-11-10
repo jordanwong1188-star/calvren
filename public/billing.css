@@ -81,3 +81,42 @@
 .hub-message small{font-size:11px;color:#596d61}
 .hub-note-form textarea,.hub-reply-form textarea{min-height:80px}
 @media(max-width:680px){.hub-inbox{grid-template-columns:1fr}.hub-threads{border-right:0;border-bottom:1px solid #d7e5d9;padding:0 0 12px}.hub-panel{padding:16px}.hub-appointment{align-items:start;flex-direction:column}}
+
+
+/* Small, accessible checkout layout — the authenticated client portal is unaffected. */
+.payment-minimal .header{max-width:1210px;min-height:84px;padding:20px 36px;gap:24px}
+.payment-minimal .header nav{gap:23px;font-size:13px}
+.payment-minimal .billing-main{max-width:1120px;margin:42px auto 70px;padding:0 32px}
+.payment-minimal .billing-main h1{font-size:clamp(50px,5.5vw,78px);line-height:1.05;margin:10px 0 16px}
+.payment-minimal .billing-intro{font-size:15px;line-height:1.65;max-width:640px}
+.payment-minimal .billing-plan-section{margin-top:48px}
+.payment-minimal .billing-plan-section h2{font-size:clamp(30px,3.5vw,44px)}
+.payment-minimal .billing-plan-section>.billing-small{max-width:780px;margin-top:14px;font-size:13px}
+.payment-minimal .billing-plans{gap:14px;margin-top:28px}
+.payment-minimal .billing-plan-option{border-radius:16px;min-height:250px;padding:24px;gap:12px;box-shadow:none}
+.payment-minimal .billing-plan-option strong{font-size:clamp(30px,3.5vw,43px)}
+.payment-minimal .billing-plan-option small{font-size:12px}
+.payment-minimal .billing-plan-option .billing-plan-action{font-size:13px;margin-top:auto}
+.payment-minimal .billing-layout{gap:17px;margin-top:30px}
+.payment-minimal .billing-card{box-shadow:none;border-radius:16px;padding:29px}
+.payment-minimal .billing-card h2{font-size:clamp(25px,2.5vw,34px)}
+.payment-minimal .billing-card>p:not(.eyebrow):not(.billing-price){font-size:13px;line-height:1.65}
+.payment-minimal .billing-card .button{border-radius:10px;gap:10px;justify-content:center}
+.payment-minimal #billing-price{font-size:33px;line-height:1.1;margin-top:16px}
+.payment-minimal #billing-first-payment{font-size:22px;line-height:1.3}
+@media(max-width:860px){
+ .payment-minimal .billing-plans{grid-template-columns:1fr;max-width:640px}
+ .payment-minimal .billing-plan-option{min-height:0;padding:20px}
+ .payment-minimal .billing-layout{grid-template-columns:1fr}
+ .payment-minimal .billing-main{margin-top:30px;padding:0 22px}
+ .payment-minimal .header{padding:17px 22px}
+ .payment-minimal .header nav{gap:15px;flex-wrap:wrap}
+}
+@media(max-width:460px){
+ .payment-minimal .header{padding:16px 18px;align-items:flex-start;flex-direction:column;gap:16px}
+ .payment-minimal .header nav{font-size:12px;gap:12px}
+ .payment-minimal .billing-main{padding:0 18px}
+ .payment-minimal .billing-card{padding:21px}
+ .payment-minimal .billing-main h1{font-size:50px}
+ .payment-minimal .billing-plan-option strong{font-size:37px}
+}
