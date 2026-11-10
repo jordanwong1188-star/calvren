@@ -47,7 +47,7 @@ try{
   assert.deepEqual(openings.Friday.slice().sort(),["9:00 AM","12:45 PM","3:15 PM"].sort());
   assert.deepEqual(openings.Thursday.slice().sort(),["8:45 AM","12:15 PM","3:00 PM"].sort());
   await page.goto(site+"/case-studies.html",{waitUntil:"networkidle",timeout:30000});
-  const studyText=await page.locator("#workflow-studies").innerText();
+  const studyText=(await page.locator("#workflow-studies").innerText()).replace(/\s+/g," ");
   for(const name of ["ShinerBros Window Cleaning","ClearCraft Automotive Detailing","Jacob","Dylan"]) {
     assert.ok(studyText.includes(name),"Missing client business: "+name);
   }
