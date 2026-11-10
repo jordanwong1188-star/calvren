@@ -93,7 +93,11 @@ try{
   assert.match(await page.locator("#launch-approval-message").textContent(),/review and confirm/i);
   await page.locator("#launch-approval-check").check();
   await page.locator("#launch-approval-btn").click();
-  await page.locator("#approval-panel").waitFor({state:"hidden"});
+  await page.waitForTimeout(450);
+  const approvalState={requests:approved,status:record?.status,
+    result:await page.locator("#launch-approval-message").textContent(),
+    hidden:await page.locator("#approval-panel").evaluate(node=>node.hidden)};
+  assert.equal(approvalState.hidden,true,"Approval did not close: "+JSON.stringify(approvalState));
   assert.equal(approved,1);
   assert.equal(record.status,"approved");
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
