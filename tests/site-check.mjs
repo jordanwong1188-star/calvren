@@ -66,10 +66,19 @@ try{
   assert.equal(await page.locator("#demo-results").isVisible(),false);
   await page.locator("#run-demo").click();
   await screenshot("DEMO",page.locator("#demo"));
-  const oldHours=await page.locator("#hours-result").textContent();
-  await page.locator("#monthly-tasks").focus();
-  await page.locator("#monthly-tasks").press("ArrowRight");
-  assert.notEqual(await page.locator("#hours-result").textContent(),oldHours);
+  // The supplied media replaces the oversized hero mockup and is locally hosted.
+  const video=page.locator(".home-intro-video");
+  assert.equal(await video.count(),1);
+  assert.equal(await video.locator('source[type="video/mp4"]').getAttribute("src"),"/assets/calvren-intro.mp4");
+  const [videoAsset,posterAsset]=await Promise.all([
+    context.request.get(site+"/assets/calvren-intro.mp4"),
+    context.request.get(site+"/assets/calvren-intro-poster.jpg")
+  ]);
+  assert.equal(videoAsset.status(),200);
+  assert.ok((await videoAsset.body()).length>100000,"The actual MP4 should be deployed, not an HTML fallback.");
+  assert.equal(posterAsset.status(),200);
+  assert.equal(await page.locator("#pricing").getByText("CA$249").count(),1);
+  assert.equal(await page.locator("#pricing").getByText("CA$499").count(),1);
   await visit("/?scenario=local-services#demo");
   assert.equal(await page.locator('[data-scenario="local-services"]').getAttribute("aria-pressed"),"true");
   await page.locator("#run-demo").click();
@@ -112,7 +121,7 @@ try{
   assert.equal(await page.locator('#site-navigation a[aria-current="page"]').textContent(),"Contact");
 
   await visit("/case-studies.html");
-  await page.getByRole("link",{name:/Explore the studies/}).click();
+  await page.getByRole("link",{name:/Explore examples/}).click();
   await page.waitForFunction(()=>{
     const target=document.getElementById("workflow-studies").getBoundingClientRect();
     return target.top>=document.querySelector(".header").getBoundingClientRect().bottom&&target.top<150;
@@ -129,7 +138,7 @@ try{
   assert.equal(await page.locator("[data-study]").count(),2);
   assert.match(await page.locator(".study-disclosure").textContent(),/illustrative/i);
   for(const id of ["shine-bros","clear-craft"]){
-    assert.match(await page.locator("#"+id+" .example-badge").textContent(),/illustrative workflow/i);
+    assert.match(await page.locator("#"+id+" .case-overline").textContent(),/EXAMPLE WORKFLOW/i);
     assert.equal(await page.locator("#"+id+" a.button").getAttribute("href"),"/lead-demo.html");
   }
   for(const industry of ["window-cleaning","auto-detailing"]){
