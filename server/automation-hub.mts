@@ -110,7 +110,7 @@ const approved=(plan:Plan)=>plan==="growth"||plan==="pro";
 export async function verifyNativeCron(request:Request,env:Env,route:"follow-ups"|"hub-scheduler",fetcher?:typeof fetch):Promise<boolean>{
   const stamp=request.headers.get("X-Calvren-Timestamp")||"";
   const signature=request.headers.get("X-Calvren-Signature")||"";
-  if(!/^\\d{10}$/.test(stamp)||! /^[a-f0-9]{64}$/.test(signature))return false;
+  if(!/^\d{10}$/.test(stamp)||! /^[a-f0-9]{64}$/.test(signature))return false;
   if(Math.abs(Date.now()/1000-Number(stamp))>90)return false;
   try{
     const {base,key}=credentials(env);
