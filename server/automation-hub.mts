@@ -102,6 +102,26 @@ export async function configureProIntegration(request:Request,env:Env,fetcher?:t
 }
 const safeError=(error:unknown)=>{const s=error instanceof Error?error.message:"Unable to complete request.";return /^(Provide|Use |Review |This |Only |Your |A completed|The appointment|An active|Please |Confirm |Cannot |Review requests|Monthly reports)/.test(s)?s:"The automation hub is temporarily unavailable.";};
 const approved=(plan:Plan)=>plan==="growth"||plan==="pro";
+/**
+ * Database Vault holds the HMAC secret. Cron only sends a short-lived signature,
+ * so the raw secret never leaves PostgreSQL or appears in a job definition.
+ * The RPC is executable only by service_role, not anon/authenticated users.
+ */
+export async function verifyNativeCron(request:Request,env:Env,route:"follow-ups"|"hub-scheduler",fetcher?:typeof fetch):Promise<boolean>{
+  const stamp=request.headers.get("X-Calvren-Timestamp")||"";
+  const signature=request.headers.get("X-Calvren-Signature")||"";
+  if(!/^\d{10}$/.test(stamp)||! /^[a-f0-9]{64}$/.test(signature))return false;
+  if(Math.abs(Date.now()/1000-Number(stamp))>90)return false;
+  try{
+    const {base,key}=credentials(env);
+    const response=await (fetcher||fetch)(base+"/rest/v1/rpc/calvren_verify_dispatch_signature",{
+      method:"POST",headers:{"apikey":key,"Content-Type":"application/json"},
+      body:JSON.stringify({p_route:route,p_timestamp:stamp,p_sig:signature}),
+      signal:AbortSignal.timeout(7000)});
+    return response.ok&&(await response.json())===true;
+  }catch{return false;}
+}
+
 export async function handleAutomationHub(request:Request,deps:HubDependencies):Promise<Response>{
   const url=new URL(request.url),path=url.pathname,method=request.method;
   try{
