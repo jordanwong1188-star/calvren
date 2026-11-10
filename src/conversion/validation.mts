@@ -30,6 +30,7 @@ export function validateIntake(value: unknown): IntakeInput {
   if (channel === "email") return fail("Email conversations are not enabled in this SMS and website MVP.");
   const phone = normalizePhone(value.phone);
   if (value.consent_sms !== undefined && typeof value.consent_sms !== "boolean") return fail("SMS consent must be true or false.");
+  if (value.consent_review !== undefined && typeof value.consent_review !== "boolean") return fail("Review email consent must be true or false.");
   if (channel === "sms" && (!phone || value.consent_sms !== true)) return fail("SMS requires an international phone number and explicit consent.");
   return {
     client_id: ident(value.client_id, "client_id"),
@@ -38,6 +39,7 @@ export function validateIntake(value: unknown): IntakeInput {
     source: bounded(value.source ?? "website", "source", 100),
     channel: channel as "sms" | "website",
     consent_sms: value.consent_sms === true,
+    consent_review: value.consent_review === true,
     idempotency_key: bounded(value.idempotency_key, "idempotency_key", 160)
   };
 }

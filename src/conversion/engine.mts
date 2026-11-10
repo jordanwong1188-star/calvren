@@ -53,6 +53,7 @@ export class ConversionEngine {
         status: "new", qualification_status: "pending", appointment_status: "none",
         last_contacted_at: null, last_inbound_at: now, next_follow_up_at: null, follow_up_attempts: 0,
         answers: {}, offered_slots: [], automation_active: true, consent_sms: input.consent_sms === true,
+        ...(input.consent_review===true?{consent_review:true}:{}),
         opted_out: false, mode: client.mode, channel: input.channel ?? "website", version: 0, handoff_reason: null
       }, messages: [], appointments: [], notifications: []
     };
@@ -339,10 +340,14 @@ export class ConversionEngine {
       }
     } finally { await this.deps.repository.releaseLease(clientId, leadId, work.token); }
   }
-  async followUps(limit = 25): Promise<{ processed: number; skipped: number; failed: number }> {
-    const due = await this.deps.repository.dueFollowUps(this.now(), Math.min(100, Math.max(1, limit)));
+  async followUps(limit = 25, allowedClients?:ReadonlySet<string>): Promise<{ processed: number; skipped: number; failed: number }> {
+    const requested=Math.min(100,Math.max(1,limit));
+    // Scan beyond the first due lead when there are ineligible Starter clients.
+    const due = await this.deps.repository.dueFollowUps(this.now(), allowedClients?100:requested);
     const totals = { processed: 0, skipped: 0, failed: 0 };
     for (const lead of due) {
+      if (allowedClients&&!allowedClients.has(lead.client_id)){totals.skipped++;continue;}
+      if(totals.processed+totals.failed>=requested)break;
       const outcome = await this.process(lead.client_id, lead.lead_id, "follow_up"); totals[outcome]++;
     }
     return totals;

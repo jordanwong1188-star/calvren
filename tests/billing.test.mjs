@@ -12,6 +12,9 @@ const src=await readFile(new URL("../server/billing.mts",import.meta.url),"utf8"
 const js=ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
 const mail=await readFile(new URL("../server/customer-email.mts",import.meta.url),"utf8");
 const mailJs=ts.transpileModule(mail,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+const hubSource=await readFile(new URL("../server/automation-hub.mts",import.meta.url),"utf8");
+const hubJs=ts.transpileModule(hubSource,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+await writeFile(join(temp,"automation-hub.mjs"),hubJs);
 await writeFile(join(temp,"customer-email.mjs"),mailJs);
 await writeFile(join(temp,"billing.mjs"),js);
 const {handleBilling}=await import(pathToFileURL(join(temp,"billing.mjs")).href);

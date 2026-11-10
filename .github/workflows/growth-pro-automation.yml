@@ -1,0 +1,32 @@
+name: Calvren Growth / Pro automation scheduler
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "19 13 * * *"
+permissions:
+  contents: read
+concurrency:
+  group: calvren-growth-pro-scheduler
+  cancel-in-progress: false
+jobs:
+  outreach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Dispatch daily approved automation jobs
+        env:
+          CALVREN_CRON_TOKEN: ${{ secrets.CALVREN_CRON_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.CALVREN_CRON_TOKEN;
+          if(!token){console.log("Hub automation disabled: scheduler token is not configured.");process.exit(0);}
+          const response=await fetch("https://xjfsukhfmkgvlfpgjevg.supabase.co/functions/v1/calvren/api/internal/hub-scheduler",{
+            method:"POST",headers:{Authorization:"Bearer "+token},
+            signal:AbortSignal.timeout(110000),redirect:"error"
+          });
+          if(!response.ok)throw Error("Hub automation returned HTTP "+response.status);
+          const body=await response.json();
+          console.log("Growth/Pro job pass:",JSON.stringify({ok:body.ok,review:body.review,
+            reports:body.reports,alerts:body.alerts,skipped:body.skipped,failed:body.failed}));
+          if(body.failed>0)process.exit(1);
+          NODE

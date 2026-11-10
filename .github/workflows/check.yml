@@ -94,6 +94,13 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610090001_calvren_hosting.sql
       - name: Apply demo signup storage migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610090002_calvren_demo_signup.sql
+      - name: Apply billing and onboarding dependencies
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610140001_calvren_billing.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610140003_calvren_onboarding.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610150105_calvren_onboarding_approval.sql
+      - name: Apply Growth and Pro automation hub migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202611100001_growth_pro_automation_hub.sql
       - name: Check portable hosting storage security
         run: psql -v ON_ERROR_STOP=1 -f tests/hosting-database.sql
       - name: Check transactional storage and security

@@ -14,7 +14,7 @@ export interface ConversionEngineAPI {
   receive(input: { client_id: string; lead_id: string; message: string; event_key: string; channel?: "sms" | "website" | "email" }): Promise<LeadBundle>;
   handoff(clientId: string, leadId: string, reason: string): Promise<LeadBundle | null>;
   resume(clientId: string, leadId: string): Promise<LeadBundle | null>;
-  followUps(limit?: number): Promise<{ processed: number; skipped: number; failed: number }>;
+  followUps(limit?: number, allowedClients?:ReadonlySet<string>): Promise<{ processed: number; skipped: number; failed: number }>;
 }
 export interface Readiness {
   database: boolean; admin: boolean; mode: "demo" | "live"; production: boolean;
@@ -143,10 +143,11 @@ export async function handleConversion(request: Request, deps: ConversionAPIDepe
       if (input.channel !== undefined && input.channel !== "website" && input.channel !== "sms") throw new ConversionError("INVALID_INPUT", "Use website or sms.");
       if (client.mode === "live" && input.channel !== undefined && input.channel !== "sms") throw new ConversionError("LIVE_SMS_REQUIRED", "Live website submissions must continue by SMS with a phone number and explicit consent.");
       if (input.consent_sms !== undefined && typeof input.consent_sms !== "boolean") throw new ConversionError("INVALID_INPUT", "SMS consent must be true or false.");
+      if (input.consent_review !== undefined && typeof input.consent_review !== "boolean") throw new ConversionError("INVALID_INPUT", "Review consent must be true or false.");
       const result = await deps.engine().intake({
         client_id: clientId, name: text(input.name, 120), phone: text(input.phone, 24, false), email: text(input.email, 254, false),
         message: text(input.message, 2000), source: text(input.source, 80, false) || "website",
-        channel: input.channel === "sms" || client.mode === "live" ? "sms" : "website", consent_sms: input.consent_sms === true,
+        channel: input.channel === "sms" || client.mode === "live" ? "sms" : "website", consent_sms: input.consent_sms === true, consent_review: input.consent_review === true,
         idempotency_key: text(input.idempotency_key, 120),
       });
       return json({ ok: true, bundle: result }, 201);

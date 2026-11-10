@@ -8,6 +8,7 @@ import { handlePublicForm } from "./forms.mjs";
 import { handleDemoSignup, handleDemoUnsubscribe } from "./demo-access.mjs";
 import { handleBilling } from "./billing.mjs";
 import { handleOnboarding } from "./onboarding.mjs";
+import {processAutomationCron,unsubscribeReview,configureProIntegration,entitledGrowthClients} from "./automation-hub.mjs";
 export interface ServerOptions { env(name:string):string|undefined; ip?:string; }
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
 export async function handleServer(request: Request, options: ServerOptions): Promise<Response> {
@@ -28,7 +29,18 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
       const hash=(value:string)=>createHash("sha256").update(value).digest();
       if(!expected||expected.length<32||!supplied||!timingSafeEqual(hash(expected),hash(supplied)))return json({error:"Scheduler authentication required."},401);
       if(!deps.repository||!deps.readiness().admin)return json({error:"Operator setup is incomplete."},503);
-      return json({ok:true,...await deps.engine().followUps(1)});
+      const eligibleClients=await entitledGrowthClients(env);
+      return json({ok:true,...await deps.engine().followUps(1,eligibleClients)});
+    }
+    if(path==="/api/billing/hub/unsubscribe")return unsubscribeReview(routed,env);
+    if(path==="/api/internal/hub/integration")return configureProIntegration(routed,env);
+    if(path==="/api/internal/hub-scheduler"){
+      if(request.method!=="POST")return json({error:"Use POST."},405);
+      const expected=env("CALVREN_CRON_TOKEN"),supplied=request.headers.get("authorization")?.replace(/^Bearer /,"")||"";
+      const hash=(value:string)=>createHash("sha256").update(value).digest();
+      if(!expected||expected.length<32||!supplied||!timingSafeEqual(hash(expected),hash(supplied)))
+        return json({error:"Scheduler authentication required."},401);
+      return json({ok:true,...await processAutomationCron(env)});
     }
     if(path.startsWith("/api/billing/"))return handleBilling(routed,{env,repository:deps.repository});
     if(path==="/api/onboarding"||path==="/api/onboarding/approve"||path.startsWith("/api/onboarding/admin"))return handleOnboarding(routed,env);
