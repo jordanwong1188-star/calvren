@@ -56,3 +56,105 @@ html{scroll-padding-top:120px}
 .calvren-tier .button{justify-content:center;text-align:center}
 .calvren-tier-featured{border:2px solid #2d5948;background:#f1f7ee;box-shadow:0 22px 50px rgba(18,62,46,.11)}
 @media(max-width:900px){.calvren-pricing-grid{grid-template-columns:1fr;max-width:660px}.calvren-tier{padding:25px}}
+
+/* A quieter public site: fewer panels, readable type and room between ideas. */
+.marketing .section-wrap{max-width:1240px;padding-left:48px;padding-right:48px}
+.marketing .section-space{padding-top:88px;padding-bottom:88px}
+.marketing .header{max-width:1360px;padding:22px 48px;gap:32px}
+.marketing .header nav{gap:26px;font-size:13px}
+.marketing .eyebrow{font-size:11px;letter-spacing:1.4px;margin-bottom:20px}
+.marketing .hero{grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:64px;padding-top:64px;padding-bottom:80px}
+.marketing .hero-title{font-size:clamp(58px,6.1vw,82px);line-height:1.02;letter-spacing:-2px}
+.marketing .hero-description{max-width:440px;font-size:16px;line-height:1.8}
+.marketing .hero-actions{gap:26px;margin-top:30px;flex-wrap:wrap}
+.marketing .hero-reassurance{font-size:12px;line-height:1.7;margin-top:22px;max-width:350px}
+.hero-film{margin:0;min-width:0}
+.hero-film video{display:block;width:100%;height:auto;aspect-ratio:910/512;background:#14392f;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 45px #183b3110}
+.hero-film figcaption{display:flex;flex-direction:column;gap:5px;margin-top:18px;font-size:12px;line-height:1.7;color:var(--muted)}
+.hero-film figcaption strong{font-weight:550;color:var(--ink);font-size:14px}
+.hero-film figcaption a{text-decoration:underline;text-underline-offset:3px}
+.marketing .section-heading{gap:48px;margin-bottom:42px;align-items:end}
+.marketing .section-heading p:not(.eyebrow){font-size:15px;line-height:1.8;max-width:400px}
+.marketing h2{font-size:clamp(38px,4.5vw,56px);line-height:1.08}
+.marketing .solution-grid{gap:24px}
+.marketing .solution-card{padding:32px;background:transparent;min-height:0;border:1px solid var(--line);border-radius:8px}
+.service-number{display:block;font-size:12px;color:var(--muted);margin-bottom:32px}
+.marketing .solution-card h3{font-family:var(--sans);font-size:25px;margin:0 0 14px;line-height:1.3}
+.marketing .solution-card p{font-size:15px;line-height:1.8;max-width:310px;margin:0}
+.marketing #solutions{border-top:1px solid var(--line)}
+.marketing #demo .section-heading{margin:0}
+.marketing #demo .section-heading .button{margin-top:24px}
+.marketing .demo-disclosure{margin-top:16px;font-size:12px!important;color:#c5d5c7}
+.preview-details{margin-top:40px;border-top:1px solid #ffffff30;padding-top:20px}
+.preview-details>summary{cursor:pointer;font-size:14px;padding:10px 0;line-height:1.6}
+.preview-details[open]>summary{margin-bottom:28px}
+.preview-calculator{margin-top:32px;padding:32px;background:var(--paper);color:var(--ink);border:0;border-radius:8px;gap:32px}
+.preview-calculator h2{font-size:34px}
+.marketing .proof-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.marketing .proof-card{padding:36px;background:transparent;border-radius:8px;min-height:0}
+.marketing .proof-card h3{font-size:34px;margin:27px 0 18px;line-height:1.15}
+.marketing .proof-card p{font-size:15px;line-height:1.8;max-width:420px}
+.marketing .proof-card .card-cta{font-size:13px;margin-top:30px}
+.marketing .process-grid{gap:36px}
+.marketing .process-grid article>span{font-size:28px;margin-bottom:24px}
+.marketing .process-grid h3{font-size:23px;margin-bottom:14px}
+.marketing .process-grid p{font-size:15px;line-height:1.8}
+.marketing .process{padding-top:30px}
+.marketing .calvren-tier{box-shadow:none;border-radius:8px;padding:30px;gap:18px}
+.marketing .calvren-tier-featured{box-shadow:none}
+.marketing .calvren-tier h3{font-size:24px}
+.marketing .calvren-tier p,.marketing .calvren-tier li{font-size:14px;line-height:1.8}
+.marketing .calvren-tier .calvren-tier-amount{font-size:40px;line-height:1.2}
+.marketing .calvren-tier .eyebrow{font-size:11px;margin:0}
+.marketing .section-note{font-size:13px;line-height:1.8;max-width:850px;margin-top:28px}
+.pricing-details{font-size:13px;margin-top:16px;max-width:850px}
+.pricing-details summary{cursor:pointer;padding:10px 0;font-weight:550}
+.pricing-details p{margin-top:10px;color:var(--muted);line-height:1.8}
+.marketing .faq{border-top:1px solid var(--line);gap:60px}
+.marketing .faq summary{font-size:15px;padding:22px 0}
+.marketing .faq details p{font-size:14px;line-height:1.8;padding-bottom:22px}
+.marketing .contact-grid{gap:64px;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);align-items:start}
+.marketing .contact-grid>div>p:not(.eyebrow){font-size:15px;line-height:1.8;max-width:390px;margin-top:24px}
+.audit-details{border:1px solid #ffffff45;border-radius:8px;padding:24px 28px}
+.audit-details>summary{font-size:16px;line-height:1.7;cursor:pointer;font-weight:550}
+.audit-details[open]>summary{margin-bottom:28px}
+.marketing .contact-grid form>p:not([hidden]):not(.eyebrow):not(.fine-print):not(.form-error){font-size:14px;line-height:1.8;margin-bottom:24px}
+.marketing form label{font-size:13px;line-height:1.6}
+.marketing form input:not([type=checkbox]),.marketing form select,.marketing form textarea{font-size:16px;line-height:1.6;padding:12px;min-height:48px}
+.marketing form .consent{gap:12px;line-height:1.7;margin:20px 0}
+.marketing form .consent input{width:18px;height:18px;flex-shrink:0;margin-top:3px}
+.marketing form .fine-print{font-size:12px;line-height:1.8;margin-top:16px}
+.marketing .inline-contact{gap:14px;margin-top:30px}
+.marketing .inline-contact a{font-size:14px;overflow-wrap:anywhere}
+.marketing .footer{padding-top:44px;padding-bottom:36px}
+.marketing .footer-links{font-size:13px;gap:18px 24px}
+.marketing .footer-contact>a{font-size:13px}
+.marketing .page-hero{padding-top:60px;padding-bottom:64px;gap:72px}
+.marketing .page-hero h1{font-size:clamp(52px,6vw,78px);line-height:1.06}
+.marketing .page-intro{font-size:16px;line-height:1.8;max-width:560px}
+.simple-studies .studies-hero{display:block;max-width:1240px}
+.simple-studies .studies-hero>div{max-width:780px}
+.client-story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:72px;padding:56px 0;border-top:1px solid var(--line);scroll-margin-top:112px}
+.story-identity .study-label{font-size:11px;display:block;margin-bottom:25px;letter-spacing:1.4px}
+.marketing .story-identity h2{font-size:42px;line-height:1.12;margin:0 0 20px}
+.story-identity>p{font-size:14px;color:var(--muted)}
+.story-experience h3{font-size:25px;line-height:1.4;margin-bottom:20px}
+.story-experience>p:not(.eyebrow){font-size:16px;line-height:1.85;color:var(--muted);margin-bottom:20px;max-width:540px}
+.story-experience .text-link{display:inline-block;margin-top:8px}
+.story-note{font-size:12px;line-height:1.8;color:var(--muted);border-top:1px solid var(--line);padding-top:24px}
+.feedback-section{padding-top:30px!important;padding-bottom:30px!important}
+.feedback-details{border:1px solid var(--line);border-radius:8px;padding:24px 32px}
+.feedback-details>summary{cursor:pointer;font-size:16px;font-weight:550}
+.feedback-details>p{margin-top:24px;max-width:650px;color:var(--muted)}
+.feedback-details form{max-width:720px;margin-top:30px}
+.marketing .page-closing{gap:64px}
+.marketing .page-closing p:not(.eyebrow){font-size:16px;line-height:1.8}
+.marketing .direct-contact-panel{padding:32px;border-radius:8px}
+.marketing .contact-method{gap:0;padding:24px 0}
+.marketing .contact-method-icon{display:none}
+.marketing .contact-method strong{font-size:17px;overflow-wrap:anywhere}
+.marketing .contact-method small{font-size:10px}
+.marketing .contact-method div>span{font-size:13px}
+@media(max-width:1050px){.marketing .header{padding:22px 28px;gap:20px}.marketing .header nav{gap:16px;font-size:12px}.marketing .hero{gap:36px}.marketing .section-wrap{padding-left:32px;padding-right:32px}.marketing .section-heading{gap:32px}.marketing .contact-grid{gap:36px}.client-story{gap:40px}}
+@media(max-width:860px){.marketing .header{padding:18px 24px;min-height:78px}.marketing .header nav{font-size:15px}.marketing .header nav a{padding:14px 0}.marketing .hero{grid-template-columns:1fr;gap:38px;padding-top:40px;padding-bottom:56px}.marketing .hero-copy{max-width:610px}.marketing .hero-title{font-size:64px}.marketing .hero-description{max-width:510px}.hero-film{max-width:680px;width:100%}.marketing .section-space{padding-top:64px;padding-bottom:64px}.marketing .section-heading{align-items:start}.marketing .solution-card{padding:24px}.marketing .proof-card{padding:28px}.marketing .contact-grid{grid-template-columns:1fr;gap:32px}.marketing .page-hero{gap:32px}.marketing .calvren-pricing-grid{max-width:none}.marketing .faq{gap:32px}}
+@media(max-width:600px){.marketing .section-wrap{padding-left:22px;padding-right:22px}.marketing .section-space{padding-top:52px;padding-bottom:52px}.marketing .hero{padding-top:32px;padding-bottom:48px;gap:32px}.marketing .hero-title{font-size:clamp(51px,13vw,66px);letter-spacing:-1.5px}.marketing .hero-description{font-size:16px;line-height:1.75}.marketing .hero-actions{gap:22px;margin-top:26px}.marketing .hero-actions .button{width:auto}.marketing .hero-reassurance{font-size:12px;margin-top:20px}.marketing .eyebrow{font-size:10px;letter-spacing:1.1px}.marketing h2{font-size:39px;letter-spacing:-1px}.marketing .section-heading{display:grid;grid-template-columns:1fr;gap:22px;margin-bottom:30px}.marketing .solution-grid,.marketing .proof-grid,.marketing .process-grid{grid-template-columns:1fr;gap:20px}.marketing .solution-card{padding:26px}.service-number{margin-bottom:20px}.marketing .proof-card h3{font-size:31px}.marketing .proof-card .card-cta{margin-top:22px}.marketing .process-grid article{padding-top:22px}.marketing .process-grid article>span{margin-bottom:14px}.marketing .calvren-tier{padding:26px}.marketing .calvren-tier .button{min-height:48px}.marketing .faq{grid-template-columns:1fr;gap:26px}.marketing .faq summary{font-size:15px;line-height:1.65}.audit-details{padding:22px 18px}.audit-details>summary{font-size:15px}.marketing .form-row,.marketing .review-form .form-row{grid-template-columns:1fr;gap:0}.marketing form .consent{font-size:12px}.marketing form button{font-size:13px;min-height:50px;gap:12px}.marketing .footer{gap:32px}.marketing .footer-links{font-size:13px}.marketing .footer-contact{padding-top:24px}.marketing .page-hero{grid-template-columns:1fr;padding-top:34px;padding-bottom:44px}.marketing .page-hero h1{font-size:clamp(48px,12vw,66px);letter-spacing:-1.5px}.client-story{grid-template-columns:1fr;gap:32px;padding:38px 0}.marketing .story-identity h2{font-size:36px}.story-experience h3{font-size:23px}.story-experience>p:not(.eyebrow){font-size:15px}.feedback-details{padding:22px}.feedback-details>summary{font-size:15px}.marketing .page-closing{grid-template-columns:1fr;gap:28px}.marketing .direct-contact-panel{padding:26px}.marketing .contact-method strong{font-size:15px}.preview-calculator{grid-template-columns:1fr;padding:22px;gap:25px}.marketing .demo-workspace{grid-template-columns:1fr}.marketing .scenario-picker{flex-wrap:wrap}.marketing .scenario-picker button{min-height:44px;font-size:12px}.marketing .panel-note{display:none}}
