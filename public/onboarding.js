@@ -114,7 +114,7 @@ function validateStep(targetStep){
       if(step!==targetStep){step=targetStep;render();}
       const label=document.querySelector('label[for="'+field.id+'"]')?.textContent||
         field.closest("label")?.textContent||field.name||"this field";
-      message("Please check "+label.replace(/\\*/g,"").replace(/\\s+/g," ").trim()+" before continuing.",true);
+      message("Please check "+label.replaceAll("*","").replace(/\s+/g," ").trim()+" before continuing.",true);
       field.focus();field.reportValidity();return false;
     }
   }
