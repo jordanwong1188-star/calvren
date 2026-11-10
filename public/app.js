@@ -48,8 +48,11 @@ function updateEstimate() {
   $("tasks-value").value = String(tasks); $("minutes-value").value = String(minutes);
   $("hours-result").textContent = (tasks * minutes / 60).toFixed(1);
 }
-$("monthly-tasks").addEventListener("input", updateEstimate);
-$("minutes-per-task").addEventListener("input", updateEstimate);
-updateCount(); updateEstimate();
+if($("monthly-tasks")&&$("minutes-per-task")){
+  $("monthly-tasks").addEventListener("input", updateEstimate);
+  $("minutes-per-task").addEventListener("input", updateEstimate);
+  updateEstimate();
+}
+updateCount();
 const initialScenario=new URLSearchParams(location.search).get("scenario");
 if(Object.hasOwn(scenarios,initialScenario))document.querySelector('[data-scenario="'+initialScenario+'"]')?.click();
