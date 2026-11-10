@@ -158,3 +158,28 @@ test("cannot mark launch live without exact customer approval",async()=>{
   assert.equal(r.status,200);
   assert.equal(f.saved.status,"live");
 });
+
+test("required lead capture URLs use HTTPS and calendar owner email is valid",async()=>{
+  for(const [overrides,expected] of [
+    [{website:"http://example.com"},"Business website"],
+    [{lead_form_url:"http://example.com/contact"},"HTTPS enquiry form"],
+    [{calendar_email:"not-an-email"},"calendar owner email"]
+  ]){
+    const f=fixture();
+    const response=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding","POST",{
+      form:{...validForm,...overrides},current_step:4
+    }),env));
+    assert.equal(response.status,400,JSON.stringify(overrides));
+    assert.match((await response.json()).error,new RegExp(expected,"i"));
+    assert.equal(f.saved,null);
+  }
+});
+test("correct optional HTTPS enquiry URL and calendar email can be submitted",async()=>{
+  const f=fixture();
+  const response=await usingFetch(f.fetch,()=>handleOnboarding(endpoint("/api/onboarding","POST",{
+    form:{...validForm,lead_form_url:"https://example.com/contact",
+      calendar_email:"bookings@example.com"},current_step:4
+  }),env));
+  assert.equal(response.status,200);
+  assert.equal(f.saved.form.lead_form_url,"https://example.com/contact");
+});
