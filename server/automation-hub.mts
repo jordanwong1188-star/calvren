@@ -4,7 +4,7 @@ import {Buffer} from "node:buffer";
 type Env=(name:string)=>string|undefined;
 type Row=Record<string,any>;
 type Plan="starter"|"growth"|"pro"|null;
-interface Member extends Row { auth_user_id:string; client_id?:string|null; }
+type Member=Row; // Runtime membership shape is validated by the server's Stripe webhook and auth route.
 interface HubDependencies {env:Env; fetch?:typeof fetch; user:{id:string;email:string};member:Member|null;plan:Plan;}
 const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
