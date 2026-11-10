@@ -62,6 +62,44 @@ async function settings(env:Env,clientId:string,fetcher?:typeof fetch){
     select:"client_id,review_url,review_enabled,report_enabled,pro_alert_enabled,integration_enabled,updated_at",limit:"1"}),{fetcher});
   return r[0]||{client_id:clientId,review_url:"",review_enabled:false,report_enabled:false,pro_alert_enabled:false,integration_enabled:false};
 }
+function approvedWebhookUrl(env:Env,value:unknown){
+  if(typeof value!=="string"||value.length>500)throw Error("Provide a valid approved integration URL.");
+  const u=new URL(value);
+  const permitted=(env("CALVREN_INTEGRATION_ALLOWED_HOSTS")||"").split(",")
+    .map(x=>x.trim().toLowerCase()).filter(Boolean);
+  if(u.protocol!=="https:"||!!u.username||!!u.password||!!u.port||
+    !/^[a-z0-9.-]+$/.test(u.hostname)||/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname)||
+    u.hostname==="localhost"||u.hostname.endsWith(".local")||!permitted.includes(u.hostname))
+    throw Error("Only owner-allowlisted HTTPS integration hosts may be used.");
+  return u.toString();
+}
+export async function configureProIntegration(request:Request,env:Env,fetcher?:typeof fetch):Promise<Response>{
+  try{
+    const expected=env("CALVREN_ADMIN_TOKEN")||"";
+    const provided=request.headers.get("Authorization")?.replace(/^Bearer /,"")||"";
+    const signature=(value:string)=>createHash("sha256").update(value).digest();
+    if(expected.length<24||!provided||!timingSafeEqual(signature(expected),signature(provided)))
+      return json({error:"Owner authentication required."},401);
+    if(request.method!=="POST")return json({error:"Use POST."},405);
+    const raw=await request.text();if(raw.length>1000)return json({error:"Invalid integration settings."},413);
+    const body=JSON.parse(raw) as Row;
+    if(!safeId.test(body?.client_id||"")||typeof body?.enabled!=="boolean")
+      return json({error:"Choose a valid client and enabled state."},400);
+    const members=await query(env,qp("calvren_billing_memberships",{client_id:"eq."+body.client_id,
+      select:"auth_user_id,client_id,stripe_price_id,subscription_status,current_period_end",limit:"1"}),{fetcher});
+    const member=members[0];
+    if(!member||memberPlan(env,member)!=="pro"||
+      !await onboarded(env,member.auth_user_id,fetcher)||
+      !await clientLive(env,member.client_id,fetcher))
+      return json({error:"A paid, approved, live Pro client is required."},403);
+    const url=body.enabled?approvedWebhookUrl(env,body.url):"";
+    if(body.enabled&&!(env("CALVREN_INTEGRATION_SECRET")||"").trim())
+      return json({error:"Configure the server-side integration signing secret first."},409);
+    await query(env,"calvren_hub_settings?on_conflict=client_id",{method:"POST",fetcher,
+      body:{client_id:body.client_id,integration_url:url,integration_enabled:body.enabled,updated_at:new Date().toISOString()}});
+    return json({configured:true,enabled:body.enabled,host:body.enabled?new URL(url).hostname:null});
+  }catch(error){return json({error:safeError(error)},400);}
+}
 const safeError=(error:unknown)=>{const s=error instanceof Error?error.message:"Unable to complete request.";return /^(Provide|Use |Review |This |Only |Your |A completed|The appointment|An active|Please |Confirm |Cannot |Review requests|Monthly reports)/.test(s)?s:"The automation hub is temporarily unavailable.";};
 const approved=(plan:Plan)=>plan==="growth"||plan==="pro";
 export async function handleAutomationHub(request:Request,deps:HubDependencies):Promise<Response>{
@@ -252,6 +290,17 @@ async function monthlySummary(env:Env,clientId:string,month:string,fetcher?:type
     bookings:appointments.filter(row=>belongs(row.starts_at)&&row.data?.status==="booked").length,
     partial:leads.length>=1000||appointments.length>=1000};
 }
+async function sendWebhook(env:Env,url:string,payload:Record<string,string>,key:string,fetcher?:typeof fetch){
+  const destination=approvedWebhookUrl(env,url),secret=env("CALVREN_INTEGRATION_SECRET")||"";
+  if(secret.length<32)return {ok:false,id:"",reason:"integration_secret_missing"};
+  const body=JSON.stringify(payload),ts=Math.floor(Date.now()/1000).toString();
+  const signature=createHmac("sha256",secret).update(ts+"."+body).digest("hex");
+  const response=await (fetcher||fetch)(destination,{method:"POST",headers:{
+    "Content-Type":"application/json","X-Calvren-Timestamp":ts,
+    "X-Calvren-Signature":"sha256="+signature,"X-Calvren-Idempotency-Key":key
+  },body,signal:AbortSignal.timeout(9000),redirect:"error"});
+  return {ok:response.ok,id:"",reason:response.ok?"":"webhook_unconfirmed"};
+}
 async function sendMail(env:Env,to:string,subject:string,body:string,key:string,fetcher?:typeof fetch){
   const apiKey=env("RESEND_API_KEY"),from=env("NOTIFICATION_FROM_EMAIL");
   if(!apiKey||!from||!email.test(to))return {ok:false,id:"",reason:"mail_unconfigured"};
@@ -371,6 +420,39 @@ export async function processAutomationCron(env:Env,fetcher?:typeof fetch):Promi
             await closeDelivery(env,delivery.id,sent.ok?"sent":"failed",sent.id,sent.reason,fetcher);
             sent.ok?totals.review++:totals.failed++;
           }catch{await closeDelivery(env,delivery.id,"unknown","","delivery_unconfirmed",fetcher);totals.failed++;}
+        }
+      }
+    }
+    if(plan==="pro"&&cfg.integration_enabled&&outboundCount<20){
+      const receiver=(await query(env,qp("calvren_hub_settings",{client_id:"eq."+m.client_id,
+        select:"integration_url,integration_enabled",limit:"1"}),{fetcher}))[0];
+      if(receiver?.integration_url){
+        let ok=false;try{ok=!!approvedWebhookUrl(env,receiver.integration_url);}catch{}
+        if(ok&&(env("CALVREN_INTEGRATION_SECRET")||"").length>=32){
+          const leads=await query(env,qp("calvren_leads",{client_id:"eq."+m.client_id,
+            select:"id,data",limit:"100"}),{fetcher});
+          for(const row of leads){
+            if(outboundCount>=20)break;
+            const status=row.data?.status;
+            if(!["booked","needs_human"].includes(status)||!validDate(row.data?.updated_at)||
+              Date.parse(row.data.updated_at)<Date.now()-14*86400000)continue;
+            const ref=row.id+"-"+status;
+            const delivery=await claim(env,m.client_id,"pro_webhook",ref,fetcher);
+            if(!delivery)continue;
+            outboundCount++;
+            try{
+              const sent=await sendWebhook(env,receiver.integration_url,{
+                event:status==="booked"?"appointment.booked":"lead.handoff_required",
+                client_id:m.client_id,lead_id:row.id,status,occurred_at:row.data.updated_at,
+                subscription:"pro"
+              },"calvren-"+m.client_id+"-"+ref,fetcher);
+              await closeDelivery(env,delivery.id,sent.ok?"sent":"unknown","",sent.reason,fetcher);
+              sent.ok?totals.alerts++:totals.failed++;
+            }catch{
+              await closeDelivery(env,delivery.id,"unknown","","webhook_unconfirmed",fetcher);
+              totals.failed++;
+            }
+          }
         }
       }
     }
