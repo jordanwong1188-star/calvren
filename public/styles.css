@@ -137,6 +137,7 @@ html{scroll-padding-top:120px}
 .studies-minimal .case-example{display:flex;flex-direction:column;border:1px solid #d7e4d8;border-radius:18px;padding:31px;background:white;margin:0;min-width:0}
 .studies-minimal .case-overline{display:flex;justify-content:space-between;gap:10px;color:#708778;font-size:10px;font-weight:700;letter-spacing:.07em;margin-bottom:21px}
 .studies-minimal .case-example h2{font-size:clamp(36px,3.8vw,52px);line-height:1.1;margin-bottom:12px}
+.studies-minimal .case-example h2 em{display:block}
 .studies-minimal .case-owner{font-size:12px;font-weight:700;color:#516e5c;margin-bottom:22px}
 .studies-minimal .case-example>p:not(.case-owner){font-size:14px;line-height:1.7;color:#546a5c;min-height:53px}
 .studies-minimal .case-example-steps{margin:26px 0;display:grid;gap:0}
