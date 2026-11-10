@@ -11,7 +11,7 @@ const source=await readFile(new URL("../server/automation-hub.mts",import.meta.u
 await writeFile(join(dir,"hub.mjs"),ts.transpileModule(source,{
   compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}
 }).outputText);
-const {handleAutomationHub,processAutomationCron,unsubscribeReview}=
+const {handleAutomationHub,processAutomationCron,unsubscribeReview,verifyNativeCron}=
   await import(pathToFileURL(join(dir,"hub.mjs")).href);
 const uid="55555555-5555-4555-8555-555555555555",appId="66666666-6666-4666-8666-666666666666";
 const leadId="77777777-7777-4777-8777-777777777777",clientId="sample_live";
@@ -146,4 +146,41 @@ test("daily review scheduler sends no unconsented customer email",async()=>{
   const result=await processAutomationCron(f.env,f.fetcher);
   assert.equal(result.review,0);
   assert.equal(f.events.some(x=>x.url==="https://api.resend.com/emails"),false);
+});
+
+test("native Cron HMAC verifier rejects missing, stale and malformed signatures without DB access",async()=>{
+  const f=fixture();
+  let requests=0;
+  const fetcher=async()=>{requests++;return Response.json(true);};
+  const blank=new Request("https://calvren.pages.dev/api/internal/hub-scheduler",{method:"POST"});
+  assert.equal(await verifyNativeCron(blank,f.env,"hub-scheduler",fetcher),false);
+  const oldStamp=String(Math.floor(Date.now()/1000)-240);
+  const stale=new Request(blank.url,{method:"POST",headers:{
+    "X-Calvren-Timestamp":oldStamp,"X-Calvren-Signature":"a".repeat(64)
+  }});
+  assert.equal(await verifyNativeCron(stale,f.env,"hub-scheduler",fetcher),false);
+  const malformed=new Request(blank.url,{method:"POST",headers:{
+    "X-Calvren-Timestamp":String(Math.floor(Date.now()/1000)),"X-Calvren-Signature":"oops"
+  }});
+  assert.equal(await verifyNativeCron(malformed,f.env,"hub-scheduler",fetcher),false);
+  assert.equal(requests,0);
+});
+test("native signed Cron is validated by server-only boolean RPC",async()=>{
+  const f=fixture();
+  const stamp=String(Math.floor(Date.now()/1000));
+  const req=new Request("https://calvren.pages.dev/api/internal/follow-ups",{method:"POST",headers:{
+    "X-Calvren-Timestamp":stamp,"X-Calvren-Signature":"a".repeat(64)
+  }});
+  let count=0;
+  const fetcher=async(url,options)=>{
+    count++;
+    assert.match(url,/\/rest\/v1\/rpc\/calvren_verify_dispatch_signature$/);
+    assert.equal(options.method,"POST");
+    assert.equal(options.headers.apikey,f.env("SUPABASE_SECRET_KEY"));
+    assert.deepEqual(JSON.parse(options.body),{p_route:"follow-ups",p_timestamp:stamp,p_sig:"a".repeat(64)});
+    return Response.json(true);
+  };
+  assert.equal(await verifyNativeCron(req,f.env,"follow-ups",fetcher),true);
+  assert.equal(count,1);
+  assert.equal(await verifyNativeCron(req,f.env,"follow-ups",async()=>Response.json(false)),false);
 });
