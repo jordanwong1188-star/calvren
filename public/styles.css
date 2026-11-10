@@ -56,3 +56,188 @@ html{scroll-padding-top:120px}
 .calvren-tier .button{justify-content:center;text-align:center}
 .calvren-tier-featured{border:2px solid #2d5948;background:#f1f7ee;box-shadow:0 22px 50px rgba(18,62,46,.11)}
 @media(max-width:900px){.calvren-pricing-grid{grid-template-columns:1fr;max-width:660px}.calvren-tier{padding:25px}}
+
+
+/* Calvren 2026 minimal public-site redesign — private client styles unchanged */
+.home-minimal,.contact-minimal,.studies-minimal{background:#f8f8f3;color:#193a31;font-size:15px}
+.home-minimal .section-wrap,.contact-minimal .section-wrap,.studies-minimal .section-wrap{max-width:1160px;padding-left:40px;padding-right:40px}
+.home-minimal .section-space,.contact-minimal .section-space,.studies-minimal .section-space{padding-top:86px;padding-bottom:86px}
+.home-minimal .header,.contact-minimal .header,.studies-minimal .header{max-width:1230px;padding:22px 40px;min-height:92px;gap:25px}
+.home-minimal .header nav,.contact-minimal .header nav,.studies-minimal .header nav{gap:27px;font-size:13px;align-items:center}
+.home-minimal .button,.contact-minimal .button,.studies-minimal .button{border-radius:10px;gap:12px;padding:14px 21px;justify-content:center;white-space:normal}
+.home-minimal .button-small,.contact-minimal .button-small,.studies-minimal .button-small{padding:11px 18px}
+.home-minimal h1,.home-minimal h2,.contact-minimal h1,.contact-minimal h2,.studies-minimal h1,.studies-minimal h2{letter-spacing:-.028em}
+.home-minimal h2,.contact-minimal h2,.studies-minimal h2{font-size:clamp(37px,4.6vw,59px);line-height:1.07}
+.home-minimal .eyebrow,.contact-minimal .eyebrow,.studies-minimal .eyebrow{font-size:10px;letter-spacing:1.45px;margin-bottom:19px}
+.home-minimal .section-heading,.studies-minimal .section-heading{align-items:end;gap:42px;margin-bottom:34px}
+.home-minimal .section-heading>p,.home-minimal .section-heading>div:last-child:not(:first-child){font-size:14px;line-height:1.65;max-width:310px}
+.home-minimal .section-heading a{text-decoration:none;margin-top:12px}
+.home-minimal .section-heading a:hover{text-decoration:underline}
+/* Video is the first visual, never autoplayed, and not a heavy background asset. */
+.home-minimal .hero-video{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);align-items:center;gap:56px;padding-top:60px;padding-bottom:72px;min-height:530px}
+.home-minimal .hero-video .hero-copy{min-width:0}
+.home-minimal .hero-video .hero-title{font-size:clamp(58px,5.9vw,91px);line-height:1.02;margin:0 0 22px}
+.home-minimal .hero-video .hero-description{font-size:16px;line-height:1.7;max-width:410px;color:#566960}
+.home-minimal .hero-video .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.home-minimal .hero-reassurance{font-size:12px;color:#75847c;margin-top:20px}
+.home-minimal .hero-video-frame{background:#143b30;border-radius:20px;padding:12px 12px 10px;box-shadow:0 18px 50px rgba(21,65,47,.12);min-width:0}
+.home-minimal .home-intro-video{width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;display:block;border-radius:12px;background:#173c31}
+.home-minimal .hero-video-frame p{margin:9px 5px 1px;font-size:11px;color:#bdd0c3;text-align:center;letter-spacing:.01em}
+/* Short, scannable value proposition. */
+.home-minimal .simple-solutions{border-top:1px solid #dbe2d8}
+.home-minimal .simple-solutions .solution-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.home-minimal .simple-solutions .solution-card{padding:29px;border:1px solid #dbe5da;border-radius:16px;background:#ffffffc7;box-shadow:none;min-height:215px}
+.home-minimal .solution-step{font-size:12px;font-weight:700;color:#748a78;display:block;margin-bottom:30px}
+.home-minimal .simple-solutions .solution-card h3{font-size:29px;margin:0 0 12px}
+.home-minimal .simple-solutions .solution-card>p{font-size:14px;line-height:1.7;min-height:0;max-width:290px}
+.home-minimal .demo-section{background:#173c31}
+.home-minimal #demo .demo-workspace{border-radius:15px;background:#1b4236}
+.home-minimal #demo .demo-input-panel,.home-minimal #demo .demo-output-panel{padding:26px}
+.home-minimal #demo .demo-empty{min-height:290px}
+.home-minimal #demo .empty-symbol,.home-minimal #demo .next-step-icon{display:none}
+.home-minimal #demo .demo-empty h4{margin-top:5px}
+.home-minimal #demo .demo-workspace textarea{min-height:128px}
+.home-minimal #demo .section-heading>div:last-child{max-width:310px}
+.home-minimal #demo .text-link{display:inline-block;font-size:12px;color:#e5f0da;border-bottom-color:#8ca791}
+/* Examples intentionally avoid unverified social proof. */
+.home-minimal .simple-proof .proof-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.home-minimal .simple-proof .proof-card{border:1px solid #dce5db;border-radius:17px;padding:30px;background:#fff;min-height:235px}
+.home-minimal .simple-proof .proof-card h3{font-size:clamp(30px,3vw,39px);margin:13px 0 11px;line-height:1.1}
+.home-minimal .simple-proof .proof-card>p{min-height:0;font-size:14px;line-height:1.65;margin:0}
+.home-minimal .simple-proof .card-cta{margin-top:26px;display:block}
+.home-minimal .section-note{font-size:11px;line-height:1.7;margin-top:20px;color:#697c71;max-width:720px}
+.home-minimal .calvren-pricing-grid{gap:16px}
+.home-minimal .calvren-tier{border-radius:17px;box-shadow:none;padding:28px;gap:14px;min-width:0}
+.home-minimal .calvren-tier-featured{border:2px solid #37674d;background:#f0f6e9}
+.home-minimal .calvren-tier .eyebrow{color:#4c6d5a;font-size:12px;margin:0}
+.home-minimal .calvren-tier .calvren-tier-amount{font-size:clamp(36px,3.3vw,45px);white-space:nowrap;letter-spacing:-1.8px}
+.home-minimal .calvren-tier>p:not(.eyebrow):not(.calvren-tier-amount){font-size:14px;line-height:1.65;min-height:48px}
+.home-minimal .calvren-tier ul{margin:0 0 13px;line-height:1.85;font-size:13px;padding-left:18px}
+.home-minimal .calvren-tier .button{width:100%;margin-top:auto}
+.home-minimal .faq{gap:65px}
+.home-minimal .faq-list details{padding:18px 0}
+.home-minimal .faq-list summary{font-size:14px}
+.home-minimal .faq-list details p{font-size:13px;line-height:1.7}
+.home-minimal .contact-section{background:#eaf0e5}
+.home-minimal .contact-grid{gap:70px;align-items:start}
+.home-minimal .contact-grid h2{font-size:clamp(39px,4.5vw,59px)}
+.home-minimal .contact-grid>div>p:not(.eyebrow){font-size:15px;line-height:1.7;max-width:350px}
+.home-minimal .contact-grid .inline-contact{margin-top:26px}
+.home-minimal #contact-form{background:rgba(255,255,255,.7);border:1px solid #d6e1d1;border-radius:17px;padding:30px}
+.home-minimal #contact-form>p:not(.eyebrow){font-size:13px;line-height:1.6;margin-bottom:24px}
+/* Case-study page removes pseudo-testimonial decorations and long explanations. */
+.studies-minimal .case-intro{padding-top:75px;padding-bottom:45px}
+.studies-minimal .case-intro h1{font-size:clamp(54px,6.5vw,83px);line-height:1.04;max-width:900px;margin-bottom:20px}
+.studies-minimal .case-intro>p:last-child{font-size:16px;line-height:1.7;color:#52665a;max-width:620px}
+.studies-minimal .case-examples{padding-bottom:85px}
+.studies-minimal .study-disclosure{border-radius:10px;background:#eff2e9;border:1px solid #dae5d6;padding:17px 20px;font-size:12px;color:#53695b}
+.studies-minimal .study-filters{margin:25px 0 20px;display:flex;flex-wrap:wrap;gap:9px}
+.studies-minimal .study-filters button{border-radius:99px;font-size:12px;padding:10px 15px}
+.studies-minimal .case-example-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:19px}
+.studies-minimal .case-example{display:flex;flex-direction:column;border:1px solid #d7e4d8;border-radius:18px;padding:31px;background:white;margin:0;min-width:0}
+.studies-minimal .case-overline{display:flex;justify-content:space-between;gap:10px;color:#708778;font-size:10px;font-weight:700;letter-spacing:.07em;margin-bottom:21px}
+.studies-minimal .case-example h2{font-size:clamp(36px,3.8vw,52px);line-height:1.1;margin-bottom:12px}
+.studies-minimal .case-owner{font-size:12px;font-weight:700;color:#516e5c;margin-bottom:22px}
+.studies-minimal .case-example>p:not(.case-owner){font-size:14px;line-height:1.7;color:#546a5c;min-height:53px}
+.studies-minimal .case-example-steps{margin:26px 0;display:grid;gap:0}
+.studies-minimal .case-example-steps p{border-top:1px solid #e2e8dd;padding:15px 0;display:grid;gap:5px;font-size:13px;line-height:1.6}
+.studies-minimal .case-example-steps strong{font-size:11px;letter-spacing:.03em;color:#65826f}
+.studies-minimal .case-example .button{align-self:start;margin-top:auto}
+.studies-minimal .case-caveat{font-size:12px;line-height:1.65;color:#6a8071;margin-top:17px;max-width:720px}
+.studies-minimal .client-insights{background:#eaf0e5}
+.studies-minimal .case-feedback-layout{display:grid;grid-template-columns:minmax(0,.83fr) minmax(0,1.17fr);gap:75px;align-items:start}
+.studies-minimal .case-feedback-heading h2{margin:0 0 20px}
+.studies-minimal .case-feedback-heading>p:not(.eyebrow){max-width:370px;font-size:14px;line-height:1.75;color:#506c59}
+.studies-minimal .review-form{padding:27px;background:#fff;border:1px solid #d7e3d7;border-radius:17px}
+.studies-minimal .review-form input:not([type=checkbox]),.studies-minimal .review-form textarea{font-size:13px;border-radius:8px;padding:11px 13px}
+.studies-minimal .case-bottom{display:flex;justify-content:space-between;align-items:center;gap:25px;padding-top:65px;padding-bottom:65px}
+.studies-minimal .case-bottom h2{font-size:clamp(33px,3.3vw,46px);margin-bottom:9px}
+.studies-minimal .case-bottom p{font-size:14px;color:#607469}
+.studies-minimal .case-bottom .button{flex-shrink:0}
+/* Contact marketing page: only one conversion form, not competing calls to action. */
+.contact-minimal .page-hero{display:block;padding-top:68px;padding-bottom:48px}
+.contact-minimal .page-hero h1{font-size:clamp(55px,6.5vw,85px);line-height:1.04;max-width:870px;margin-bottom:22px}
+.contact-minimal .page-hero .page-intro{font-size:16px;line-height:1.7;max-width:570px;color:#566b5d}
+.contact-minimal .direct-email{margin-top:24px;color:#607567;font-size:14px}
+.contact-minimal .direct-email a{text-decoration:underline;text-underline-offset:3px;color:#254a39}
+.contact-minimal .contact-section{background:#eaf0e5}
+.contact-minimal .contact-grid{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:72px;align-items:start}
+.contact-minimal .contact-grid h2{font-size:clamp(39px,4.7vw,61px)}
+.contact-minimal .contact-grid>div>p:not(.eyebrow){font-size:15px;line-height:1.7;max-width:330px}
+.contact-minimal #project-form{background:#fff;border:1px solid #d8e4d5;padding:30px;border-radius:17px}
+.contact-minimal #project-form>p:not(.eyebrow){font-size:13px;line-height:1.6;margin-bottom:21px}
+/* Shared public footer and accessible touch targets */
+.home-minimal .footer-expanded,.contact-minimal .footer-expanded,.studies-minimal .footer-expanded{display:grid;grid-template-columns:1.2fr 1fr 1.2fr;gap:35px;padding-top:40px;padding-bottom:47px;align-items:start}
+.home-minimal .footer-expanded>div>p,.contact-minimal .footer-expanded>div>p,.studies-minimal .footer-expanded>div>p{font-size:13px;color:#718375;margin-top:12px}
+.home-minimal .footer-links,.contact-minimal .footer-links,.studies-minimal .footer-links{display:flex;flex-wrap:wrap;gap:10px 21px;align-content:start}
+.home-minimal .footer-links a,.contact-minimal .footer-links a,.studies-minimal .footer-links a{font-size:12px;min-height:27px}
+.home-minimal .footer-contact,.contact-minimal .footer-contact,.studies-minimal .footer-contact{font-size:12px;text-align:right}
+.home-minimal .footer-contact a,.contact-minimal .footer-contact a,.studies-minimal .footer-contact a{overflow-wrap:anywhere}
+@media(max-width:980px){
+ .home-minimal .hero-video{gap:30px;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+ .home-minimal .hero-video .hero-title{font-size:clamp(52px,6.5vw,76px)}
+ .home-minimal .section-wrap,.contact-minimal .section-wrap,.studies-minimal .section-wrap{padding-left:27px;padding-right:27px}
+ .home-minimal .header,.contact-minimal .header,.studies-minimal .header{padding:20px 27px}
+ .home-minimal .contact-grid,.contact-minimal .contact-grid,.studies-minimal .case-feedback-layout{gap:35px}
+}
+@media(max-width:760px){
+ .home-minimal .section-wrap,.contact-minimal .section-wrap,.studies-minimal .section-wrap{padding-left:22px;padding-right:22px}
+ .home-minimal .section-space,.contact-minimal .section-space,.studies-minimal .section-space{padding-top:63px;padding-bottom:63px}
+ .home-minimal .header,.contact-minimal .header,.studies-minimal .header{padding:17px 22px;min-height:74px}
+ .home-minimal .section-heading,.studies-minimal .section-heading{display:block;margin-bottom:24px}
+ .home-minimal .section-heading>p,.home-minimal .section-heading>div:last-child:not(:first-child){max-width:580px;margin-top:14px}
+ .home-minimal .hero-video{grid-template-columns:1fr;gap:32px;padding-top:42px;padding-bottom:54px;min-height:0}
+ .home-minimal .hero-video .hero-title{font-size:clamp(54px,12vw,79px);margin-bottom:18px}
+ .home-minimal .hero-video .hero-description{font-size:15px;max-width:540px}
+ .home-minimal .hero-video .hero-actions{margin-top:24px}
+ .home-minimal .hero-video-frame{padding:8px 8px 7px;border-radius:15px}
+ .home-minimal .home-intro-video{border-radius:9px}
+ .home-minimal .hero-video-frame p{font-size:10px}
+ .home-minimal .simple-solutions .solution-grid{grid-template-columns:1fr;gap:13px}
+ .home-minimal .simple-solutions .solution-card{min-height:0;padding:23px}
+ .home-minimal .solution-step{margin-bottom:13px}
+ .home-minimal .simple-solutions .solution-card h3{font-size:27px}
+ .home-minimal .simple-proof .proof-grid{grid-template-columns:1fr;gap:13px}
+ .home-minimal .simple-proof .proof-card{min-height:0;padding:24px}
+ .home-minimal #demo .demo-workspace{grid-template-columns:1fr}
+ .home-minimal #demo .demo-input-panel{border-right:0;border-bottom:1px solid #ffffff20}
+ .home-minimal #demo .demo-input-panel,.home-minimal #demo .demo-output-panel{padding:21px}
+ .home-minimal #demo .demo-empty{min-height:185px}
+ .home-minimal #demo .panel-heading{margin-bottom:15px}
+ .home-minimal #demo .demo-workspace textarea{min-height:115px}
+ .home-minimal .calvren-pricing-grid{grid-template-columns:1fr;max-width:620px;gap:13px}
+ .home-minimal .calvren-tier{padding:23px}
+ .home-minimal .calvren-tier>p:not(.eyebrow):not(.calvren-tier-amount){min-height:0}
+ .home-minimal .calvren-tier ul{margin-bottom:7px}
+ .home-minimal .faq{grid-template-columns:1fr;gap:26px}
+ .home-minimal .contact-grid,.contact-minimal .contact-grid{grid-template-columns:1fr;gap:27px}
+ .home-minimal #contact-form,.contact-minimal #project-form{padding:22px}
+ .studies-minimal .case-example-grid,.studies-minimal .case-feedback-layout{grid-template-columns:1fr;gap:15px}
+ .studies-minimal .case-intro{padding-top:45px;padding-bottom:32px}
+ .studies-minimal .case-intro h1{font-size:clamp(48px,11vw,70px)}
+ .studies-minimal .case-examples{padding-bottom:55px}
+ .studies-minimal .case-example{padding:24px}
+ .studies-minimal .case-example>p:not(.case-owner){min-height:0}
+ .studies-minimal .case-feedback-layout{gap:30px}
+ .studies-minimal .review-form{padding:23px}
+ .studies-minimal .case-bottom{flex-direction:column;align-items:start;gap:17px;padding-top:52px;padding-bottom:52px}
+ .contact-minimal .page-hero{padding-top:45px;padding-bottom:35px}
+ .contact-minimal .page-hero h1{font-size:clamp(49px,11vw,75px)}
+ .home-minimal .footer-expanded,.contact-minimal .footer-expanded,.studies-minimal .footer-expanded{grid-template-columns:1fr 1fr;gap:20px}
+ .home-minimal .footer-contact,.contact-minimal .footer-contact,.studies-minimal .footer-contact{grid-column:1/-1;text-align:left;border-top:1px solid #dce5da;padding-top:15px}
+ .home-minimal .footer-contact p,.contact-minimal .footer-contact p,.studies-minimal .footer-contact p{margin-top:7px}
+}
+@media(max-width:440px){
+ .home-minimal .header,.contact-minimal .header,.studies-minimal .header{padding:15px 18px}
+ .home-minimal .section-wrap,.contact-minimal .section-wrap,.studies-minimal .section-wrap{padding-left:18px;padding-right:18px}
+ .home-minimal .hero-video{padding-top:33px}
+ .home-minimal .hero-video .hero-title{font-size:clamp(48px,12vw,58px)}
+ .home-minimal .hero-video .hero-actions{flex-direction:column;align-items:stretch}
+ .home-minimal .hero-video .hero-actions .button{width:100%}
+ .home-minimal .calvren-tier .calvren-tier-amount{font-size:39px}
+ .home-minimal #contact-form .form-row,.contact-minimal #project-form .form-row,.studies-minimal .review-form .form-row{grid-template-columns:1fr;gap:0}
+ .studies-minimal .case-example h2{font-size:37px}
+ .studies-minimal .case-overline{font-size:9px}
+ .home-minimal .footer-expanded,.contact-minimal .footer-expanded,.studies-minimal .footer-expanded{grid-template-columns:1fr}
+ .home-minimal .footer-links,.contact-minimal .footer-links,.studies-minimal .footer-links{max-width:330px}
+}
