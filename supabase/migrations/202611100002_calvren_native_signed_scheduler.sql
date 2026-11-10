@@ -58,4 +58,9 @@ end
 $send$;
 revoke all on function public.calvren_emit_dispatch(text) from public,anon,authenticated;
 -- Job executes as postgres; do not grant service_role unnecessary ability to invoke.
+-- Named jobs update existing schedules when this migration is applied again.
+select cron.schedule('calvren-native-followups','*/5 * * * *',
+  $select public.calvren_emit_dispatch('follow-ups');$);
+select cron.schedule('calvren-native-hub-daily','19 13 * * *',
+  $select public.calvren_emit_dispatch('hub-scheduler');$);
 commit;
