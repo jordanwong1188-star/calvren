@@ -34,13 +34,13 @@ jobs:
                 live:data.test_mode===false,starter:data.plans?.starter?.ready===true,
                 growth:data.plans?.growth?.ready===true,pro:data.plans?.pro?.ready===true};
               console.log("BILLING_READINESS",JSON.stringify(safe));
-              if(page.ok&&html.includes("CA$219")&&html.includes("CA$389")&&
+              if(page.ok&&html.includes("CA$249")&&html.includes("CA$499")&&
                 html.includes('data-select-plan="pro"')&&
                 config.ok&&data.ready===true&&data.test_mode===false&&
                 data.setup_amount===34900&&
                 data.plans?.starter?.ready===true&&data.plans.starter.amount===9900&&
-                data.plans?.growth?.ready===true&&data.plans.growth.amount===21900&&
-                data.plans?.pro?.ready===true&&data.plans.pro.amount===38900){
+                data.plans?.growth?.ready===true&&data.plans.growth.amount===24900&&
+                data.plans?.pro?.ready===true&&data.plans.pro.amount===49900){
                 verified=true;break;
               }
             }catch(error){
