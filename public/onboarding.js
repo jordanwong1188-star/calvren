@@ -87,7 +87,16 @@ function render(){
   message("");
 }
 function review(){
-  const labels=[["Business",form.business_name],["Industry",form.industry],["Services",form.services],["Enquiries",form.lead_sources],["Hours",form.business_hours],["Handoff email",form.handoff_email],["Booking",form.booking_duration],["Kickoff call",form.kickoff_requested?"Requested — "+(form.kickoff_availability||"confirming availability"):"Not requested"]];
+  const labels=[
+    ["Business",form.business_name],["Industry",form.industry],
+    ["Contact",form.contact_name],["Contact email",form.contact_email],
+    ["Website",form.website],["Services",form.services],
+    ["Service area",form.service_areas],["Lead sources",form.lead_sources],
+    ["Business hours",form.business_hours],["Booking duration",form.booking_duration],
+    ["Booking buffer",form.booking_buffer],["Calendar contact",form.calendar_email],
+    ["Human handoff email",form.handoff_email],["Human handoff rules",form.handoff_instructions],
+    ["Kickoff call",form.kickoff_requested?"Requested — "+(form.kickoff_availability||"confirming availability"):"Not requested"]
+  ];
   const container=$("review-summary");
   container.replaceChildren();
   for(const [title,value] of labels){
@@ -96,14 +105,24 @@ function review(){
     row.append(label,data);container.append(row);
   }
 }
-function validateCurrent(){
-  const page=document.querySelector('.ob-page[data-step="'+step+'"]');
+function validateStep(targetStep){
+  const page=document.querySelector('.ob-page[data-step="'+targetStep+'"]');
   const fields=[...page.querySelectorAll("input[required],select[required],textarea[required],input[type=email],input[type=url]")];
   for(const field of fields){
-    if(!field.checkValidity()||field.required&&!field.value.trim()){
-      field.reportValidity();field.focus();return false;
+    const emptyRequired=field.required&&field.type!=="checkbox"&&!field.value.trim();
+    if(!field.checkValidity()||emptyRequired){
+      if(step!==targetStep){step=targetStep;render();}
+      const label=document.querySelector('label[for="'+field.id+'"]')?.textContent||
+        field.closest("label")?.textContent||field.name||"this field";
+      message("Please check "+label.replaceAll("*","").replace(/\s+/g," ").trim()+" before continuing.",true);
+      field.focus();field.reportValidity();return false;
     }
   }
+  return true;
+}
+function validateCurrent(){return validateStep(step);}
+function validateForSubmission(){
+  for(let target=1;target<=4;target++)if(!validateStep(target))return false;
   return true;
 }
 async function save(nextStep=step,submit=false){
@@ -197,7 +216,8 @@ async function load(){
     step=Math.max(1,Math.min(4,result.record?.current_step||1));
     restore();show("onboarding-app");
     if(result.record&&!["draft","needs_details"].includes(result.record.status))showSubmitted(result.record);
-    else {render();if(result.record?.status==="needs_details")message("Calvren requested a few adjustments. Please review and resubmit.",true)}
+    else {render();if(result.record?.status==="needs_details")message("Calvren requested a few adjustments. Please review and resubmit.",true);
+      $("saved-indicator").textContent=result.record?.status==="draft"?"Saved draft — you can safely resume here":"Progress saves when you continue";}
   }catch(error){
     $("access-message").textContent=error.message;
     show("access-panel");
@@ -229,6 +249,6 @@ $("next-btn").addEventListener("click",async()=>{
 });
 $("back-btn").addEventListener("click",async()=>{collect();await save(Math.max(1,step-1))});
 $("save-btn").addEventListener("click",async()=>{await save(step);if(!$("form-message").dataset.error||$("form-message").dataset.error!=="true")message("Your progress was saved. Return using your client dashboard anytime.")});
-$("submit-btn").addEventListener("click",async()=>{collect();if(!validateCurrent())return;await save(4,true)});
+$("submit-btn").addEventListener("click",async()=>{collect();if(!validateForSubmission())return;await save(4,true)});
 document.querySelectorAll("#step-nav button").forEach(btn=>btn.addEventListener("click",async()=>{collect();await save(Number(btn.dataset.goto))}));
 load().catch(()=>show("auth-panel"));
