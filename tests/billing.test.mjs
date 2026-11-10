@@ -40,13 +40,13 @@ function fixture({member=null,clientId=null,subscriptionPrice=priceId}={}){
     if(url.endsWith("/v1/prices/price_setup123"))return Response.json({id:"price_setup123",active:true,unit_amount:34900,currency:"cad",recurring:null});
     if(url.endsWith("/v1/prices/"+priceId))return Response.json({id:priceId,active:true,unit_amount:9900,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
-    if(url.endsWith("/v1/prices/price_growth123"))return Response.json({id:"price_growth123",active:true,unit_amount:21900,
+    if(url.endsWith("/v1/prices/price_growth123"))return Response.json({id:"price_growth123",active:true,unit_amount:24900,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
-    if(url.endsWith("/v1/prices/price_pro123"))return Response.json({id:"price_pro123",active:true,unit_amount:38900,
+    if(url.endsWith("/v1/prices/price_pro123"))return Response.json({id:"price_pro123",active:true,unit_amount:49900,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
-    if(url.endsWith("/v1/prices/price_1Ua3rFQ9mewkKyl5dIhzjarI"))return Response.json({id:"price_1Ua3rFQ9mewkKyl5dIhzjarI",active:true,unit_amount:21900,
+    if(url.endsWith("/v1/prices/price_1UaAOfQ9mewkKyl5rXDk02Ff"))return Response.json({id:"price_1UaAOfQ9mewkKyl5rXDk02Ff",active:true,unit_amount:24900,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
-    if(url.endsWith("/v1/prices/price_1Ua3rNQ9mewkKyl5TrGGeeQU"))return Response.json({id:"price_1Ua3rNQ9mewkKyl5TrGGeeQU",active:true,unit_amount:38900,
+    if(url.endsWith("/v1/prices/price_1UaAOiQ9mewkKyl5NubJPt0S"))return Response.json({id:"price_1UaAOiQ9mewkKyl5NubJPt0S",active:true,unit_amount:49900,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
     if(url.endsWith("/v1/subscriptions/"+subId))return Response.json({
       id:subId,customer:customerId,status:"active",metadata:{auth_user_id:userId},
@@ -80,8 +80,8 @@ test("billing public price only comes from configured Stripe price",async()=>{
   assert.equal(value.plans.starter.ready,true);
   assert.equal(value.plans.growth.ready,false);
   assert.equal(value.plans.pro.checkout,"subscription");
-  assert.equal(value.plans.growth.amount,21900);
-  assert.equal(value.plans.pro.amount,38900);
+  assert.equal(value.plans.growth.amount,24900);
+  assert.equal(value.plans.pro.amount,49900);
 });
 test("server billing accepts least-privilege restricted Stripe test keys",async()=>{
   const f=fixture();
@@ -292,8 +292,8 @@ test("configured Growth and Pro both create secure, correctly priced Stripe Chec
   assert.equal(pub.plans.starter.ready,true);
   assert.equal(pub.plans.growth.ready,true);
   assert.equal(pub.plans.pro.ready,true);
-  assert.equal(pub.plans.growth.amount,21900);
-  assert.equal(pub.plans.pro.amount,38900);
+  assert.equal(pub.plans.growth.amount,24900);
+  assert.equal(pub.plans.pro.amount,49900);
   for(const [plan,expectedPrice] of [["growth","price_growth123"],["pro","price_pro123"]]){
     const response=await handleBilling(f.req("checkout","POST",true,{
       body:JSON.stringify({plan}),headers:{"Content-Type":"application/json"}
@@ -337,7 +337,43 @@ test("live Stripe prices remain pinned to the two verified new recurring catalog
   assert.equal(data.test_mode,false);
   assert.equal(data.plans.growth.ready,true);
   assert.equal(data.plans.pro.ready,true);
-  assert.ok(f.calls.some(call=>call.url.endsWith("/v1/prices/price_1Ua3rFQ9mewkKyl5dIhzjarI")));
-  assert.ok(f.calls.some(call=>call.url.endsWith("/v1/prices/price_1Ua3rNQ9mewkKyl5TrGGeeQU")));
+  assert.ok(f.calls.some(call=>call.url.endsWith("/v1/prices/price_1UaAOfQ9mewkKyl5rXDk02Ff")));
+  assert.ok(f.calls.some(call=>call.url.endsWith("/v1/prices/price_1UaAOiQ9mewkKyl5NubJPt0S")));
   assert.ok(!f.calls.some(call=>call.url.endsWith("/v1/prices/price_old_growth")));
+});
+
+test("grandfathered live Growth/Pro subscribers retain plan access after repricing",async()=>{
+  for(const [expectedPlan,oldPrice] of [
+    ["growth","price_1Ua3rFQ9mewkKyl5dIhzjarI"],
+    ["pro","price_1Ua3rNQ9mewkKyl5TrGGeeQU"]
+  ]){
+    const f=fixture({member:{stripe_price_id:oldPrice,subscription_status:"active",
+      current_period_end:"2030-01-01T00:00:00Z"}});
+    f.deps.env=name=>name==="STRIPE_SECRET_KEY"?"rk_live_syntheticfixture123":env(name);
+    const response=await handleBilling(f.req("me","GET",true),f.deps);
+    assert.equal(response.status,200);
+    const body=await response.json();
+    assert.equal(body.plan,expectedPlan);
+    assert.equal(body.paid,true);
+    assert.ok(body.included_features.includes("lead_response"));
+  }
+});
+test("re-priced live subscriptions assign the correct signed webhook entitlements",async()=>{
+  for(const [expectedPlan,price] of [
+    ["growth","price_1UaAOfQ9mewkKyl5rXDk02Ff"],
+    ["pro","price_1UaAOiQ9mewkKyl5NubJPt0S"]
+  ]){
+    const f=fixture({subscriptionPrice:price});
+    f.deps.env=name=>name==="STRIPE_SECRET_KEY"?"rk_live_syntheticfixture123":env(name);
+    const event={id:"evt_live_"+expectedPlan,livemode:true,type:"checkout.session.completed",
+      data:{object:{mode:"subscription",payment_status:"paid",
+        subscription:subId,client_reference_id:userId}}};
+    const signed=signedPayload(event);
+    const response=await handleBilling(f.req("webhook","POST",false,{
+      headers:{"Stripe-Signature":signed.header},body:signed.raw
+    }),f.deps);
+    assert.equal(response.status,200);
+    assert.equal(f.saved.length,1);
+    assert.equal(f.saved[0].stripe_price_id,price);
+  }
 });

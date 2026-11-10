@@ -248,7 +248,7 @@ try{
     const url=new URL(route.request().url());
     if(url.pathname==="/api/billing/public")return route.fulfill({status:200,contentType:"application/json",
       body:JSON.stringify({ready:true,amount:9900,setup_amount:34900,first_payment:44800,currency:"cad",interval:"month",interval_count:1,test_mode:false,plans:{
-        starter:{ready:true,amount:9900},growth:{ready:true,amount:21900},pro:{ready:true,amount:38900}
+        starter:{ready:true,amount:9900},growth:{ready:true,amount:24900},pro:{ready:true,amount:49900}
       }})});
     if(url.pathname==="/api/billing/me")return route.fulfill({status:200,contentType:"application/json",
       body:JSON.stringify({email:"fixture@example.com",paid:false,status:"none",activation:"pending"})});
@@ -274,7 +274,7 @@ try{
   assert.equal(checkoutRequests,1,"The dashboard must open Stripe Checkout without a payment/dashboard loop");
   // All three verified plans must be selectable, display the correct first payment
   // (including the one-time $349 setup), and send the selected plan to the server.
-  for(const [plan,monthly,initial] of [["growth","219","568"],["pro","389","738"],["starter","99","448"]]){
+  for(const [plan,monthly,initial] of [["growth","249","598"],["pro","499","848"],["starter","99","448"]]){
     await unpaidPage.goto(site+"/payment.html?plan="+plan,{waitUntil:"domcontentloaded"});
     await unpaidPage.locator("#billing-checkout").waitFor({state:"visible"});
     assert.equal(await unpaidPage.locator('[data-select-plan="'+plan+'"]').getAttribute("aria-pressed"),"true");

@@ -34,8 +34,13 @@ function memberPlan(env:Env,member:Member):Plan{
   const key=env("STRIPE_SECRET_KEY")||"";
   const live=/^(sk|rk)_live_/.test(key);
   if(member.stripe_price_id===env("STRIPE_PRICE_ID"))return "starter";
-  if(member.stripe_price_id===(live?"price_1Ua3rFQ9mewkKyl5dIhzjarI":env("STRIPE_GROWTH_PRICE_ID")))return "growth";
-  if(member.stripe_price_id===(live?"price_1Ua3rNQ9mewkKyl5TrGGeeQU":env("STRIPE_PRO_PRICE_ID")))return "pro";
+  if(live){
+    if(["price_1UaAOfQ9mewkKyl5rXDk02Ff","price_1Ua3rFQ9mewkKyl5dIhzjarI"].includes(member.stripe_price_id))return "growth";
+    if(["price_1UaAOiQ9mewkKyl5NubJPt0S","price_1Ua3rNQ9mewkKyl5TrGGeeQU"].includes(member.stripe_price_id))return "pro";
+  }else{
+    if(member.stripe_price_id===env("STRIPE_GROWTH_PRICE_ID"))return "growth";
+    if(member.stripe_price_id===env("STRIPE_PRO_PRICE_ID"))return "pro";
+  }
   return null;
 }
 async function onboarded(env:Env,userId:string,fetcher?:typeof fetch){

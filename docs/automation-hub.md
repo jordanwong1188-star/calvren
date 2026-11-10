@@ -3,7 +3,7 @@ Updated 2026-11-10.
 
 ## What is implemented
 
-**Growth ($219/mo):**
+**Growth ($249/mo):**
 - The original guarded AI lead response/booking workflow.
 - Scheduled lead follow-ups are authorized **only** for linked, active, approved live Growth/Pro clients.
 - A secure client dashboard switch for **neutral Google Business review invitations** and a validated Google review URL.
@@ -13,7 +13,7 @@ Updated 2026-11-10.
 - A monthly report email with new-lead, qualified-lead and booked-appointment totals; sent during days 1–7 for the previous UTC calendar month. If an account has over 1000 leads/appointments, automated sending pauses rather than sending an inaccurate partial report.
 - Per-client switches default to **off** until activated by an authorized, linked, live customer.
 
-**Pro ($389/mo):**
+**Pro ($499/mo):**
 - All Growth features.
 - Tenant-isolated unified conversation inbox combining recorded website/SMS/email-channel lead messages, statuses and appointment activity.
 - Internal notes linked to a conversation and the authorized signed-in user.

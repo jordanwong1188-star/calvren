@@ -1,37 +1,35 @@
-# Calvren live subscription tiers — November 9, 2026
+# Calvren verified live subscription plans — November 10, 2026
 
-## Three monthly plans (CAD, before any applicable taxes)
+## Original subscription pricing restored (CAD, before any applicable taxes)
 
-| Tier | Monthly | First invoice (includes one-time $349 setup) | Renewal |
+| Tier | Monthly | Initial invoice (includes one-time $349 setup) | Monthly renewal |
 | --- | ---: | ---: | ---: |
-| Starter | CA$99 | CA$448 | CA$99 |
-| Growth | CA$219 | CA$568 | CA$219 |
-| Pro | CA$389 | CA$738 | CA$389 |
+| Starter | $99 | $448 | $99 |
+| Growth | $249 | $598 | $249 |
+| Pro | $499 | $848 | $499 |
 
-The initial charge includes onboarding. The setup fee is not charged on regular monthly renewals. Additional custom integrations and support must be scoped during onboarding; these published monthly prices do not authorize unlimited third-party usage.
+These prices are flat recurring subscription starting prices with agreed scope and usage limits; advanced custom work beyond the agreed Pro package is quoted separately. The initial checkout includes the recurring first month plus the existing one-time $349 setup price. Subsequent regular renewals include the recurring plan only.
 
-## Live Stripe price IDs (not secrets)
-- Starter `price_1UQWVeQ9mewkKyl5kv85ccXb` — existing $99/month.
-- Growth `price_1Ua3rFQ9mewkKyl5dIhzjarI` — live $219/month.
-- Pro `price_1Ua3rNQ9mewkKyl5TrGGeeQU` — live $389/month.
-- Setup `price_1UQX1gQ9mewkKyl5QpjCrTyt` — existing $349 one-time fee.
+## Stripe IDs (public identifiers, never secret keys)
 
-All are on the live Calvren Stripe account, billed in CAD. Growth and Pro price tax behavior is `exclusive`; the old Starter/setup prices remain `unspecified`. There are **no current Stripe Tax registrations**, and Stripe Tax has no head office configured, so automatic tax collection must not be claimed. Confirm registration requirements with the business's tax adviser before collecting tax. Do not configure fictitious tax registrations.
+- Starter: \`price_1UQWVeQ9mewkKyl5kv85ccXb\` — original active live $99/month
+- Growth: \`price_1UaAOfQ9mewkKyl5rXDk02Ff\` — restored active live $249/month
+- Pro: \`price_1UaAOiQ9mewkKyl5NubJPt0S\` — restored active live $499/month
+- Standard setup: \`price_1UQX1gQ9mewkKyl5QpjCrTyt\` — original active live $349 one-time
 
-## Server, checkout, and access rules
-- The live backend pins the two new verified Price IDs. The existing Starter price, setup price, Stripe API key and webhook signing key remain securely configured through server-only secrets.
-- The public billing endpoint returns a `ready` flag for each plan only after Stripe verifies that the corresponding live Price ID is active, CAD, and exactly $99/$219/$389 monthly.
-- Logged-in verified customers choose the plan; the backend creates the Stripe-hosted subscription Checkout Session. The first invoice also includes the one-time $349 setup price.
-- A successful redirect **does not** grant subscription access. Only a valid signed Stripe webhook, reconciled with the current Stripe subscription and an allowed verified price ID, can update paid membership.
-- Paid plan entitlements are server-derived. The client dashboard is scoped to the signed-in account and only a server-assigned business client ID.
-- Existing paid customers are not silently upgraded, downgraded, or rebilled; plan changes for existing subscriptions need a separate owner-approved proration and billing policy.
+All prices are in CAD. Growth/Pro have exclusive tax behavior. The preexisting Starter and setup prices remain configured with unspecified tax behavior. Do not assert that automatic Stripe Tax is collecting taxes until the owner configures their tax registration, addresses and tax settings.
 
-## Delivery and activation limitations
-The pricing and billing system is separate from activation of production automations. Starter's lead-response and booking providers require customer-owned integrations, consent and live tests. Growth has a read-only monthly activity summary; review-request delivery and automated monthly report emails still require implementation. Pro's unified inbox, advanced integrations and support arrangements require scoped implementation. The website must disclose that onboarding and testing precede activation. Never promise fully working services merely because payment succeeded.
+**Existing subscribers:** The previous $219 Growth \`price_1Ua3rFQ9mewkKyl5dIhzjarI\` and $389 Pro \`price_1Ua3rNQ9mewkKyl5TrGGeeQU\` subscriptions still map to the corresponding plan for paid entitlements and are not silently repriced. New checkout sessions use **only** the restored live prices. An existing subscription change requires an explicit customer-approved billing decision and a separately designed proration policy.
 
-## Production readiness checklist
-1. Check `https://calvren.pages.dev/api/billing/public`: `ready===true`, `test_mode===false`, and `plans.starter.ready`, `plans.growth.ready`, and `plans.pro.ready` are all true with $99/$219/$389 minor units.
-2. Check the public signup/login page and all three plan selectors route to the correct Stripe-hosted checkout. This does **not** require or justify a real test purchase on a live card.
-3. Confirm the Stripe webhook endpoint is enabled for `checkout.session.completed` and `customer.subscription.created/updated/deleted`. Test signed event and cancellation behavior in a sandbox before processing customer payments.
-4. Complete an owner-approved test-mode rehearsal of checkout, webhook membership, initial invoice, recurring invoice, billing portal, cancellation and failed-payment behavior.
-5. Set up merchant tax registrations, terms, onboarding expectations, usage limits, and support scope as legally appropriate.
+## Server checkout and billing behavior
+
+The public endpoint \`/api/billing/public\` queries each actual Stripe Price ID and checks active, CAD, exactly $99/$249/$499 monthly (one-month interval), plus the $349 one-time price. A verified account creates a subscription Checkout Session with server-set line items and no browser-supplied price IDs. Hosted Stripe Checkout handles payment-method collection. A signed Stripe webhook reconciles the actual subscription and grants plan permissions only after Stripe confirms a paid/active subscription. The secure client dashboard provides access to a Stripe Billing Portal link for existing customers; it does not give customers control over Stripe prices.
+
+## Live readiness verification
+
+1. Check \`https://calvren.pages.dev/payment.html\` and the \`/#pricing\` homepage cards for the $99, $249 and $499 subscriptions, and $349 setup terms.
+2. Check \`https://calvren.pages.dev/api/billing/public\`: \`ready=true\`, \`test_mode=false\`, all three plans are \`ready=true\`, and amounts are exactly 9900, 24900, and 49900 cents.
+3. Confirm new Stripe Checkout requests have the desired recurring Price ID and the $349 one-time setup item; verify the hosted checkout URL uses Stripe's legitimate \`checkout.stripe.com\` origin.
+4. Run the automated checkout, signed webhook, billing portal, legacy entitlement, browser, and published-readiness checks. No production credit card charge is required for a smoke test.
+5. For complete real-money verification, the owner must approve a controlled live-card payment, renewal/cancellation and refund test. No customer charge or production subscription alteration is made by automated tests.
+6. Confirm business tax treatment, refund/cancellation terms, provider setup, onboarding approvals, usage limits and deliverables independently. Successful payment is not evidence that every custom integration is production-ready.

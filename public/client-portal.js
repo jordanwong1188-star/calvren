@@ -51,7 +51,7 @@ const chosen=new URLSearchParams(location.search).get("plan");
 let selectedPlan=["starter","growth","pro"].includes(chosen)?chosen:"starter";
 let planAvailability={starter:false,growth:false,pro:false};
 const planLabels={starter:"Starter",growth:"Growth",pro:"Pro"};
-const planAmounts={starter:9900,growth:21900,pro:38900};
+const planAmounts={starter:9900,growth:24900,pro:49900};
 function selectBillingPlan(plan){
   if(!Object.hasOwn(planLabels,plan))return;
   selectedPlan=plan;
