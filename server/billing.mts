@@ -20,15 +20,27 @@ const setupPriceId=(env:Env)=>env("STRIPE_SETUP_PRICE_ID")?.trim()||"";
 export type CalvrenPlan="starter"|"growth"|"pro";
 const plans={
   starter:{name:"Starter",monthly:9900,envKey:"STRIPE_PRICE_ID"},
-  growth:{name:"Growth",monthly:24900,envKey:"STRIPE_GROWTH_PRICE_ID"},
-  pro:{name:"Pro",monthly:49900,envKey:"STRIPE_PRO_PRICE_ID"}
+  growth:{name:"Growth",monthly:21900,envKey:"STRIPE_GROWTH_PRICE_ID"},
+  pro:{name:"Pro",monthly:38900,envKey:"STRIPE_PRO_PRICE_ID"}
 } as const;
 const features={
   starter:["lead_response","booking"],
   growth:["lead_response","booking","follow_ups","review_requests","monthly_reports"],
   pro:["lead_response","booking","follow_ups","review_requests","monthly_reports","custom_integrations","advanced_workflows","unified_inbox","priority_support"]
 } as const;
-const configuredPrice=(env:Env,plan:CalvrenPlan)=>env(plans[plan].envKey)?.trim()||"";
+// Price IDs identify public Stripe catalog records; they are not API credentials.
+// For the production account, pin the *verified* live prices so an old optional
+// environment variable cannot silently send customers to an obsolete price.
+// In sandbox tests, use explicitly configured test price IDs.
+const LIVE_PRICE_IDS={
+  growth:"price_1Ua3rFQ9mewkKyl5dIhzjarI",
+  pro:"price_1Ua3rNQ9mewkKyl5TrGGeeQU"
+} as const;
+const configuredPrice=(env:Env,plan:CalvrenPlan)=>{
+  if(plan==="starter")return priceId(env);
+  if(liveMode(env))return LIVE_PRICE_IDS[plan];
+  return env(plans[plan].envKey)?.trim()||"";
+};
 const planForPrice=(env:Env,value:unknown):CalvrenPlan|null=>{
   if(typeof value!=="string")return null;
   for(const plan of ["starter","growth","pro"] as const)
@@ -111,8 +123,8 @@ const paid=(m:ObjectRow|null)=>!!m&&["active","trialing"].includes(m.subscriptio
 async function publicConfig(deps:BillingDependencies){
   const visible={
     starter:{label:"Starter",amount:9900,ready:false,checkout:"subscription"},
-    growth:{label:"Growth",amount:24900,ready:false,checkout:"subscription"},
-    pro:{label:"Pro",amount:49900,ready:false,checkout:"proposal"}
+    growth:{label:"Growth",amount:21900,ready:false,checkout:"subscription"},
+    pro:{label:"Pro",amount:38900,ready:false,checkout:"subscription"}
   };
   if(!billingReady(deps.env))return json({ready:false,plans:visible,message:"Subscription checkout is being configured."});
   try{
@@ -123,12 +135,13 @@ async function publicConfig(deps:BillingDependencies){
     if(!validPrice(starter,priceId(deps.env),9900))
       return json({ready:false,plans:visible,message:"Starter price requires configuration."});
     visible.starter.ready=true;
-    const growthId=configuredPrice(deps.env,"growth");
-    if(stripeId(growthId,"price")&&growthId!==priceId(deps.env)){
+    for(const plan of ["growth","pro"] as const){
+      const id=configuredPrice(deps.env,plan);
+      if(!stripeId(id,"price")||id===priceId(deps.env))continue;
       try{
-        const growth=await stripe(deps,"prices/"+encodeURIComponent(growthId));
-        visible.growth.ready=validPrice(growth,growthId,24900);
-      }catch{visible.growth.ready=false;}
+        const price=await stripe(deps,"prices/"+encodeURIComponent(id));
+        visible[plan].ready=validPrice(price,id,plans[plan].monthly);
+      }catch{visible[plan].ready=false;}
     }
     return json({ready:true,amount:starter.unit_amount,setup_amount:setup.unit_amount,
       first_payment:starter.unit_amount+setup.unit_amount,currency:"cad",
@@ -211,8 +224,8 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
           if(!payload||typeof payload!=="object"||Array.isArray(payload))
             return json({error:"Invalid checkout request."},400);
           if(Object.hasOwn(payload,"plan")){
-            if(!["starter","growth"].includes(payload.plan))
-              return json({error:"Choose Starter or Growth. Pro requires a custom proposal."},400);
+            if(!["starter","growth","pro"].includes(payload.plan))
+              return json({error:"Choose Starter, Growth or Pro."},400);
             plan=payload.plan as CalvrenPlan;
           }
         }catch{return json({error:"Invalid checkout request."},400);}
