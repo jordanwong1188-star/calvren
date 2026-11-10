@@ -1,6 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { OperatorRepository } from "../netlify/lib/conversion-api.mjs";
 import { sendClientMail } from "./customer-email.mjs";
+import { handleAutomationHub } from "./automation-hub.mjs";
 
 type Env = (name:string)=>string|undefined;
 export interface BillingDependencies { env:Env; fetch?:typeof fetch; repository?:OperatorRepository|null; }
@@ -198,6 +199,13 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
   try{
     if(path==="/api/billing/public"&&request.method==="GET")return publicConfig(deps);
     if(path==="/api/billing/webhook"&&request.method==="POST")return webhook(request,deps);
+    if(path.startsWith("/api/billing/hub/")){
+      const user=await userFromToken(request,deps);
+      if(!user)return json({error:"Sign in with your verified email first."},401);
+      const existing=await membership(deps,user.id);
+      const plan=paid(existing)?planForPrice(deps.env,existing?.stripe_price_id):null;
+      return handleAutomationHub(request,{env:deps.env,fetch:deps.fetch,user,member:existing,plan});
+    }
     if(!["/api/billing/me","/api/billing/checkout","/api/billing/portal","/api/billing/automation","/api/billing/report"].includes(path))
       return json({error:"Not found."},404);
     const user=await userFromToken(request,deps);
