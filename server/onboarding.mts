@@ -16,6 +16,13 @@ const allowedFields:Record<string,number>={
 };
 const required=["business_name","industry","description","contact_name","contact_email","services","business_hours","lead_sources","handoff_email"];
 const validEmail=(s:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+function validHttpsUrl(value:string):boolean{
+  try{
+    const u=new URL(value);
+    return u.protocol==="https:"&&!u.username&&!u.password&&!u.port&&!!u.hostname.includes(".")&&
+      !u.hostname.startsWith(".")&&!u.hostname.endsWith(".");
+  }catch{return false;}
+}
 function normalizeForm(input:unknown,submit:boolean):Row{
   if(!input||typeof input!=="object"||Array.isArray(input))throw Error("Invalid onboarding form.");
   const raw=input as Row,form:Row={};
@@ -30,7 +37,9 @@ function normalizeForm(input:unknown,submit:boolean):Row{
   if(submit){
     for(const field of required)if(!form[field])throw Error("Complete the required field: "+field.replaceAll("_"," ")+".");
     if(!validEmail(form.contact_email)||!validEmail(form.handoff_email))throw Error("Use a valid contact and handoff email.");
-    if(form.website&& !/^https:\/\/[\w.-]+(?:[\/?#][^\s]*)?$/i.test(form.website))throw Error("Business website must be a full HTTPS URL.");
+    if(form.website&&!validHttpsUrl(form.website))throw Error("Business website must be a full HTTPS URL.");
+    if(form.lead_form_url&&!validHttpsUrl(form.lead_form_url))throw Error("Use a valid HTTPS enquiry form URL.");
+    if(form.calendar_email&&!validEmail(form.calendar_email))throw Error("Use a valid calendar owner email.");
     if(!form.consent_data_handling||!form.approve_workflow_scope)throw Error("Review and confirm both acknowledgements before submitting.");
     if(form.kickoff_requested&&!form.kickoff_availability)throw Error("Provide a few preferred times for your optional kickoff call.");
   }
