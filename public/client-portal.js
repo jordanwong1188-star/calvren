@@ -49,23 +49,18 @@ const chosen=new URLSearchParams(location.search).get("plan");
 let selectedPlan=["starter","growth","pro"].includes(chosen)?chosen:"starter";
 let planAvailability={starter:false,growth:false,pro:false};
 const planLabels={starter:"Starter",growth:"Growth",pro:"Pro"};
-const planAmounts={starter:9900,growth:24900,pro:49900};
+const planAmounts={starter:9900,growth:21900,pro:38900};
 function selectBillingPlan(plan){
   if(!Object.hasOwn(planLabels,plan))return;
   selectedPlan=plan;
   for(const button of document.querySelectorAll("[data-select-plan]"))
     button.setAttribute("aria-pressed",String(button.dataset.selectPlan===plan));
   if($("billing-selected-tier"))$("billing-selected-tier").textContent=planLabels[plan]+" automation";
-  if($("billing-price"))$("billing-price").textContent=plan==="pro"?
-    "CA$499+ / month":money(planAmounts[plan],"cad")+" / month";
-  if($("billing-first-payment"))$("billing-first-payment").textContent=plan==="pro"?
-    "Custom setup quote":money(planAmounts[plan]+34900,"cad")+" due initially";
-  if($("billing-price-note"))$("billing-price-note").textContent=plan==="pro"?
-    "Pro is individually scoped. Request a proposal; online checkout is not offered.":
-    planAvailability[plan]?
-      "CA$349 one-time setup is included in the initial amount. Stripe shows the final total and applicable taxes.":
-      "Secure online checkout for this plan is temporarily unavailable. Contact Calvren for activation.";
-  if($("billing-plan-quote"))$("billing-plan-quote").hidden=plan!=="pro";
+  if($("billing-price"))$("billing-price").textContent=money(planAmounts[plan],"cad")+" / month";
+  if($("billing-first-payment"))$("billing-first-payment").textContent=money(planAmounts[plan]+34900,"cad")+" due initially";
+  if($("billing-price-note"))$("billing-price-note").textContent=planAvailability[plan]?
+    "First payment includes CA$349 one-time setup. Renewals charge the monthly plan only, before applicable taxes. Setup and activation require your approved onboarding scope.":
+    "Secure online checkout for this plan is temporarily unavailable. Please contact Calvren for assistance.";
   if($("billing-checkout"))$("billing-checkout").textContent="Continue with "+planLabels[plan]+" on Stripe ↗";
 }
 document.querySelectorAll("[data-select-plan]").forEach(button=>
@@ -113,8 +108,7 @@ async function check(){
     button.hidden=!user;
     button.disabled=!user||!planAvailability[selectedPlan];
     if(user&&planAvailability[selectedPlan])notice("You're signed in. Continue to Stripe's secure checkout.");
-    else if(user&&!planAvailability[selectedPlan])notice(selectedPlan==="pro"?
-      "Pro is priced by proposal. Contact Calvren to scope your integrations.":
+    else if(user&&!planAvailability[selectedPlan])notice(
       "Secure checkout for this plan is temporarily unavailable. Please contact Calvren.");
   }else if(user){
     try{
@@ -319,7 +313,7 @@ async function init(){
       planAvailability={
         starter:ready&&((data.plans?.starter?.ready)??true),
         growth:!!data.plans?.growth?.ready,
-        pro:false
+        pro:ready&&!!data.plans?.pro?.ready
       };
       if($("billing-stripe-link"))planAvailability={starter:false,growth:false,pro:false};
       selectBillingPlan(selectedPlan);

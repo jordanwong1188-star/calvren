@@ -1,36 +1,53 @@
-name: Verify Calvren payment readiness
-
+name: Verify live Calvren billing for Starter, Growth, and Pro
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
+      - public/payment.html
+      - public/client-portal.js
+      - server/billing.mts
       - .github/workflows/verify-payment-readiness.yml
-
 permissions:
   contents: read
-
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
-      - name: Fetch public payment page and non-secret readiness JSON
-        shell: bash
+      - name: Verify deployed public pricing and Stripe readiness (read only)
         run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --location --retry 2 --connect-timeout 12 --max-time 30 https://calvren.pages.dev/payment -o payment.html
-          grep -q 'id="billing-checkout"' payment.html
-          grep -q 'id="discount-code"' payment.html
-          echo 'PAYMENT_PAGE_PRESENT'
-          curl --fail --silent --show-error --location --retry 2 --connect-timeout 12 --max-time 30 -H 'Accept: application/json' -H 'Cache-Control: no-cache' https://calvren.pages.dev/api/billing/public -o billing.json
           node --input-type=module <<'NODE'
-          import {readFileSync} from "node:fs";
-          const data=JSON.parse(readFileSync("billing.json","utf8"));
-          // No key or webhook value may be printed, only public readiness.
-          const safe={ready:data.ready,monthly:data.amount,setup:data.setup_amount,
-            first_payment:data.first_payment,currency:data.currency,test_mode:data.test_mode,message:data.message};
-          console.log("CALVREN_BILLING_PUBLIC:",JSON.stringify(safe));
-          if(data.ready!==true||data.amount!==9900||data.setup_amount!==34900
-            ||data.first_payment!==44800||data.currency!=="cad"||data.test_mode!==false)
-            process.exit(1);
+          import {setTimeout as pause} from "node:timers/promises";
+          const origin="https://calvren.pages.dev";
+          let verified=false;
+          for(let attempt=1;attempt<=20;attempt++){
+            try{
+              const [page,config]=await Promise.all([
+                fetch(origin+"/payment.html",{cache:"no-store",signal:AbortSignal.timeout(15000)}),
+                fetch(origin+"/api/billing/public",{headers:{"Accept":"application/json","Cache-Control":"no-cache"},signal:AbortSignal.timeout(18000)})
+              ]);
+              const html=await page.text();
+              const data=await config.json();
+              // Never print Stripe credentials, customer data or protected billing responses.
+              const safe={attempt,http_status:config.status,ready:data.ready===true,
+                live:data.test_mode===false,starter:data.plans?.starter?.ready===true,
+                growth:data.plans?.growth?.ready===true,pro:data.plans?.pro?.ready===true};
+              console.log("BILLING_READINESS",JSON.stringify(safe));
+              if(page.ok&&html.includes("CA$219")&&html.includes("CA$389")&&
+                html.includes('data-select-plan="pro"')&&
+                config.ok&&data.ready===true&&data.test_mode===false&&
+                data.setup_amount===34900&&
+                data.plans?.starter?.ready===true&&data.plans.starter.amount===9900&&
+                data.plans?.growth?.ready===true&&data.plans.growth.amount===21900&&
+                data.plans?.pro?.ready===true&&data.plans.pro.amount===38900){
+                verified=true;break;
+              }
+            }catch(error){
+              console.warn("BILLING_PROBE_RETRY",attempt,String(error?.name||"error"));
+            }
+            if(attempt<20)await pause(12000);
+          }
+          if(!verified){console.error("LIVE_BILLING_NOT_VERIFIED: investigate server Stripe/webhook secrets or deployment.");process.exit(1);}
+          console.log("CALVREN_ALL_THREE_LIVE_STRIPE_PRICES_READY");
           NODE

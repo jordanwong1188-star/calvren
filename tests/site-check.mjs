@@ -238,7 +238,7 @@ try{
   // Regression: a signed-in but unpaid customer must be able to reach Stripe directly
   // from the client dashboard. Mock providers to avoid any actual payment or email.
   const unpaidContext=await browser.newContext();
-  let checkoutRequests=0;
+  let checkoutRequests=0;const checkoutPlans=[];
   await unpaidContext.route("https://esm.sh/@supabase/supabase-js@2.57.0",route=>route.fulfill({
     status:200,contentType:"text/javascript",
     headers:{"Access-Control-Allow-Origin":"*"},
@@ -247,11 +247,14 @@ try{
   await unpaidContext.route("**/api/billing/*",route=>{
     const url=new URL(route.request().url());
     if(url.pathname==="/api/billing/public")return route.fulfill({status:200,contentType:"application/json",
-      body:JSON.stringify({ready:true,amount:9900,setup_amount:34900,first_payment:44800,currency:"cad",interval:"month",interval_count:1,test_mode:false})});
+      body:JSON.stringify({ready:true,amount:9900,setup_amount:34900,first_payment:44800,currency:"cad",interval:"month",interval_count:1,test_mode:false,plans:{
+        starter:{ready:true,amount:9900},growth:{ready:true,amount:21900},pro:{ready:true,amount:38900}
+      }})});
     if(url.pathname==="/api/billing/me")return route.fulfill({status:200,contentType:"application/json",
       body:JSON.stringify({email:"fixture@example.com",paid:false,status:"none",activation:"pending"})});
     if(url.pathname==="/api/billing/checkout"){
       checkoutRequests++;
+      checkoutPlans.push(route.request().postDataJSON()?.plan);
       assert.equal(route.request().headers().authorization,"Bearer fixture-auth-token");
       assert.equal(route.request().method(),"POST");
       return route.fulfill({status:200,contentType:"application/json",
@@ -269,16 +272,20 @@ try{
   await unpaidPage.locator("#client-checkout").click();
   await unpaidPage.waitForURL(url=>url.hostname==="checkout.stripe.com");
   assert.equal(checkoutRequests,1,"The dashboard must open Stripe Checkout without a payment/dashboard loop");
-  // Plan selection never lets clients pay an unconfigured Growth tier or quote-only Pro tier.
-  await unpaidPage.goto(site+"/payment.html?plan=growth",{waitUntil:"domcontentloaded"});
-  await unpaidPage.locator("#billing-checkout").waitFor({state:"visible"});
-  assert.equal(await unpaidPage.locator('[data-select-plan="growth"]').getAttribute("aria-pressed"),"true");
-  assert.equal(await unpaidPage.locator("#billing-checkout").isDisabled(),true);
-  await unpaidPage.locator('[data-select-plan="pro"]').click();
-  assert.equal(await unpaidPage.locator("#billing-plan-quote").isVisible(),true);
-  assert.equal(await unpaidPage.locator("#billing-checkout").isDisabled(),true);
-  await unpaidPage.locator('[data-select-plan="starter"]').click();
-  assert.equal(await unpaidPage.locator("#billing-checkout").isEnabled(),true);
+  // All three verified plans must be selectable, display the correct first payment
+  // (including the one-time $349 setup), and send the selected plan to the server.
+  for(const [plan,monthly,initial] of [["growth","219","568"],["pro","389","738"],["starter","99","448"]]){
+    await unpaidPage.goto(site+"/payment.html?plan="+plan,{waitUntil:"domcontentloaded"});
+    await unpaidPage.locator("#billing-checkout").waitFor({state:"visible"});
+    assert.equal(await unpaidPage.locator('[data-select-plan="'+plan+'"]').getAttribute("aria-pressed"),"true");
+    assert.match(await unpaidPage.locator("#billing-price").textContent(),new RegExp(monthly));
+    assert.match(await unpaidPage.locator("#billing-first-payment").textContent(),new RegExp(initial));
+    assert.equal(await unpaidPage.locator("#billing-checkout").isEnabled(),true,plan+" checkout should be enabled");
+    await unpaidPage.locator("#billing-checkout").click();
+    await unpaidPage.waitForURL(url=>url.hostname==="checkout.stripe.com");
+  }
+  assert.deepEqual(checkoutPlans,["starter","growth","pro","starter"]);
+  assert.equal(checkoutRequests,4);
   // The UI must never claim Checkout is live while the backend is missing its keys.
   await unpaidContext.route("**/api/billing/public",route=>route.fulfill({
     status:200,contentType:"application/json",
