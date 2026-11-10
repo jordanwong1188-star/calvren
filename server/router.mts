@@ -8,9 +8,15 @@ import { handlePublicForm } from "./forms.mjs";
 import { handleDemoSignup, handleDemoUnsubscribe } from "./demo-access.mjs";
 import { handleBilling } from "./billing.mjs";
 import { handleOnboarding } from "./onboarding.mjs";
-import {processAutomationCron,unsubscribeReview,configureProIntegration,entitledGrowthClients} from "./automation-hub.mjs";
+import {processAutomationCron,unsubscribeReview,configureProIntegration,entitledGrowthClients,verifyNativeCron} from "./automation-hub.mjs";
 export interface ServerOptions { env(name:string):string|undefined; ip?:string; }
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
+async function cronAuthorized(request:Request,env:(name:string)=>string|undefined,route:"follow-ups"|"hub-scheduler"){
+  const expected=env("CALVREN_CRON_TOKEN"),supplied=request.headers.get("authorization")?.replace(/^Bearer /,"")||"";
+  const hash=(value:string)=>createHash("sha256").update(value).digest();
+  if(expected&&expected.length>=32&&supplied&&timingSafeEqual(hash(expected),hash(supplied)))return true;
+  return verifyNativeCron(request,env,route);
+}
 export async function handleServer(request: Request, options: ServerOptions): Promise<Response> {
   try {
     const original=new URL(request.url);
@@ -25,9 +31,7 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
     if(path==="/health"&&request.method==="GET")return json({ok:true,service:"calvren",hosting:"supabase"});
     if(path==="/api/internal/follow-ups"){
       if(request.method!=="POST")return json({error:"Use POST."},405);
-      const expected=env("CALVREN_CRON_TOKEN"), supplied=request.headers.get("authorization")?.replace(/^Bearer /,"")||"";
-      const hash=(value:string)=>createHash("sha256").update(value).digest();
-      if(!expected||expected.length<32||!supplied||!timingSafeEqual(hash(expected),hash(supplied)))return json({error:"Scheduler authentication required."},401);
+      if(!await cronAuthorized(request,env,"follow-ups"))return json({error:"Scheduler authentication required."},401);
       if(!deps.repository||!deps.readiness().admin)return json({error:"Operator setup is incomplete."},503);
       const eligibleClients=await entitledGrowthClients(env);
       return json({ok:true,...await deps.engine().followUps(1,eligibleClients)});
@@ -36,9 +40,7 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
     if(path==="/api/internal/hub/integration")return configureProIntegration(routed,env);
     if(path==="/api/internal/hub-scheduler"){
       if(request.method!=="POST")return json({error:"Use POST."},405);
-      const expected=env("CALVREN_CRON_TOKEN"),supplied=request.headers.get("authorization")?.replace(/^Bearer /,"")||"";
-      const hash=(value:string)=>createHash("sha256").update(value).digest();
-      if(!expected||expected.length<32||!supplied||!timingSafeEqual(hash(expected),hash(supplied)))
+      if(!await cronAuthorized(request,env,"hub-scheduler"))
         return json({error:"Scheduler authentication required."},401);
       return json({ok:true,...await processAutomationCron(env)});
     }
