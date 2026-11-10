@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#163b31"><title>Calvren — Stop review requests</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><style>main{max-width:550px;margin:9vh auto;padding:30px}button{padding:13px 18px;cursor:pointer}h1{font-size:clamp(27px,4vw,42px)}.status{min-height:2em}</style></head><body><main><a class="brand" href="/">calvren<span class="brand-dot">.</span></a><h1>Stop review request emails</h1><p>This link only changes optional post-service review invitations. It does not affect your service or required account messages.</p><form id="optout"><button type="submit" class="button">Stop review requests</button></form><p id="result" class="status" aria-live="polite"></p><a href="/privacy.html">Privacy details</a></main><script>
+const token=new URLSearchParams(location.search).get("token");
+const result=document.getElementById("result");
+document.getElementById("optout").addEventListener("submit",async event=>{
+ event.preventDefault();const button=event.currentTarget.querySelector("button");
+ button.disabled=true;
+ try{
+  if(!token)throw Error("This link is missing its unsubscribe token.");
+  const res=await fetch("/api/billing/hub/unsubscribe",{method:"POST",
+   headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});
+  const data=await res.json();if(!res.ok)throw Error(data.error||"Please contact Calvren support.");
+  result.textContent="Review request emails are now disabled for this business.";
+  button.textContent="Preference saved";
+ }catch(error){result.textContent=error.message;button.disabled=false;}
+});
+</script></body></html>
