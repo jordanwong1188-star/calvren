@@ -53,6 +53,7 @@ export class ConversionEngine {
         status: "new", qualification_status: "pending", appointment_status: "none",
         last_contacted_at: null, last_inbound_at: now, next_follow_up_at: null, follow_up_attempts: 0,
         answers: {}, offered_slots: [], automation_active: true, consent_sms: input.consent_sms === true,
+        ...(input.consent_review===true?{consent_review:true}:{}),
         opted_out: false, mode: client.mode, channel: input.channel ?? "website", version: 0, handoff_reason: null
       }, messages: [], appointments: [], notifications: []
     };
