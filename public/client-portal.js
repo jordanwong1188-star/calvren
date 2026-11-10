@@ -134,6 +134,10 @@ async function check(){
       if(info.paid){
         await loadAutomation();
         if(info.included_features?.includes("monthly_reports"))await loadMonthlyReport();
+        if(["growth","pro"].includes(info.plan)){
+          try{const hub=await import("/automation-hub.js?v=hub-20261110");await hub.renderHub(info,api);}
+          catch(error){console.warn("Calvren hub unavailable.");}
+        }
       }
     }catch(error){notice(error.message,true);}
   }else if($("client-membership")){$("client-membership").hidden=true;}
