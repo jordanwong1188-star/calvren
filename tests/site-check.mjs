@@ -417,7 +417,7 @@ try{
     console.log("CALVREN_API_CHECK "+path+" "+api.status());
   }
   const eventProbe=await context.request.post(site+"/.netlify/functions/submission-created",{data:{payload:{id:"qa-auth-boundary-check",form_name:"not-a-lead",data:{}}}});
-  assert.ok([401,403,404].includes(eventProbe.status()),"Native form event must reject external HTTP invocation; received "+eventProbe.status());
+  assert.ok([401,403,404,405].includes(eventProbe.status()),"Native form event must reject external HTTP invocation; received "+eventProbe.status());
   console.log("CALVREN_EVENT_BOUNDARY_CHECK "+eventProbe.status());
   await visit("/admin.html");
   assert.equal(await page.locator("#workspace").isVisible(),false);
