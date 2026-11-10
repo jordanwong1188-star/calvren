@@ -14,7 +14,7 @@ export interface ConversionEngineAPI {
   receive(input: { client_id: string; lead_id: string; message: string; event_key: string; channel?: "sms" | "website" | "email" }): Promise<LeadBundle>;
   handoff(clientId: string, leadId: string, reason: string): Promise<LeadBundle | null>;
   resume(clientId: string, leadId: string): Promise<LeadBundle | null>;
-  followUps(limit?: number): Promise<{ processed: number; skipped: number; failed: number }>;
+  followUps(limit?: number, allowedClients?:ReadonlySet<string>): Promise<{ processed: number; skipped: number; failed: number }>;
 }
 export interface Readiness {
   database: boolean; admin: boolean; mode: "demo" | "live"; production: boolean;
