@@ -24,7 +24,7 @@ create index if not exists calvren_completions_due on public.calvren_service_com
 create table if not exists public.calvren_hub_deliveries (
   id uuid primary key default gen_random_uuid(),
   client_id text not null references public.calvren_clients(id) on delete cascade,
-  kind text not null check (kind in ('review','monthly_report','pro_alert','pro_webhook')),
+  kind text not null check (kind in ('review','monthly_report','pro_alert','pro_webhook','pro_reply')),
   ref_key text not null check (length(ref_key) between 1 and 160),
   status text not null default 'pending'
     check (status in ('pending','sent','failed','unknown')),
