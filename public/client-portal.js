@@ -45,6 +45,32 @@ function setupCaptcha(){
 }
 const notice=(message,error=false)=>{const node=$("client-notice");if(node){node.textContent=message;node.classList.toggle("form-error",error);}};
 let ready=false;
+const chosen=new URLSearchParams(location.search).get("plan");
+let selectedPlan=["starter","growth","pro"].includes(chosen)?chosen:"starter";
+let planAvailability={starter:false,growth:false,pro:false};
+const planLabels={starter:"Starter",growth:"Growth",pro:"Pro"};
+const planAmounts={starter:9900,growth:24900,pro:49900};
+function selectBillingPlan(plan){
+  if(!Object.hasOwn(planLabels,plan))return;
+  selectedPlan=plan;
+  for(const button of document.querySelectorAll("[data-select-plan]"))
+    button.setAttribute("aria-pressed",String(button.dataset.selectPlan===plan));
+  if($("billing-selected-tier"))$("billing-selected-tier").textContent=planLabels[plan]+" automation";
+  if($("billing-price"))$("billing-price").textContent=plan==="pro"?
+    "CA$499+ / month":money(planAmounts[plan],"cad")+" / month";
+  if($("billing-first-payment"))$("billing-first-payment").textContent=plan==="pro"?
+    "Custom setup quote":money(planAmounts[plan]+34900,"cad")+" due initially";
+  if($("billing-price-note"))$("billing-price-note").textContent=plan==="pro"?
+    "Pro is individually scoped. Request a proposal; online checkout is not offered.":
+    planAvailability[plan]?
+      "CA$349 one-time setup is included in the initial amount. Stripe shows the final total and applicable taxes.":
+      "Secure online checkout for this plan is temporarily unavailable. Contact Calvren for activation.";
+  if($("billing-plan-quote"))$("billing-plan-quote").hidden=plan!=="pro";
+  if($("billing-checkout"))$("billing-checkout").textContent="Continue with "+planLabels[plan]+" on Stripe ↗";
+}
+document.querySelectorAll("[data-select-plan]").forEach(button=>
+  button.addEventListener("click",()=>{selectBillingPlan(button.dataset.selectPlan);check().catch(()=>{});}));
+
 let user=null;
 let session=null;
 function money(amount,currency){
@@ -85,14 +111,19 @@ async function check(){
     }
     const button=$("billing-checkout");
     button.hidden=!user;
-    button.disabled=!user||!ready;
-    if(user&&ready)notice("You're signed in. Continue to Stripe's secure checkout.");
-    else if(user&&!ready)notice("Secure online checkout is temporarily unavailable. Please contact the Calvren team to get started.");
+    button.disabled=!user||!planAvailability[selectedPlan];
+    if(user&&planAvailability[selectedPlan])notice("You're signed in. Continue to Stripe's secure checkout.");
+    else if(user&&!planAvailability[selectedPlan])notice(selectedPlan==="pro"?
+      "Pro is priced by proposal. Contact Calvren to scope your integrations.":
+      "Secure checkout for this plan is temporarily unavailable. Please contact Calvren.");
   }else if(user){
     try{
       const info=await api("me");
       $("client-membership").hidden=false;
-      $("client-membership-status").textContent=info.paid?"Active subscription":info.status==="none"?"No subscription yet":info.status;
+      $("client-membership-status").textContent=info.paid?
+        (info.plan?planLabels[info.plan]+" · Active subscription":"Active subscription"):
+        info.status==="none"?"No subscription yet":info.status;
+      renderModuleEntitlements(info);
       $("client-activation").textContent=info.paid?(info.activation==="connected"?
         "Your automation workspace is connected.":"Payment confirmed. Calvren will connect your business's tools before live automation starts.")
         :"Choose a subscription to activate a client workspace.";
@@ -104,9 +135,47 @@ async function check(){
       $("client-manage").hidden=info.status==="none";
       $("client-automation").hidden=!info.paid;
       if($("client-onboarding-link"))$("client-onboarding-link").hidden=!info.paid;
-      if(info.paid)await loadAutomation();
+      if($("client-monthly-report"))$("client-monthly-report").hidden=!(
+        info.paid&&Array.isArray(info.included_features)&&info.included_features.includes("monthly_reports"));
+      if(info.paid){
+        await loadAutomation();
+        if(info.included_features?.includes("monthly_reports"))await loadMonthlyReport();
+      }
     }catch(error){notice(error.message,true);}
   }else if($("client-membership")){$("client-membership").hidden=true;}
+}
+function renderModuleEntitlements(info){
+  const list=$("client-module-list");
+  if(!list)return;
+  list.replaceChildren();
+  const featureLabels=[
+    ["lead_response","AI lead response"],["booking","Appointment scheduling"],
+    ["follow_ups","Lead follow-up sequences"],["review_requests","Review requests"],
+    ["monthly_reports","Monthly performance reports"],["custom_integrations","Custom integrations"],
+    ["advanced_workflows","Advanced workflows"],["unified_inbox","Unified inbox"],
+    ["priority_support","Additional support"]
+  ];
+  for(const [key,label] of featureLabels){
+    const li=document.createElement("li");
+    const included=info.paid&&Array.isArray(info.included_features)&&info.included_features.includes(key);
+    li.textContent=label+" — "+(included?"Included in plan; activation subject to onboarding":"Not included");
+    list.append(li);
+  }
+}
+async function loadMonthlyReport(){
+  const target=$("client-monthly-report-results");
+  if(!target)return;
+  try{
+    const data=await api("report");
+    if(data.status!=="connected"){
+      target.textContent=data.message||"Your report will be available after your business is connected.";
+      return;
+    }
+    const label=new Date(data.month+"-01T12:00:00Z").toLocaleDateString("en-CA",{month:"long",year:"numeric",timeZone:"UTC"});
+    target.textContent=label+": "+data.metrics.leads+" new leads · "+data.metrics.qualified+
+      " qualified or booked leads · "+data.metrics.booked_appointments+" booked appointments"+
+      (data.partial?" (partial data; ask Calvren for the full report)":"")+".";
+  }catch(error){target.textContent="Your report is currently unavailable. Please contact Calvren.";}
 }
 async function loadAutomation(){
   try{
@@ -219,7 +288,7 @@ async function startCheckout(button){
   button.disabled=true;
   notice("Opening Stripe checkout…");
   try{
-    const result=await api("checkout",{method:"POST"});
+    const result=await api("checkout",{method:"POST",body:{plan:isBilling?selectedPlan:"starter"}});
     const url=new URL(result.url);
     if(url.protocol!=="https:"||url.hostname!=="checkout.stripe.com")throw Error("Invalid checkout destination.");
     location.assign(url.href);
@@ -246,23 +315,18 @@ async function init(){
     try{
       const response=await fetch("/api/billing/public",{headers:{"Accept":"application/json"}});
       const data=await response.json();
-      if($("billing-stripe-link")){
-        $("billing-price").textContent="CA$99 / month";
-        $("billing-first-payment").textContent="CA$448 due initially";
-        $("billing-price-note").textContent="CA$349 setup once, then CA$99 monthly. Applicable taxes and the final total appear in Stripe checkout.";
-        ready=false;
-        await check();
-        return;
-      }
-      ready=!!data.ready;
-      $("billing-price").textContent=ready?
-        money(data.amount,data.currency)+" / "+(data.interval_count===1?data.interval:data.interval_count+" "+data.interval+"s"):
-        "Custom onboarding";
-      $("billing-first-payment").textContent=ready?money(data.first_payment,data.currency)+" due initially":"CA$448 standard initial payment";
-      $("billing-price-note").textContent=ready?(data.test_mode?
-        "Stripe TEST MODE — no real charge will be made.":"Amount and taxes are confirmed by Stripe before you pay."):
-        "Secure online checkout is temporarily unavailable. Contact the Calvren team to arrange your subscription.";
-    }catch{$("billing-price-note").textContent="Payment details are temporarily unavailable.";}
+      ready=response.ok&&!!data.ready;
+      planAvailability={
+        starter:ready&&((data.plans?.starter?.ready)??true),
+        growth:!!data.plans?.growth?.ready,
+        pro:false
+      };
+      if($("billing-stripe-link"))planAvailability={starter:false,growth:false,pro:false};
+      selectBillingPlan(selectedPlan);
+    }catch{
+      planAvailability={starter:false,growth:false,pro:false};
+      selectBillingPlan(selectedPlan);
+    }
   }
   if(!isBilling){
     try{

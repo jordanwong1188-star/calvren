@@ -16,6 +16,29 @@ const testMode=(env:Env)=>/^(?:sk|rk)_test_/.test(stripeKey(env));
 const liveMode=(env:Env)=>/^(?:sk|rk)_live_/.test(stripeKey(env));
 const priceId=(env:Env)=>env("STRIPE_PRICE_ID")?.trim()||"";
 const setupPriceId=(env:Env)=>env("STRIPE_SETUP_PRICE_ID")?.trim()||"";
+// All subscription entitlements derive from server-verified Stripe price IDs, never the browser.
+export type CalvrenPlan="starter"|"growth"|"pro";
+const plans={
+  starter:{name:"Starter",monthly:9900,envKey:"STRIPE_PRICE_ID"},
+  growth:{name:"Growth",monthly:24900,envKey:"STRIPE_GROWTH_PRICE_ID"},
+  pro:{name:"Pro",monthly:49900,envKey:"STRIPE_PRO_PRICE_ID"}
+} as const;
+const features={
+  starter:["lead_response","booking"],
+  growth:["lead_response","booking","follow_ups","review_requests","monthly_reports"],
+  pro:["lead_response","booking","follow_ups","review_requests","monthly_reports","custom_integrations","advanced_workflows","unified_inbox","priority_support"]
+} as const;
+const configuredPrice=(env:Env,plan:CalvrenPlan)=>env(plans[plan].envKey)?.trim()||"";
+const planForPrice=(env:Env,value:unknown):CalvrenPlan|null=>{
+  if(typeof value!=="string")return null;
+  for(const plan of ["starter","growth","pro"] as const)
+    if(stripeId(configuredPrice(env,plan),"price")&&configuredPrice(env,plan)===value)return plan;
+  return null;
+};
+const validPrice=(price:ObjectRow,id:string,amount:number)=>price?.id===id&&price.active===true
+  &&price.currency==="cad"&&price.unit_amount===amount
+  &&price.recurring?.interval==="month"&&(price.recurring?.interval_count||1)===1;
+
 const webhookReady=(env:Env)=>/^whsec_[a-zA-Z0-9]+$/.test(env("STRIPE_WEBHOOK_SECRET")||"");
 const billingReady=(env:Env)=>validKey(stripeKey(env))&&stripeId(priceId(env),"price")&&stripeId(setupPriceId(env),"price")&&webhookReady(env);
 const dbConfig=(env:Env)=>{
@@ -86,26 +109,31 @@ async function stripe(deps:BillingDependencies,path:string,body?:URLSearchParams
 const paid=(m:ObjectRow|null)=>!!m&&["active","trialing"].includes(m.subscription_status)
   &&(!m.current_period_end||new Date(m.current_period_end).getTime()>Date.now());
 async function publicConfig(deps:BillingDependencies){
-  if(!billingReady(deps.env)){
-    // Presence/format diagnostics only; never log secret contents or identifiers.
-    console.warn(JSON.stringify({event:"calvren_billing_configuration_incomplete",
-      key_format_valid:validKey(stripeKey(deps.env)),
-      recurring_price_set:stripeId(priceId(deps.env),"price"),
-      setup_price_set:stripeId(setupPriceId(deps.env),"price"),
-      webhook_secret_format_valid:webhookReady(deps.env)}));
-    return json({ready:false,message:"Subscription checkout is being configured."});
-  }
+  const visible={
+    starter:{label:"Starter",amount:9900,ready:false,checkout:"subscription"},
+    growth:{label:"Growth",amount:24900,ready:false,checkout:"subscription"},
+    pro:{label:"Pro",amount:49900,ready:false,checkout:"proposal"}
+  };
+  if(!billingReady(deps.env))return json({ready:false,plans:visible,message:"Subscription checkout is being configured."});
   try{
-    const price=await stripe(deps,"prices/"+encodeURIComponent(priceId(deps.env)));
     const setup=await stripe(deps,"prices/"+encodeURIComponent(setupPriceId(deps.env)));
-    if(setup.id!==setupPriceId(deps.env)||!setup.active||setup.recurring||!Number.isSafeInteger(setup.unit_amount)||setup.unit_amount<1||setup.currency!==price.currency)
-      return json({ready:false,message:"Setup price requires configuration."});
-    if(price.id!==priceId(deps.env)||!price.active||!price.recurring||!Number.isSafeInteger(price.unit_amount)||price.unit_amount<1)
-      return json({ready:false,message:"Subscription price requires setup."});
-    return json({ready:true,amount:price.unit_amount,setup_amount:setup.unit_amount,first_payment:price.unit_amount+setup.unit_amount,currency:price.currency,
-      interval:price.recurring.interval,interval_count:price.recurring.interval_count||1,
-      test_mode:testMode(deps.env)});
-  }catch{return json({ready:false,message:"Subscription price is unavailable."});}
+    if(setup.id!==setupPriceId(deps.env)||!setup.active||setup.recurring||setup.unit_amount!==34900||setup.currency!=="cad")
+      return json({ready:false,plans:visible,message:"Setup price requires configuration."});
+    const starter=await stripe(deps,"prices/"+encodeURIComponent(priceId(deps.env)));
+    if(!validPrice(starter,priceId(deps.env),9900))
+      return json({ready:false,plans:visible,message:"Starter price requires configuration."});
+    visible.starter.ready=true;
+    const growthId=configuredPrice(deps.env,"growth");
+    if(stripeId(growthId,"price")&&growthId!==priceId(deps.env)){
+      try{
+        const growth=await stripe(deps,"prices/"+encodeURIComponent(growthId));
+        visible.growth.ready=validPrice(growth,growthId,24900);
+      }catch{visible.growth.ready=false;}
+    }
+    return json({ready:true,amount:starter.unit_amount,setup_amount:setup.unit_amount,
+      first_payment:starter.unit_amount+setup.unit_amount,currency:"cad",
+      interval:"month",interval_count:1,test_mode:testMode(deps.env),plans:visible});
+  }catch{return json({ready:false,plans:visible,message:"Subscription pricing is unavailable."});}
 }
 async function webhook(request:Request,deps:BillingDependencies){
   const secret=deps.env("STRIPE_WEBHOOK_SECRET")||"";
@@ -134,9 +162,10 @@ async function webhook(request:Request,deps:BillingDependencies){
   if(!stripeId(subId,"sub")||!userId||!uuid.test(userId))return json({ok:true,ignored:true});
   // Always retrieve the current subscription, never trust stale or out-of-order event bodies.
   const current=await stripe(deps,"subscriptions/"+encodeURIComponent(subId));
-  const allowedPrice=priceId(deps.env);
   const items=Array.isArray(current?.items?.data)?current.items.data:[];
-  if(!stripeId(allowedPrice,"price")||!items.some((item:ObjectRow)=>item.price?.id===allowedPrice))return json({ok:true,ignored:true});
+  const matched=items.find((item:ObjectRow)=>planForPrice(deps.env,item?.price?.id)!==null);
+  const allowedPrice=matched?.price?.id;
+  if(!matched||!allowedPrice)return json({ok:true,ignored:true});
   if(current.metadata?.auth_user_id&&current.metadata.auth_user_id!==userId)return json({error:"Subscription owner mismatch."},409);
   if(!stripeId(current.customer,"cus")||!stripeId(current.id,"sub"))return json({error:"Invalid subscription."},400);
   const expire=items.find((item:ObjectRow)=>item.price?.id===allowedPrice)?.current_period_end||current.current_period_end||null;
@@ -156,7 +185,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
   try{
     if(path==="/api/billing/public"&&request.method==="GET")return publicConfig(deps);
     if(path==="/api/billing/webhook"&&request.method==="POST")return webhook(request,deps);
-    if(!["/api/billing/me","/api/billing/checkout","/api/billing/portal","/api/billing/automation"].includes(path))
+    if(!["/api/billing/me","/api/billing/checkout","/api/billing/portal","/api/billing/automation","/api/billing/report"].includes(path))
       return json({error:"Not found."},404);
     const user=await userFromToken(request,deps);
     if(!user)return json({error:"Sign in with your verified email first."},401);
@@ -166,10 +195,34 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
         try{await ensureWelcomeEmail(deps,user.id,user.email);}catch{console.warn(JSON.stringify({event:"calvren_welcome_mail_retry_later"}));}
       }
       return json({email:user.email,paid:paid(existing),status:existing?.subscription_status||"none",
-        expires_at:existing?.current_period_end||null,activation:existing?.client_id?"connected":"pending"});
+        expires_at:existing?.current_period_end||null,activation:existing?.client_id?"connected":"pending",
+        plan:paid(existing)?planForPrice(deps.env,existing?.stripe_price_id):null,
+        included_features:paid(existing)&&planForPrice(deps.env,existing?.stripe_price_id)?
+          features[planForPrice(deps.env,existing.stripe_price_id)!]:[]});
     }
     if(path==="/api/billing/checkout"&&request.method==="POST"){
       if(!billingReady(deps.env))return json({error:"Subscription checkout is not configured yet."},503);
+      let plan:CalvrenPlan="starter";
+      const raw=await request.text();
+      if(raw.length>1024)return json({error:"Checkout request too large."},413);
+      if(raw.trim()){
+        try{
+          const payload=JSON.parse(raw);
+          if(!payload||typeof payload!=="object"||Array.isArray(payload))
+            return json({error:"Invalid checkout request."},400);
+          if(Object.hasOwn(payload,"plan")){
+            if(!["starter","growth"].includes(payload.plan))
+              return json({error:"Choose Starter or Growth. Pro requires a custom proposal."},400);
+            plan=payload.plan as CalvrenPlan;
+          }
+        }catch{return json({error:"Invalid checkout request."},400);}
+      }
+      const selectedPrice=configuredPrice(deps.env,plan);
+      if(!stripeId(selectedPrice,"price"))
+        return json({error:"This plan is not available for online checkout yet. Contact Calvren."},503);
+      const verified=await stripe(deps,"prices/"+encodeURIComponent(selectedPrice));
+      if(!validPrice(verified,selectedPrice,plans[plan].monthly))
+        return json({error:"This plan's verified Stripe price is unavailable. Contact Calvren."},503);
       if(paid(existing))return json({error:"Your subscription is already active. Open your client dashboard."},409);
       if(deps.repository){
         const key=createHash("sha256").update("billing-checkout:"+user.id).digest("hex");
@@ -179,11 +232,12 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       const publicOrigin=deps.env("CALVREN_PUBLIC_URL")||"https://calvren.pages.dev";
       const origin=new URL(publicOrigin).origin;
       const p=new URLSearchParams({
-        mode:"subscription",allow_promotion_codes:"true","line_items[0][price]":priceId(deps.env),"line_items[0][quantity]":"1",
+        mode:"subscription",allow_promotion_codes:"true","line_items[0][price]":selectedPrice,"line_items[0][quantity]":"1",
         "line_items[1][price]":setupPriceId(deps.env),"line_items[1][quantity]":"1",
         client_reference_id:user.id,"subscription_data[metadata][auth_user_id]":user.id,
+        "subscription_data[metadata][requested_plan]":plan,
         customer_email:user.email,
-        success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/payment?checkout=canceled",
+        success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/payment?plan="+encodeURIComponent(plan)+"&checkout=canceled",
       });
       if(existing?.stripe_customer_id)p.set("customer",existing.stripe_customer_id),p.delete("customer_email");
       const session=await stripe(deps,"checkout/sessions",p);
@@ -199,6 +253,40 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       if(!/^https:\/\/billing\.stripe\.com\//.test(portal.url||""))throw Error("Invalid billing portal.");
       return json({url:portal.url});
     }
+    if(path==="/api/billing/report"&&request.method==="GET"){
+      if(!paid(existing))return json({error:"An active subscription is required."},403);
+      const plan=planForPrice(deps.env,existing?.stripe_price_id);
+      if(plan!=="growth"&&plan!=="pro")return json({error:"Monthly reports require a Growth or Pro subscription."},403);
+      if(!existing?.client_id)return json({status:"setup_pending",message:"Your business connection is being activated."});
+      const month=new URL(request.url).searchParams.get("month")||new Date().toISOString().slice(0,7);
+      if(!/^20\d\d-(?:0[1-9]|1[0-2])$/.test(month))return json({error:"Invalid report month."},400);
+      const first=new Date(month+"-01T00:00:00.000Z");
+      const next=new Date(Date.UTC(first.getUTCFullYear(),first.getUTCMonth()+1,1)).getTime();
+      const start=first.getTime();
+      // No client-controlled tenant ID is accepted. Never include lead contact details in reports.
+      const [leads,appointments]=await Promise.all([
+        queryDb(deps,"calvren_leads?"+new URLSearchParams({
+          client_id:"eq."+existing.client_id,select:"data",limit:"1000"
+        })),
+        queryDb(deps,"calvren_appointments?"+new URLSearchParams({
+          client_id:"eq."+existing.client_id,select:"starts_at,data",limit:"1000"
+        }))
+      ]);
+      const inMonth=(value:unknown)=>{
+        if(typeof value!=="string")return false;
+        const date=Date.parse(value);
+        return Number.isFinite(date)&&date>=start&&date<next;
+      };
+      const periodLeads=leads.filter(row=>inMonth(row.data?.created_at));
+      const periodAppointments=appointments.filter(row=>inMonth(row.starts_at));
+      return json({status:"connected",plan,month,
+        metrics:{
+          leads:periodLeads.length,
+          qualified:periodLeads.filter(row=>["qualified","booking","booked","won"].includes(row.data?.status)).length,
+          booked_appointments:periodAppointments.filter(row=>row.data?.status==="booked").length
+        },
+        partial:leads.length>=1000||appointments.length>=1000});
+    }
     if(path==="/api/billing/automation"&&request.method==="GET"){
       if(!paid(existing))return json({error:"An active subscription is required."},403);
       if(!existing?.client_id)return json({status:"setup_pending",message:"Your automation is being connected by Calvren. No live integrations are enabled yet.",leads:[]});
@@ -207,7 +295,8 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       const rows=await queryDb(deps,"calvren_leads?"+new URLSearchParams({
         client_id:"eq."+clientId,select:"data",limit:"20"
       }));
-      return json({status:"connected",leads:rows.map(row=>({
+      return json({status:"connected",plan:planForPrice(deps.env,existing?.stripe_price_id),
+        leads:rows.map(row=>({
         id:row.data?.id||"",status:row.data?.status||"unknown",created_at:row.data?.created_at||null
       }))});
     }

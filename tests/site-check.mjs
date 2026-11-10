@@ -269,6 +269,16 @@ try{
   await unpaidPage.locator("#client-checkout").click();
   await unpaidPage.waitForURL(url=>url.hostname==="checkout.stripe.com");
   assert.equal(checkoutRequests,1,"The dashboard must open Stripe Checkout without a payment/dashboard loop");
+  // Plan selection never lets clients pay an unconfigured Growth tier or quote-only Pro tier.
+  await unpaidPage.goto(site+"/payment.html?plan=growth",{waitUntil:"domcontentloaded"});
+  await unpaidPage.locator("#billing-checkout").waitFor({state:"visible"});
+  assert.equal(await unpaidPage.locator('[data-select-plan="growth"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await unpaidPage.locator("#billing-checkout").isDisabled(),true);
+  await unpaidPage.locator('[data-select-plan="pro"]').click();
+  assert.equal(await unpaidPage.locator("#billing-plan-quote").isVisible(),true);
+  assert.equal(await unpaidPage.locator("#billing-checkout").isDisabled(),true);
+  await unpaidPage.locator('[data-select-plan="starter"]').click();
+  assert.equal(await unpaidPage.locator("#billing-checkout").isEnabled(),true);
   // The UI must never claim Checkout is live while the backend is missing its keys.
   await unpaidContext.route("**/api/billing/public",route=>route.fulfill({
     status:200,contentType:"application/json",
