@@ -38,7 +38,7 @@ export interface Lead {
   last_contacted_at: string | null; last_inbound_at: string;
   next_follow_up_at: string | null; follow_up_attempts: number;
   answers: Record<string, string>; offered_slots: Slot[];
-  automation_active: boolean; consent_sms: boolean; opted_out: boolean;
+  automation_active: boolean; consent_sms: boolean; consent_review?: boolean; opted_out: boolean;
   mode: Mode; channel: Channel; version: number; handoff_reason: string | null;
 }
 export interface Message {
@@ -104,7 +104,7 @@ export interface EngineDependencies {
 }
 export interface IntakeInput {
   client_id: string; name: string; phone?: string; email?: string; message: string;
-  source?: string; channel?: Channel; consent_sms?: boolean; idempotency_key: string;
+  source?: string; channel?: Channel; consent_sms?: boolean; consent_review?: boolean; idempotency_key: string;
 }
 export interface InboundInput {
   client_id: string; lead_id: string; message: string; channel?: Channel; event_key: string;
