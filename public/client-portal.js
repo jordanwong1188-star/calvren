@@ -118,11 +118,13 @@ async function check(){
       $("client-membership").hidden=false;
       $("client-membership-status").textContent=info.paid?
         (info.plan?planLabels[info.plan]+" · Active subscription":"Active subscription"):
+        checkoutVerificationPending?"Confirming Stripe payment…":
         info.status==="none"?"No subscription yet":info.status;
       renderModuleEntitlements(info);
       $("client-activation").textContent=info.paid?(info.activation==="connected"?
         "Your automation workspace is connected.":"Payment confirmed. Calvren will connect your business's tools before live automation starts.")
-        :"Choose a subscription to activate a client workspace.";
+        :checkoutVerificationPending?"Your payment confirmation is processing. Please do not submit another payment.":
+          "Choose a subscription to activate a client workspace.";
       const startArea=$("client-start-area"),startButton=$("client-checkout"),startNote=$("client-checkout-note");
       if(startArea)startArea.hidden=!!info.paid||checkoutVerificationPending;
       if(startButton)startButton.disabled=!ready||checkoutVerificationPending;
@@ -138,6 +140,9 @@ async function check(){
       if($("client-monthly-report"))$("client-monthly-report").hidden=!(
         info.paid&&Array.isArray(info.included_features)&&info.included_features.includes("monthly_reports"));
       if(info.paid){
+        if(new URLSearchParams(location.search).get("next")==="onboarding"){
+          location.assign("/onboarding.html");return;
+        }
         await loadAutomation();
         if(info.included_features?.includes("monthly_reports"))await loadMonthlyReport();
         if(["growth","pro"].includes(info.plan)){
