@@ -14,7 +14,7 @@ try{
   const script=state=>route=>route.fulfill({status:200,
     headers:{"Access-Control-Allow-Origin":"*"},contentType:"application/javascript",body:sessionModule(state)});
   await page.route("https://esm.sh/**",script(true));
-  await page.route("**/api/onboarding*",async route=>{
+  const onboardingHandler=async route=>{
     const request=route.request(),method=request.method(),path=new URL(request.url()).pathname;
     assert.equal(request.headers().authorization,"Bearer qa.verify.token");
     const reply=(body,status=200)=>route.fulfill({
@@ -38,7 +38,9 @@ try{
       return reply({record});
     }
     return reply({error:"Method not supported"},405);
-  });
+  };
+  await page.route("**/api/onboarding",onboardingHandler);
+  await page.route("**/api/onboarding/approve",onboardingHandler);
   const r=await page.goto(origin+"/onboarding.html",{waitUntil:"load"});
   assert.equal(r.status(),200);
   await page.locator("#onboarding-app").waitFor({state:"visible"});
