@@ -7,6 +7,8 @@ const $=id=>document.getElementById(id);
 // Must match an explicitly allowed Supabase Auth Redirect URL.
 const clientRedirectUrl="https://calvren.pages.dev/client";
 const isBilling=!!$("billing-checkout");
+const checkoutReturn=!isBilling&&new URLSearchParams(location.search).get("checkout")==="success";
+let checkoutVerificationPending=checkoutReturn,checkoutVerificationRunning=false;
 const captchaSiteKey=document.querySelector('meta[name="calvren-turnstile-site-key"]')?.content?.trim()||"";
 let captchaToken="",captchaWidget=null,recovery=false,passwordPanelOpen=false;
 function selectAuthView(view){
@@ -122,8 +124,12 @@ async function check(){
         "Your automation workspace is connected.":"Payment confirmed. Calvren will connect your business's tools before live automation starts.")
         :"Choose a subscription to activate a client workspace.";
       const startArea=$("client-start-area"),startButton=$("client-checkout"),startNote=$("client-checkout-note");
-      if(startArea)startArea.hidden=!!info.paid;
-      if(startButton)startButton.disabled=!ready;
+      if(startArea)startArea.hidden=!!info.paid||checkoutVerificationPending;
+      if(startButton)startButton.disabled=!ready||checkoutVerificationPending;
+      if(info.paid&&checkoutVerificationPending){
+        checkoutVerificationPending=false;
+        notice("Payment confirmed. Your onboarding workspace is ready.");
+      }
       if(startNote)startNote.textContent=ready?
         "Stripe will show the exact total before you confirm. Opening Checkout will not charge you.":"Secure checkout is temporarily unavailable. Please contact Calvren support.";
       $("client-manage").hidden=info.status==="none";
@@ -202,7 +208,9 @@ $("client-login")?.addEventListener("submit",async event=>{
       ...(captchaSiteKey?{options:captchaOptions()}:{})
     });
     if(error)throw error;
-    form.reset();await check();notice("Signed in. Continue to your subscription below.");
+    form.reset();await check();
+    if(checkoutVerificationPending)void confirmCheckout();
+    else notice("Signed in. Continue to your subscription below.");
   }catch(e){
     if(e?.code==="email_not_confirmed"||/email not confirmed/i.test(e?.message||"")){
       showVerification($("client-email").value.trim().toLowerCase());
@@ -304,6 +312,27 @@ $("client-manage")?.addEventListener("click",async()=>{
     location.assign(url.href);
   }catch(error){notice(error.message,true);button.disabled=false;}
 });
+async function confirmCheckout(){
+  if(!checkoutVerificationPending||checkoutVerificationRunning||!user)return;
+  checkoutVerificationRunning=true;
+  const until=Date.now()+30_000;
+  try{
+    while(checkoutVerificationPending&&Date.now()<until){
+      try{
+        const info=await api("me");
+        if(info.paid){
+          checkoutVerificationPending=false;
+          await check();
+          notice("Payment confirmed. Continue to your secure onboarding workspace.");
+          return;
+        }
+      }catch{/* Stripe webhook and membership update may still be processing. */}
+      await new Promise(resolve=>setTimeout(resolve,2500));
+    }
+    if(checkoutVerificationPending)
+      notice("Your payment has not been confirmed yet. Please don't pay again. Refresh this dashboard shortly or contact Calvren support if the status doesn't update.",true);
+  }finally{checkoutVerificationRunning=false;}
+}
 async function init(){
   // Supabase may return auth errors in URL fragments or query parameters.
   const authQuery=new URLSearchParams(location.search);
@@ -335,9 +364,13 @@ async function init(){
   }
   if((authHash.get("type")||authQuery.get("type"))==="recovery")recovery=true;
   if(!isBilling)setupCaptcha();
-  if(new URLSearchParams(location.search).get("checkout")==="success")
-    notice("Thanks. Stripe is confirming your subscription; your access will appear once its signed payment event arrives.");
+  if(checkoutReturn)
+    notice("Checking your payment with Stripe. Please don't start another checkout.");
   await check();
+  if(checkoutVerificationPending){
+    if(user)void confirmCheckout();
+    else notice("Sign in with your Calvren account to confirm your payment and continue onboarding.");
+  }
   if(returnedError)notice("Your account link could not be used: "+returnedError.replaceAll("+"," ")+". Request a fresh link.",true);
   else if(recovery&&user)notice("Choose a new password below to finish resetting your account.");
 }
