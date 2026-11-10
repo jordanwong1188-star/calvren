@@ -54,3 +54,30 @@
 #billing-plan-quote[hidden],#billing-checkout[hidden]{display:none!important}
 #billing-plan-quote:not([hidden]){display:inline-flex}
 @media(max-width:850px){.billing-plans{grid-template-columns:1fr}.billing-plan-option{min-height:0;padding:23px}}
+
+/* Growth / Pro client workspace */
+.hub-workspace{padding-top:22px;display:grid;gap:24px}
+.hub-workspace[hidden]{display:none!important}
+.hub-head h2{margin:5px 0 10px}
+.hub-panel{border:1px solid #d7e5d9;border-radius:18px;padding:22px;background:#f9fcf8}
+.hub-panel h3{font-size:22px;margin:0 0 12px}
+.hub-panel h4{font-size:16px;margin:12px 0 8px}
+.hub-settings,.hub-note-form,.hub-reply-form{display:grid;gap:13px}
+.hub-settings input[type="url"],.hub-note-form textarea,.hub-reply-form textarea{box-sizing:border-box;width:100%;border:1px solid #baccc2;border-radius:9px;padding:12px;font:inherit;background:white;color:#173b31}
+.hub-settings label{display:grid;gap:7px;font-size:14px}
+.hub-toggle{display:flex!important;gap:10px!important;align-items:start;font-size:14px}
+.hub-toggle input{margin-top:4px}
+.hub-stack{display:grid;gap:10px}
+.hub-appointment{display:flex;gap:15px;align-items:center;justify-content:space-between;border-top:1px solid #d8e5dc;padding:12px 0}
+.hub-inbox{display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,2fr);gap:16px;min-height:280px}
+.hub-threads{border-right:1px solid #d7e5d9;display:grid;align-content:start;gap:7px;padding-right:12px}
+.hub-thread-button{border:1px solid #ccdcd0;border-radius:10px;padding:12px;background:white;cursor:pointer;text-align:left;color:#193d32;font:inherit;display:grid;gap:6px}
+.hub-thread-button small{font-size:12px;color:#536a5d}
+.hub-thread-button:focus-visible,.hub-thread-button:hover{outline:2px solid #4a755c}
+.hub-thread{display:grid;align-content:start;gap:9px;min-width:0}
+.hub-messages{max-height:320px;overflow-y:auto;display:grid;gap:8px}
+.hub-message{background:white;border:1px solid #dbe7dc;border-radius:10px;padding:10px;overflow-wrap:anywhere}
+.hub-message p{margin:7px 0;white-space:pre-wrap}
+.hub-message small{font-size:11px;color:#596d61}
+.hub-note-form textarea,.hub-reply-form textarea{min-height:80px}
+@media(max-width:680px){.hub-inbox{grid-template-columns:1fr}.hub-threads{border-right:0;border-bottom:1px solid #d7e5d9;padding:0 0 12px}.hub-panel{padding:16px}.hub-appointment{align-items:start;flex-direction:column}}
