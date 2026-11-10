@@ -139,14 +139,70 @@ export async function handleAutomationHub(request:Request,deps:HubDependencies):
         needs_human:row.data?.status==="needs_human"
       }))});
     }
-    const match=/^\/api\/billing\/hub\/inbox\/([0-9a-f-]{36})(?:\/notes)?$/.exec(path);
+    const match=/^\/api\/billing\/hub\/inbox\/([0-9a-f-]{36})(?:\/(notes|reply))?$/.exec(path);
     if(match){
       if(deps.plan!=="pro")return json({error:"The unified inbox requires Pro."},403);
       if(!uuid.test(match[1]))return json({error:"Invalid conversation."},400);
-      const leadId=match[1],notesPath=path.endsWith("/notes");
+      const leadId=match[1],notesPath=path.endsWith("/notes"),replyPath=path.endsWith("/reply");
       const lead=(await query(deps.env,qp("calvren_leads",{id:"eq."+leadId,
         client_id:"eq."+clientId,select:"id,data",limit:"1"}),{fetcher:deps.fetch}))[0];
       if(!lead)return json({error:"Conversation not found."},404);
+      if(method==="POST"&&replyPath){
+        if(!live||deps.env("CALVREN_AUTOMATION_MODE")!=="live")
+          return json({error:"Live client automation and approved onboarding are required to send messages."},409);
+        const leadData=lead.data||{};
+        if(leadData.channel!=="sms"||leadData.consent_sms!==true||leadData.opted_out===true||
+          !/^\+[1-9]\d{7,14}$/.test(leadData.phone||""))
+          return json({error:"This lead has not consented to live SMS replies."},409);
+        const raw=await request.text();if(raw.length>1300)return json({error:"Reply is too long."},413);
+        const value=JSON.parse(raw) as Row;
+        const message=typeof value?.message==="string"?value.message.trim():"";
+        if(!message||message.length>800||!uuid.test(value?.nonce||"")||value?.confirmed!==true)
+          return json({error:"Confirm an SMS reply with a unique request ID (800 characters maximum)."},400);
+        const recent=await query(deps.env,qp("calvren_hub_deliveries",{
+          client_id:"eq."+clientId,kind:"eq.pro_reply",ref_key:"like."+leadId+"-*",
+          created_at:"gte."+new Date(Date.now()-3600000).toISOString(),select:"id",limit:"6"}),{fetcher:deps.fetch});
+        if(recent.length>=5)return json({error:"A maximum of five SMS replies per lead per hour is allowed."},429);
+        const key=leadId+"-"+value.nonce;
+        const delivery=await claim(deps.env,clientId,"pro_reply",key,deps.fetch);
+        if(!delivery)return json({error:"This reply has already been submitted; refresh the conversation."},409);
+        const outboundId=crypto.randomUUID(),now=new Date().toISOString();
+        const record={
+          id:outboundId,client_id:clientId,lead_id:leadId,sender:"human",channel:"sms",
+          message,timestamp:now,ai:false,status:"pending",provider_id:null,idempotency_key:"pro-reply-"+value.nonce
+        };
+        await query(deps.env,"calvren_messages",{method:"POST",body:{id:outboundId,
+          client_id:clientId,lead_id:leadId,data:record},fetcher:deps.fetch});
+        try{
+          const client=(await query(deps.env,qp("calvren_clients",{id:"eq."+clientId,
+            select:"config",limit:"1"}),{fetcher:deps.fetch}))[0]?.config;
+          const account=deps.env("TWILIO_ACCOUNT_SID")||"",pass=deps.env("TWILIO_AUTH_TOKEN")||"",
+            from=client?.phone_number||deps.env("TWILIO_PHONE_NUMBER")||"";
+          if(!/^AC[0-9a-f]{32}$/i.test(account)||!pass||!/^\+[1-9]\d{7,14}$/.test(from))
+            throw Error("Provider not configured.");
+          const origin=new URL(deps.env("CALVREN_PUBLIC_URL")||"https://calvren.pages.dev").origin;
+          const send=await (deps.fetch||fetch)("https://api.twilio.com/2010-04-01/Accounts/"+account+"/Messages.json",{
+            method:"POST",headers:{Authorization:"Basic "+Buffer.from(account+":"+pass).toString("base64"),
+              "Content-Type":"application/x-www-form-urlencoded"},
+            body:new URLSearchParams({To:leadData.phone,From:from,Body:message,
+              StatusCallback:origin+"/api/conversion/twilio/status?message_id="+outboundId}).toString(),
+            signal:AbortSignal.timeout(8000)});
+          const result=await send.json().catch(()=>({}));
+          if(!send.ok||!/^SM[0-9a-f]{32}$/i.test(result.sid||""))
+            throw Error("Delivery could not be confirmed.");
+          record.status="sent";record.provider_id=result.sid;
+          await query(deps.env,qp("calvren_messages",{id:"eq."+outboundId,
+            client_id:"eq."+clientId}),{method:"PATCH",body:{data:record},fetcher:deps.fetch});
+          await closeDelivery(deps.env,delivery.id,"sent",result.sid,"",deps.fetch);
+          return json({sent:true,status:"accepted",message_id:outboundId});
+        }catch{
+          record.status="unknown";
+          await query(deps.env,qp("calvren_messages",{id:"eq."+outboundId,
+            client_id:"eq."+clientId}),{method:"PATCH",body:{data:record},fetcher:deps.fetch}).catch(()=>{});
+          await closeDelivery(deps.env,delivery.id,"unknown","","provider_unconfirmed",deps.fetch).catch(()=>{});
+          return json({error:"Delivery is unconfirmed. Check Twilio before retrying; Calvren will not automatically resend."},503);
+        }
+      }
       if(method==="POST"&&notesPath){
         if(!live)return json({error:"Finish the approved onboarding before writing notes."},409);
         const raw=await request.text();if(raw.length>2500)return json({error:"Note is too long."},413);
@@ -156,7 +212,7 @@ export async function handleAutomationHub(request:Request,deps:HubDependencies):
           method:"POST",body:{client_id:clientId,lead_id:leadId,body,author_user_id:deps.user.id},fetcher:deps.fetch});
         return json({note:rows[0]||null});
       }
-      if(method!=="GET"||notesPath)return json({error:"Use the expected method."},405);
+      if(method!=="GET"||notesPath||replyPath)return json({error:"Use the expected method."},405);
       const [messages,notes,appointments]=await Promise.all([
         query(deps.env,qp("calvren_messages",{client_id:"eq."+clientId,lead_id:"eq."+leadId,
           select:"data",limit:"250"}),{fetcher:deps.fetch}),
