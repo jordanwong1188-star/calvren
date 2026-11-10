@@ -106,7 +106,7 @@ export async function checkLeadDemo(page, url = baseUrl) {
   })), demoAccessId);
   await page.goto(url + "/lead-demo.html", {waitUntil:"networkidle"});
   await page.locator("#demo-config").waitFor({state:"attached"});
-  assert.match(await page.locator(".simulation-banner").innerText(), /rules-based demo responder/);
+  assert.match(await page.locator(".simulation-banner").innerText(), /Nothing is sent to a real customer/);
   await startLead(page);
   assert.match(await page.locator("#demo-conversation").innerText(), /ABC Plumbing/);
   assert.equal(await page.locator('[data-question-id="service"]').getAttribute("data-answer-status"), "answered");
