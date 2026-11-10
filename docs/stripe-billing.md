@@ -1,5 +1,11 @@
 # Calvren Stripe subscriptions — production handoff
 
+## Current plan pricing (November 10, 2026)
+- **Starter CA$99/month**; first payment CA$448 including CA$349 setup.
+- **Growth CA$249/month**; first payment CA$598 including CA$349 setup.
+- **Pro CA$499/month**; first payment CA$848 including CA$349 setup.
+- Each amount is before applicable taxes and discounts, and legacy plans are not repriced without customer consent. See `docs/three-tier-rollout.md` for verified live price IDs and billing behavior.
+
 ## Approved prices (CAD)
 - One-time setup and onboarding: **CA$349**, Stripe price `price_1UQX1gQ9mewkKyl5QpjCrTyt` (product `prod_VRPKQiNjWCDDPh`).
 - Ongoing updates and maintenance: **CA$99/month**, Stripe price `price_1UQWVeQ9mewkKyl5kv85ccXb` (product `prod_VRPEflqPI2JCAT`).
