@@ -49,9 +49,9 @@ try{
   await page.goto(site+"/case-studies.html",{waitUntil:"networkidle",timeout:30000});
   const studyText=await page.locator("#workflow-studies").innerText();
   for(const name of ["ShinerBros Window Cleaning","ClearCraft Automotive Detailing","Jacob","Dylan"]) {
-    assert.ok(studyText.includes(name),"Missing example business: "+name);
+    assert.ok(studyText.includes(name),"Missing client business: "+name);
   }
-  assert.equal(await page.locator("[data-study]").count(),2);
+  assert.equal(await page.locator(".client-story").count(),2);
   assert.deepEqual(errors,[],"No browser JavaScript exceptions.");
   assert.deepEqual(privateRequests,[],"Guest simulation must not use private APIs or even signup APIs.");
   console.log("CALVREN_PUBLIC_DEMO_SMOKE_PASSED: guest response, six distinct weekday slot sets, simulated booking, reset, named studies, no private API.");

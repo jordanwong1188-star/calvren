@@ -5,7 +5,7 @@ import {chromium} from "playwright";
 import {checkOwnerWorkspace} from "./admin-browser-check.mjs";
 
 const site=process.env.CALVREN_TEST_SITE || "https://calvren.pages.dev";
-const sourcePreview=Boolean(process.env.CALVREN_TEST_SITE);
+const sourcePreview=new URL(site).hostname === "127.0.0.1" || new URL(site).hostname === "localhost";
 const version="conversion-v1";
 const normalisePath=path=>path.endsWith(".html")?path.slice(0,-5):path.endsWith("/")?path.slice(0,-1):path;
 await mkdir("artifacts",{recursive:true});
@@ -33,14 +33,16 @@ try{
   for(let attempt=0;attempt<(sourcePreview?1:32);attempt++){
     const responses=await Promise.all(["/","/contact.html","/case-studies.html","/admin.html"].map(path=>context.request.get(site+path)));
     const html=await Promise.all(responses.map(response=>response.text()));
-    if(responses.every(response=>response.status()===200)&&html.every(body=>body.includes('name="calvren-version" content="'+version+'"'))){ready=true;break;}
+    if(responses.every(response=>response.status()===200)&&html.every((body,index)=>body.includes('name="calvren-version" content="'+(index===0?"simple-video-v2":version)+'"'))){ready=true;break;}
     if(!sourcePreview)await delay(15000);
   }
   assert.ok(ready,"New Netlify deployment was not published within eight minutes.");
   await visit();
   assert.match(await page.title(),/Calvren/);
-  assert.equal(await page.locator("#demo-empty").isVisible(),true);
+  assert.equal(await page.locator(".hero-film video").isVisible(),true);
   await screenshot("DESKTOP");
+  await page.locator(".preview-details > summary").click();
+  assert.equal(await page.locator("#demo-empty").isVisible(),true);
 
   await page.locator("#run-demo").click();
   assert.match(await page.locator("#lead-intent").textContent(),/Buyer/);
@@ -71,6 +73,7 @@ try{
   await page.locator("#monthly-tasks").press("ArrowRight");
   assert.notEqual(await page.locator("#hours-result").textContent(),oldHours);
   await visit("/?scenario=local-services#demo");
+  await page.locator(".preview-details > summary").click();
   assert.equal(await page.locator('[data-scenario="local-services"]').getAttribute("aria-pressed"),"true");
   await page.locator("#run-demo").click();
   assert.match(await page.locator("#lead-intent").textContent(),/quote/i);
@@ -111,12 +114,6 @@ try{
   assert.equal(await page.locator(".menu-toggle").getAttribute("aria-expanded"),"false");
   assert.equal(await page.locator('#site-navigation a[aria-current="page"]').textContent(),"Contact");
 
-  await visit("/case-studies.html");
-  await page.getByRole("link",{name:/Explore the studies/}).click();
-  await page.waitForFunction(()=>{
-    const target=document.getElementById("workflow-studies").getBoundingClientRect();
-    return target.top>=document.querySelector(".header").getBoundingClientRect().bottom&&target.top<150;
-  });
   await page.setViewportSize({width:1440,height:1000});
   await visit("/contact.html");
   await screenshot("CONTACT");
@@ -126,19 +123,12 @@ try{
   assert.equal(await page.locator('#project-form [name="workflow"]').inputValue(),"real-estate");
   await visit("/case-studies.html");
   await screenshot("STUDIES");
-  assert.equal(await page.locator("[data-study]").count(),2);
-  assert.match(await page.locator(".study-disclosure").textContent(),/illustrative/i);
-  for(const id of ["shine-bros","clear-craft"]){
-    assert.match(await page.locator("#"+id+" .example-badge").textContent(),/illustrative workflow/i);
-    assert.equal(await page.locator("#"+id+" a.button").getAttribute("href"),"/lead-demo.html");
+  assert.equal(await page.locator(".client-story").count(),2);
+  for(const [id,owner] of [["shine-bros","Jacob"],["clear-craft","Dylan"]]){
+    assert.match(await page.locator("#"+id).textContent(),new RegExp(owner));
+    assert.equal(await page.locator("#"+id+" .text-link").getAttribute("href"),"/contact.html?workflow=local-services");
   }
-  for(const industry of ["window-cleaning","auto-detailing"]){
-    await page.locator('[data-study-filter="'+industry+'"]').click();
-    assert.equal(await page.locator("[data-study]:not([hidden])").count(),1);
-    assert.equal(await page.locator('[data-study-filter="'+industry+'"]').getAttribute("aria-pressed"),"true");
-  }
-  await page.locator('[data-study-filter="all"]').click();
-  assert.equal(await page.locator("[data-study]:not([hidden])").count(),2);
+  await page.locator(".feedback-details > summary").click();
   assert.equal(await page.locator("#publish-permission").isChecked(),false);
   assert.equal(await page.locator("#publish-permission").getAttribute("required"),null);
   assert.notEqual(await page.locator('[name="feedback-consent"]').getAttribute("required"),null);
@@ -168,6 +158,8 @@ try{
   ]){
     providerStatus=503;notificationCount=0;archiveCount=0;
     await visit(config.path);
+    if(config.form==="#contact-form")await page.locator(".audit-details > summary").click();
+    if(config.form==="#review-form")await page.locator(".feedback-details > summary").click();
     const form=page.locator(config.form);
     assert.equal(await form.getAttribute("action"),endpoint);
     assert.equal(await form.getAttribute("data-success-url"),config.action);
