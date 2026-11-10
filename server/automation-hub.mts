@@ -351,6 +351,18 @@ export async function unsubscribeReview(request:Request,env:Env,fetcher?:typeof 
     return json({ok:true,message:"You will not receive more Calvren review-request emails for this business."});
   }catch{return json({error:"Unable to save opt-out request."},503);}
 }
+export async function entitledGrowthClients(env:Env,fetcher?:typeof fetch):Promise<Set<string>>{
+  const allowed=new Set<string>();
+  const members=await query(env,qp("calvren_billing_memberships",{
+    select:"auth_user_id,client_id,stripe_price_id,subscription_status,current_period_end",
+    subscription_status:"in.(active,trialing)",client_id:"not.is.null",limit:"500"}),{fetcher});
+  for(const m of members){
+    if(!approved(memberPlan(env,m))||!safeId.test(m.client_id||""))continue;
+    if(await onboarded(env,m.auth_user_id,fetcher)&&await clientLive(env,m.client_id,fetcher))
+      allowed.add(m.client_id);
+  }
+  return allowed;
+}
 // Cron is called only by a server-verified secret (see server/router.mts). It never reads
 // customer identifiers from request parameters and never sends without paid, live approval.
 export async function processAutomationCron(env:Env,fetcher?:typeof fetch):Promise<{review:number;reports:number;alerts:number;skipped:number;failed:number}>{
