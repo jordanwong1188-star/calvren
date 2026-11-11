@@ -7,7 +7,9 @@ if(origin.protocol!=="https:"||origin.hostname!=="calvren.pages.dev")
 async function request(path,options={}){
   let last;
   for(let i=0;i<3;i++){
-    try{return await fetch(base+path,{redirect:"error",cache:"no-store",signal:AbortSignal.timeout(18000),...options});}
+    try{const response=await fetch(base+path,{redirect:"follow",cache:"no-store",signal:AbortSignal.timeout(18000),...options});
+      assert.equal(new URL(response.url).origin,base,"Unexpected cross-origin redirect for "+path);
+      return response;}
     catch(e){last=e;if(i<2)await delay(1200);}
   }
   throw last;
