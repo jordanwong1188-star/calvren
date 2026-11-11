@@ -129,6 +129,12 @@ async function check(){
           checkoutVerificationPending=false;
           if($("client-success-plan"))
             $("client-success-plan").textContent=planLabels[info.plan]||"Calvren";
+          // Only play the thank-you sequence after the authenticated billing
+          // endpoint verifies a paid subscription. A Stripe return URL alone
+          // cannot trigger this experience or open onboarding.
+          const thankFilm=$("client-thank-you-film");
+          if(thankFilm&&!thankFilm.classList.contains("is-playing"))
+            thankFilm.classList.add("is-playing");
           notice("");
         }
         return;
@@ -388,6 +394,16 @@ async function init(){
       const data=await response.json();
       ready=response.ok&&!!data.ready;
     }catch{ready=false;}
+  }
+  if(!isBilling){
+    $("client-thank-you-replay")?.addEventListener("click",()=>{
+      const film=$("client-thank-you-film");
+      if(!film||$("client-payment-success")?.hidden)return;
+      film.classList.remove("is-playing");
+      // Restart the CSS timeline only in the verified success state.
+      void film.offsetWidth;
+      film.classList.add("is-playing");
+    });
   }
   if((authHash.get("type")||authQuery.get("type"))==="recovery")recovery=true;
   if(!isBilling)setupCaptcha();
