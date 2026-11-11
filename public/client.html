@@ -54,6 +54,29 @@
   <div id="client-captcha" hidden aria-label="Human verification"></div>
   </section>
 <p id="client-notice" class="billing-notice account-notice" role="status" aria-live="polite"></p>
+<section id="client-payment-pending" class="billing-card billing-checkout-status" aria-labelledby="client-pending-title" hidden>
+  <div class="billing-progress-mark" aria-hidden="true"><span></span></div>
+  <p class="eyebrow">PAYMENT CONFIRMATION</p>
+  <h2 id="client-pending-title">We’re checking your payment.</h2>
+  <p class="billing-small">Stripe has returned you to Calvren. Your subscription will appear here once the payment is securely confirmed. Please don’t start another checkout.</p>
+  <p class="billing-small">If this takes longer than expected, you can refresh this page or <a href="/contact.html">contact support</a>. Your onboarding information stays private.</p>
+</section>
+<section id="client-payment-success" class="billing-card billing-thank-you" aria-labelledby="client-success-title" hidden>
+  <div class="billing-success-check" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="31" height="31"><path d="m5 12 4.5 4.5L19 7"/></svg>
+  </div>
+  <p class="eyebrow">PAYMENT CONFIRMED</p>
+  <h2 id="client-success-title">Thank you for choosing Calvren.</h2>
+  <p class="billing-success-description">Your <strong id="client-success-plan">Calvren</strong> subscription is active. We’re excited to help you simplify your work.</p>
+  <div class="billing-onboarding-next">
+    <p class="eyebrow">ONE QUICK NEXT STEP</p>
+    <h3>Tell us about your business.</h3>
+    <p>Complete a short, secure questionnaire about your services, enquiries and booking preferences. You can save your progress and return anytime.</p>
+    <a id="client-complete-onboarding" class="button billing-success-cta" href="/onboarding.html">Complete your onboarding <span aria-hidden="true">→</span></a>
+  </div>
+  <p class="billing-small billing-success-note">We’ll review your answers, help connect your tools, and ask you to approve the setup before any live automations start.</p>
+  <a class="billing-secondary-link" href="/client.html">Go to my account instead</a>
+</section>
 <section class="billing-card billing-account" id="signedin-account" hidden>
   <p class="eyebrow">YOUR ACCOUNT</p><h2>You're signed in.</h2>
   <p id="client-identity" class="billing-small" hidden></p>
