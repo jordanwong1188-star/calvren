@@ -268,7 +268,9 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
         client_reference_id:user.id,"subscription_data[metadata][auth_user_id]":user.id,
         "subscription_data[metadata][requested_plan]":plan,
         customer_email:user.email,
-        success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/payment?plan="+encodeURIComponent(plan)+"&checkout=canceled",
+        // The account dashboard confirms the signed Stripe webhook before opening onboarding.
+         // Never treat a Checkout success redirect alone as proof of payment.
+         success_url:origin+"/client.html?checkout=success&next=onboarding",cancel_url:origin+"/payment?plan="+encodeURIComponent(plan)+"&checkout=canceled",
       });
       if(existing?.stripe_customer_id)p.set("customer",existing.stripe_customer_id),p.delete("customer_email");
       const session=await stripe(deps,"checkout/sessions",p);
