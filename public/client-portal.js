@@ -91,6 +91,7 @@ async function check(){
   const state=await supabase.auth.getSession();
   session=state.data.session||null;
   user=session?.user||null;
+  if($("client-portal-heading"))$("client-portal-heading").hidden=checkoutReturn&&!!user;
   if($("auth-panel"))$("auth-panel").hidden=!!user;
   if($("signedin-account"))$("signedin-account").hidden=!user;
   if($("client-new-password"))$("client-new-password").hidden=!user||(!recovery&&!passwordPanelOpen);
