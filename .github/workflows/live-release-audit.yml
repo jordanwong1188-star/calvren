@@ -1,0 +1,28 @@
+name: Calvren live read-only release audit
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - tests/live-release-audit.mjs
+      - .github/workflows/live-release-audit.yml
+  push:
+    branches: [main]
+    paths:
+      - tests/live-release-audit.mjs
+      - .github/workflows/live-release-audit.yml
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check live site, Stripe and unauthenticated API boundaries
+        run: node tests/live-release-audit.mjs
+        env:
+          CALVREN_LIVE_URL: https://calvren.pages.dev
