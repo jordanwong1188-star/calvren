@@ -115,6 +115,25 @@ async function check(){
   }else if(user){
     try{
       const info=await api("me");
+      if(checkoutReturn){
+        // The Stripe success URL is not proof of payment. These screens are
+        // controlled exclusively by the authenticated billing endpoint.
+        const confirmed=info.paid===true;
+        if($("client-payment-success"))$("client-payment-success").hidden=!confirmed;
+        if($("client-payment-pending"))$("client-payment-pending").hidden=confirmed;
+        $("client-membership").hidden=true;
+        if($("client-automation"))$("client-automation").hidden=true;
+        if($("signedin-account"))$("signedin-account").hidden=true;
+        if(confirmed){
+          checkoutVerificationPending=false;
+          if($("client-success-plan"))
+            $("client-success-plan").textContent=planLabels[info.plan]||"Calvren";
+          notice("");
+        }
+        return;
+      }
+      if($("client-payment-success"))$("client-payment-success").hidden=true;
+      if($("client-payment-pending"))$("client-payment-pending").hidden=true;
       $("client-membership").hidden=false;
       $("client-membership-status").textContent=info.paid?
         (info.plan?planLabels[info.plan]+" · Active subscription":"Active subscription"):
@@ -140,10 +159,10 @@ async function check(){
       if($("client-monthly-report"))$("client-monthly-report").hidden=!(
         info.paid&&Array.isArray(info.included_features)&&info.included_features.includes("monthly_reports"));
       if(info.paid){
-        // Start paid-customer onboarding automatically after verified Stripe completion.
-        // Existing Checkout sessions returning without next=onboarding are supported, too.
-        if(checkoutReturn||new URLSearchParams(location.search).get("next")==="onboarding"){
-          location.replace("/onboarding.html");return;
+        // Explicit return-to-onboarding links still work for an authenticated
+        // subscriber, but payment returns show a confirmation and a clear CTA.
+        if(new URLSearchParams(location.search).get("next")==="onboarding"){
+          location.assign("/onboarding.html");return;
         }
         await loadAutomation();
         if(info.included_features?.includes("monthly_reports"))await loadMonthlyReport();
@@ -330,7 +349,7 @@ async function confirmCheckout(){
         if(info.paid){
           checkoutVerificationPending=false;
           await check();
-          notice("Payment confirmed. Opening your secure onboarding questionnaire…");
+          // check() now reveals the verified thank-you panel and onboarding button.
           return;
         }
       }catch{/* Stripe webhook and membership update may still be processing. */}
@@ -372,7 +391,7 @@ async function init(){
   if((authHash.get("type")||authQuery.get("type"))==="recovery")recovery=true;
   if(!isBilling)setupCaptcha();
   if(checkoutReturn)
-    notice("Checking your payment with Stripe. Please don't start another checkout.");
+    notice("Welcome back. We’re confirming your payment before opening onboarding.");
   await check();
   if(checkoutVerificationPending){
     if(user)void confirmCheckout();
