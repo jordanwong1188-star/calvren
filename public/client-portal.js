@@ -140,8 +140,10 @@ async function check(){
       if($("client-monthly-report"))$("client-monthly-report").hidden=!(
         info.paid&&Array.isArray(info.included_features)&&info.included_features.includes("monthly_reports"));
       if(info.paid){
-        if(new URLSearchParams(location.search).get("next")==="onboarding"){
-          location.assign("/onboarding.html");return;
+        // Start paid-customer onboarding automatically after verified Stripe completion.
+        // Existing Checkout sessions returning without next=onboarding are supported, too.
+        if(checkoutReturn||new URLSearchParams(location.search).get("next")==="onboarding"){
+          location.replace("/onboarding.html");return;
         }
         await loadAutomation();
         if(info.included_features?.includes("monthly_reports"))await loadMonthlyReport();
@@ -328,14 +330,14 @@ async function confirmCheckout(){
         if(info.paid){
           checkoutVerificationPending=false;
           await check();
-          notice("Payment confirmed. Continue to your secure onboarding workspace.");
+          notice("Payment confirmed. Opening your secure onboarding questionnaire…");
           return;
         }
       }catch{/* Stripe webhook and membership update may still be processing. */}
       await new Promise(resolve=>setTimeout(resolve,2500));
     }
     if(checkoutVerificationPending)
-      notice("Your payment has not been confirmed yet. Please don't pay again. Refresh this dashboard shortly or contact Calvren support if the status doesn't update.",true);
+      notice("Stripe hasn't confirmed your payment yet. Please don't pay again. You can refresh this page in a moment or contact Calvren support if access doesn't appear.",true);
   }finally{checkoutVerificationRunning=false;}
 }
 async function init(){
