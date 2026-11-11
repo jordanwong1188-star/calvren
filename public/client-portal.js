@@ -91,6 +91,12 @@ async function check(){
   const state=await supabase.auth.getSession();
   session=state.data.session||null;
   user=session?.user||null;
+  const greetingName=$("client-dashboard-greeting-name");
+  if(greetingName){
+    const rawName=typeof user?.user_metadata?.full_name==="string"?user.user_metadata.full_name.trim():"";
+    const firstName=rawName.split(/\s+/)[0]?.slice(0,50)||"";
+    greetingName.textContent=firstName?", "+firstName:"";
+  }
   if($("client-portal-heading"))$("client-portal-heading").hidden=checkoutReturn&&!!user;
   if($("auth-panel"))$("auth-panel").hidden=!!user;
   if($("signedin-account"))$("signedin-account").hidden=!user;
@@ -261,13 +267,15 @@ $("client-login")?.addEventListener("submit",async event=>{
 $("client-signup")?.addEventListener("submit",async event=>{
   event.preventDefault();const form=event.currentTarget,button=form.querySelector('[type="submit"]');button.disabled=true;
   try{
+    const fullName=$("signup-name").value.trim().replace(/\s+/g," ");
+    if(fullName.length<2||fullName.length>100)throw Error("Enter your full name (2–100 characters).");
     const email=$("signup-email").value.trim().toLowerCase();
     const password=$("signup-password").value;
     if(password.length<8)throw Error("Use at least 8 characters for your password.");
     if(password!==$("signup-password-confirm").value)throw Error("The passwords don't match.");
     const {data,error}=await supabase.auth.signUp({
       email,password,
-      options:{emailRedirectTo:clientRedirectUrl,...captchaOptions()}
+      options:{emailRedirectTo:clientRedirectUrl,data:{full_name:fullName},...captchaOptions()}
     });
     if(error)throw error;
     form.reset();
