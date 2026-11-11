@@ -236,7 +236,7 @@ $("client-login")?.addEventListener("submit",async event=>{
     if(error)throw error;
     form.reset();await check();
     if(checkoutVerificationPending)void confirmCheckout();
-    else notice("Signed in. Continue to your subscription below.");
+    else if(!checkoutReturn)notice("Signed in. Continue to your subscription below.");
   }catch(e){
     if(e?.code==="email_not_confirmed"||/email not confirmed/i.test(e?.message||"")){
       showVerification($("client-email").value.trim().toLowerCase());
