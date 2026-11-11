@@ -50,6 +50,14 @@ try{
   assert.equal(await page.locator("#client-start-area").isVisible(),false);
   assert.equal(await page.locator("#client-success-plan").textContent(),"Growth");
   assert.match(await page.locator("#client-success-title").textContent(),/Thank you for choosing Calvren/i);
+  // The new ten-second greeting must play only in the verified-paid state.
+  const film=page.locator("#client-thank-you-film");
+  assert.equal(await film.isVisible(),true);
+  assert.equal(await film.evaluate(el=>el.classList.contains("is-playing")),true);
+  assert.equal(await film.evaluate(el=>getComputedStyle(el.querySelector(".billing-film-scene-confirm")).animationDuration),"10s");
+  await page.locator("#client-thank-you-replay").click();
+  assert.equal(await film.evaluate(el=>el.classList.contains("is-playing")),true);
+
   assert.equal(new URL(page.url()).pathname,"/client.html",
     "The customer should see a confirmation and decide when to begin onboarding.");
   const action=page.locator("#client-complete-onboarding");
@@ -76,6 +84,7 @@ try{
   await pending.goto(site+"/client.html?checkout=success",{waitUntil:"domcontentloaded"});
   await pending.locator("#client-payment-pending").waitFor({state:"visible",timeout:10000});
   assert.equal(await pending.locator("#client-payment-success").isVisible(),false);
+  assert.equal(await pending.locator("#client-thank-you-film").isVisible(),false);
   assert.equal(await pending.locator("#client-start-area").isVisible(),false);
   assert.equal(checkoutRequests,0);
   paid=true;
@@ -105,6 +114,7 @@ try{
   await guest.goto(site+"/client.html?checkout=success",{waitUntil:"domcontentloaded"});
   await guest.locator("#auth-panel").waitFor({state:"visible",timeout:10000});
   assert.equal(await guest.locator("#client-payment-success").isVisible(),false);
+  assert.equal(await guest.locator("#client-thank-you-film").isVisible(),false);
   assert.equal(guestBilling,0);
 
   assert.deepEqual(runtimeErrors,[]);
