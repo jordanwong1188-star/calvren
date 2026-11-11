@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#163b31"><meta name="robots" content="noindex,nofollow"><title>Calvren — My automation</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/billing.css?v=thankyou-20261110"><script type="module" src="/client-portal.js?v=thankyou-20261110"></script></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#163b31"><meta name="robots" content="noindex,nofollow"><title>Calvren — My automation</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/billing.css?v=welcome-film-20261111"><script type="module" src="/client-portal.js?v=welcome-film-20261111"></script></head><body>
 <a href="#main" class="skip">Skip to content</a><header class="header"><a class="brand" href="/">calvren<span class="brand-dot">.</span></a><nav id="site-navigation" aria-label="Main navigation"><a href="/">Home</a><a href="/payment">Subscriptions</a><a href="/contact.html">Support</a></nav></header>
 <main id="main" class="document billing-main">
 <div id="client-portal-heading">
@@ -64,19 +64,36 @@
   <p class="billing-small">If this takes longer than expected, you can refresh this page or <a href="/contact.html">contact support</a>. Your onboarding information stays private.</p>
 </section>
 <section id="client-payment-success" class="billing-card billing-thank-you" aria-labelledby="client-success-title" hidden>
-  <div class="billing-success-check" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="31" height="31"><path d="m5 12 4.5 4.5L19 7"/></svg>
+  <div id="client-thank-you-film" class="billing-thank-film" role="img" aria-label="Payment confirmed. Thank you for choosing Calvren. Complete your onboarding below.">
+    <div class="billing-film-grid" aria-hidden="true"></div>
+    <div class="billing-film-halo" aria-hidden="true"></div>
+    <div class="billing-film-top" aria-hidden="true"><span class="billing-film-brand">calvren<span>.</span></span><span>01 / WELCOME</span></div>
+    <div class="billing-film-scene billing-film-scene-confirm" aria-hidden="true">
+      <div class="billing-film-mark"><svg viewBox="0 0 64 64" width="64" height="64" fill="none"><circle cx="32" cy="32" r="29" stroke="currentColor" stroke-width="1.5" opacity=".45"/><path d="M18 32.5 27.5 42 47 22" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="billing-film-label">SECURE PAYMENT CONFIRMED</span>
+    </div>
+    <div class="billing-film-scene billing-film-scene-welcome" aria-hidden="true">
+      <span class="billing-film-label">WELCOME ABOARD</span>
+      <strong>It's official.<br><em>You're with Calvren.</em></strong>
+    </div>
+    <div class="billing-film-scene billing-film-scene-final" aria-hidden="true">
+      <span class="billing-film-label">THE BEGINNING OF SOMETHING BETTER</span>
+      <strong>Thank you for<br><em>choosing Calvren.</em></strong>
+      <small>Your next step is right below.</small>
+    </div>
+    <div class="billing-film-bottom" aria-hidden="true"><span>THOUGHTFUL AUTOMATION. MORE ROOM TO GROW.</span><span>10 SEC</span></div>
+    <div class="billing-film-timeline" aria-hidden="true"><span></span></div>
   </div>
-  <p class="eyebrow">PAYMENT CONFIRMED</p>
-  <h2 id="client-success-title">Thank you for choosing Calvren.</h2>
-  <p class="billing-success-description">Your <strong id="client-success-plan">Calvren</strong> subscription is active. We’re excited to help you simplify your work.</p>
+  <div class="billing-film-utility"><p class="eyebrow">PAYMENT CONFIRMED</p><button type="button" id="client-thank-you-replay" class="billing-film-replay" aria-label="Replay the 10-second thank-you animation">↻ Replay video</button></div>
+  <h2 id="client-success-title" class="sr-only">Thank you for choosing Calvren.</h2>
+  <p class="billing-success-description">Your <strong id="client-success-plan">Calvren</strong> subscription is active. We're glad to have you on board.</p>
   <div class="billing-onboarding-next">
-    <p class="eyebrow">ONE QUICK NEXT STEP</p>
-    <h3>Tell us about your business.</h3>
-    <p>Complete a short, secure questionnaire about your services, enquiries and booking preferences. You can save your progress and return anytime.</p>
+    <p class="eyebrow">NEXT STEP / YOUR SETUP</p>
+    <h3>Make it yours.</h3>
+    <p>Tell us about your business and booking preferences in a secure questionnaire. Save your progress and come back anytime.</p>
     <a id="client-complete-onboarding" class="button billing-success-cta" href="/onboarding.html">Complete your onboarding <span aria-hidden="true">→</span></a>
   </div>
-  <p class="billing-small billing-success-note">We’ll review your answers, help connect your tools, and ask you to approve the setup before any live automations start.</p>
+  <p class="billing-small billing-success-note">We'll review your answers and confirm your setup with you before turning on live automations.</p>
   <a class="billing-secondary-link" href="/client.html">Go to my account instead</a>
 </section>
 <section class="billing-card billing-account" id="signedin-account" hidden>
