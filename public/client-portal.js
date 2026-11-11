@@ -146,6 +146,12 @@ async function check(){
         (info.plan?planLabels[info.plan]+" · Active subscription":"Active subscription"):
         checkoutVerificationPending?"Confirming Stripe payment…":
         info.status==="none"?"No subscription yet":info.status;
+      const dashboardStatus=$("client-dashboard-status");
+      if(dashboardStatus){
+        const connected=info.paid&&info.activation==="connected";
+        dashboardStatus.dataset.status=connected?"connected":info.paid?"setup":"inactive";
+        dashboardStatus.textContent=connected?"Automation connected":info.paid?"Setup in progress":"Not active";
+      }
       renderModuleEntitlements(info);
       $("client-activation").textContent=info.paid?(info.activation==="connected"?
         "Your automation workspace is connected.":"Payment confirmed. Calvren will connect your business's tools before live automation starts.")
