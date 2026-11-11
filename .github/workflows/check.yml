@@ -51,6 +51,10 @@ jobs:
         run: node tests/onboarding-client-browser-check.mjs
         env:
           CALVREN_TEST_SITE: http://127.0.0.1:8080
+      - name: Test Stripe confirmation thank-you and onboarding button
+        run: node tests/stripe-thank-you-browser-check.mjs
+        env:
+          CALVREN_TEST_SITE: http://127.0.0.1:8080
       - name: Check standalone guest demo, requested weekdays and case studies
         run: node tests/public-demo-smoke.mjs
         env:

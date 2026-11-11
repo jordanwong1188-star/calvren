@@ -91,6 +91,7 @@ async function check(){
   const state=await supabase.auth.getSession();
   session=state.data.session||null;
   user=session?.user||null;
+  if($("client-portal-heading"))$("client-portal-heading").hidden=checkoutReturn&&!!user;
   if($("auth-panel"))$("auth-panel").hidden=!!user;
   if($("signedin-account"))$("signedin-account").hidden=!user;
   if($("client-new-password"))$("client-new-password").hidden=!user||(!recovery&&!passwordPanelOpen);
@@ -115,6 +116,25 @@ async function check(){
   }else if(user){
     try{
       const info=await api("me");
+      if(checkoutReturn){
+        // The Stripe success URL is not proof of payment. These screens are
+        // controlled exclusively by the authenticated billing endpoint.
+        const confirmed=info.paid===true;
+        if($("client-payment-success"))$("client-payment-success").hidden=!confirmed;
+        if($("client-payment-pending"))$("client-payment-pending").hidden=confirmed;
+        $("client-membership").hidden=true;
+        if($("client-automation"))$("client-automation").hidden=true;
+        if($("signedin-account"))$("signedin-account").hidden=true;
+        if(confirmed){
+          checkoutVerificationPending=false;
+          if($("client-success-plan"))
+            $("client-success-plan").textContent=planLabels[info.plan]||"Calvren";
+          notice("");
+        }
+        return;
+      }
+      if($("client-payment-success"))$("client-payment-success").hidden=true;
+      if($("client-payment-pending"))$("client-payment-pending").hidden=true;
       $("client-membership").hidden=false;
       $("client-membership-status").textContent=info.paid?
         (info.plan?planLabels[info.plan]+" · Active subscription":"Active subscription"):
@@ -140,6 +160,8 @@ async function check(){
       if($("client-monthly-report"))$("client-monthly-report").hidden=!(
         info.paid&&Array.isArray(info.included_features)&&info.included_features.includes("monthly_reports"));
       if(info.paid){
+        // Explicit return-to-onboarding links still work for an authenticated
+        // subscriber, but payment returns show a confirmation and a clear CTA.
         if(new URLSearchParams(location.search).get("next")==="onboarding"){
           location.assign("/onboarding.html");return;
         }
@@ -215,7 +237,7 @@ $("client-login")?.addEventListener("submit",async event=>{
     if(error)throw error;
     form.reset();await check();
     if(checkoutVerificationPending)void confirmCheckout();
-    else notice("Signed in. Continue to your subscription below.");
+    else if(!checkoutReturn)notice("Signed in. Continue to your subscription below.");
   }catch(e){
     if(e?.code==="email_not_confirmed"||/email not confirmed/i.test(e?.message||"")){
       showVerification($("client-email").value.trim().toLowerCase());
@@ -328,14 +350,14 @@ async function confirmCheckout(){
         if(info.paid){
           checkoutVerificationPending=false;
           await check();
-          notice("Payment confirmed. Continue to your secure onboarding workspace.");
+          // check() now reveals the verified thank-you panel and onboarding button.
           return;
         }
       }catch{/* Stripe webhook and membership update may still be processing. */}
       await new Promise(resolve=>setTimeout(resolve,2500));
     }
     if(checkoutVerificationPending)
-      notice("Your payment has not been confirmed yet. Please don't pay again. Refresh this dashboard shortly or contact Calvren support if the status doesn't update.",true);
+      notice("Stripe hasn't confirmed your payment yet. Please don't pay again. You can refresh this page in a moment or contact Calvren support if access doesn't appear.",true);
   }finally{checkoutVerificationRunning=false;}
 }
 async function init(){
@@ -370,7 +392,7 @@ async function init(){
   if((authHash.get("type")||authQuery.get("type"))==="recovery")recovery=true;
   if(!isBilling)setupCaptcha();
   if(checkoutReturn)
-    notice("Checking your payment with Stripe. Please don't start another checkout.");
+    notice("Welcome back. We’re confirming your payment before opening onboarding.");
   await check();
   if(checkoutVerificationPending){
     if(user)void confirmCheckout();

@@ -128,6 +128,10 @@ test("session creation uses authenticated user id, fixed server price, and retur
   assert.equal(body.get("line_items[0][price]"),priceId);
   assert.equal(body.get("line_items[1][price]"),"price_setup123");
   assert.equal(body.get("success_url"),"https://calvren.pages.dev/client.html?checkout=success");
+  assert.equal(body.get("success_url").includes("next=onboarding"),false,
+    "Stripe returns customers to a verified thank-you screen, not an automatic redirect.");
+  assert.equal(body.get("mode"),"subscription");
+  assert.equal(body.get("line_items[1][quantity]"),"1");
   assert.equal(body.get("cancel_url"),"https://calvren.pages.dev/payment?plan=starter&checkout=canceled");
 });
 test("signed checkout completion fetches current subscription before granting access",async()=>{

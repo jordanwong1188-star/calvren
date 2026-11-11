@@ -81,3 +81,21 @@
 .hub-message small{font-size:11px;color:#596d61}
 .hub-note-form textarea,.hub-reply-form textarea{min-height:80px}
 @media(max-width:680px){.hub-inbox{grid-template-columns:1fr}.hub-threads{border-right:0;border-bottom:1px solid #d7e5d9;padding:0 0 12px}.hub-panel{padding:16px}.hub-appointment{align-items:start;flex-direction:column}}
+
+
+/* Verified Stripe return: confirmation before the protected onboarding form. */
+.document.billing-main .billing-thank-you,
+.document.billing-main .billing-checkout-status{max-width:770px;margin:28px 0 36px;padding:clamp(27px,5vw,56px)}
+.billing-success-check{display:grid;place-items:center;width:62px;height:62px;background:#dff0d6;color:#23563b;border-radius:50%;margin:0 0 23px}
+.document.billing-main .billing-thank-you h2{font-size:clamp(32px,4.8vw,51px);line-height:1.12;letter-spacing:-.03em;margin:8px 0 18px}
+.billing-success-description{font-size:clamp(16px,2vw,18px);line-height:1.7;max-width:540px;color:#4f6b59}
+.billing-onboarding-next{background:#f0f5eb;border:1px solid #d9e8d2;border-radius:16px;margin:31px 0 20px;padding:clamp(20px,3vw,30px)}
+.billing-onboarding-next h3{font-size:clamp(21px,2.8vw,27px);line-height:1.2;margin:8px 0 10px}
+.billing-onboarding-next>p:not(.eyebrow){font-size:14px;line-height:1.75;color:#4d6957;max-width:525px}
+.document.billing-main a.billing-success-cta{display:inline-flex;align-items:center;justify-content:center;margin-top:22px;padding:15px 24px;min-height:52px}
+.document.billing-main .billing-success-note{max-width:610px;margin:18px 0}
+.billing-secondary-link{display:inline-block;font-size:13px;font-weight:600;color:#365846;text-decoration:underline;text-underline-offset:3px;margin-top:9px}
+.billing-progress-mark{width:51px;height:51px;border:3px solid #c9d9ca;border-top-color:#1c5e3f;border-radius:50%;margin-bottom:22px;animation:calvren-billing-spin 1.1s linear infinite}
+@keyframes calvren-billing-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.billing-progress-mark{animation:none}}
+@media (max-width:600px){.document.billing-main .billing-thank-you,.document.billing-main .billing-checkout-status{margin:23px 0;padding:24px}.billing-onboarding-next{margin:25px 0 17px;padding:20px}.document.billing-main a.billing-success-cta{display:flex;width:100%}}
