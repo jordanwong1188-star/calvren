@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {setTimeout as delay} from "node:timers/promises";
 const base=process.env.CALVREN_LIVE_URL||"https://calvren.pages.dev";
 const origin=new URL(base);
-if(origin.protocol!=="https:"||origin.hostname!=="calvren.pages.dev")
+if(origin.protocol!=="https:"||!["calvren.pages.dev","calvren.ca"].includes(origin.hostname))
   throw Error("Audit restricted to official Calvren HTTPS hostname.");
 async function request(path,options={}){
   let last;
@@ -57,7 +57,7 @@ for(const [tier,amount] of [["starter",24900],["growth",49900],["pro",77500]]){
   assert.equal(config.plans?.[tier]?.ready,true,tier+" live Stripe price unavailable");
   assert.equal(config.plans[tier].amount,amount,tier+" has the wrong price");
 }
-console.log("LIVE_STRIPE_PRICES_CORRECT");
+console.log("LIVE_STRIPE_PRICES_CORRECT",origin.hostname,JSON.stringify(Object.fromEntries(["starter","growth","pro"].map(p=>[p,config.plans[p].amount]))));
 const secured=[
  {path:"/api/billing/me",method:"GET"},
  {path:"/api/billing/checkout",method:"POST",body:'{"plan":"pro"}'},
