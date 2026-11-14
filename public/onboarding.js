@@ -93,7 +93,8 @@ function review(){
     ["Website",form.website],["Services",form.services],
     ["Service area",form.service_areas],["Lead sources",form.lead_sources],
     ["Business hours",form.business_hours],["Booking duration",form.booking_duration],
-    ["Booking buffer",form.booking_buffer],["Calendar contact",form.calendar_email],
+    ["Booking buffer",form.booking_buffer],["Calendar contact",form.calendar_email],["Calendar system",form.calendar_platform],
+    ["Website platform",form.website_platform],["Response channel",form.response_channel],["Current CRM",form.current_crm],
     ["Human handoff email",form.handoff_email],["Human handoff rules",form.handoff_instructions],
     ["Kickoff call",form.kickoff_requested?"Requested — "+(form.kickoff_availability||"confirming availability"):"Not requested"]
   ];
