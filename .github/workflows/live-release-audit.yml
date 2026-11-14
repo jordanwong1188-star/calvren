@@ -17,6 +17,10 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        site: [https://calvren.pages.dev, https://calvren.ca]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,4 +29,4 @@ jobs:
       - name: Check live site, Stripe and unauthenticated API boundaries
         run: node tests/live-release-audit.mjs
         env:
-          CALVREN_LIVE_URL: https://calvren.pages.dev
+          CALVREN_LIVE_URL: ${{ matrix.site }}
