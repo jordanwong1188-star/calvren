@@ -271,7 +271,7 @@ try{
     await unpaidPage.locator("#billing-checkout").waitFor({state:"visible"});
     assert.equal(await unpaidPage.locator('[data-select-plan="'+plan+'"]').getAttribute("aria-pressed"),"true");
     assert.match(await unpaidPage.locator("#billing-price").textContent(),new RegExp(monthly));
-    assert.match(await unpaidPage.locator("#billing-first-payment").textContent(),new RegExp(initial));
+    assert.match((await unpaidPage.locator("#billing-first-payment").textContent()).replaceAll(",",""),new RegExp(initial));
     assert.equal(await unpaidPage.locator("#billing-checkout").isEnabled(),true,plan+" checkout should be enabled");
     await unpaidPage.locator("#billing-checkout").click();
     await unpaidPage.waitForURL(url=>url.hostname==="checkout.stripe.com");
