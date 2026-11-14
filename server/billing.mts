@@ -20,9 +20,9 @@ const setupPriceId=(env:Env)=>env("STRIPE_SETUP_PRICE_ID")?.trim()||"";
 // All subscription entitlements derive from server-verified Stripe price IDs, never the browser.
 export type CalvrenPlan="starter"|"growth"|"pro";
 const plans={
-  starter:{name:"Starter",monthly:9900,envKey:"STRIPE_PRICE_ID"},
-  growth:{name:"Growth",monthly:24900,envKey:"STRIPE_GROWTH_PRICE_ID"},
-  pro:{name:"Pro",monthly:49900,envKey:"STRIPE_PRO_PRICE_ID"}
+  starter:{name:"Starter",monthly:24900,envKey:"STRIPE_PRICE_ID"},
+  growth:{name:"Growth",monthly:49900,envKey:"STRIPE_GROWTH_PRICE_ID"},
+  pro:{name:"Pro",monthly:77500,envKey:"STRIPE_PRO_PRICE_ID"}
 } as const;
 const features={
   starter:["lead_response","booking"],
@@ -34,25 +34,28 @@ const features={
 // environment variable cannot silently send customers to an obsolete price.
 // In sandbox tests, use explicitly configured test price IDs.
 const LIVE_PRICE_IDS={
-  growth:"price_1UaAOfQ9mewkKyl5rXDk02Ff",
-  pro:"price_1UaAOiQ9mewkKyl5NubJPt0S"
+  starter:"price_1UbeD4Q9mewkKyl5J9C8cuMe",
+  growth:"price_1UbeD6Q9mewkKyl5iEgpMMQm",
+  pro:"price_1UbeD7Q9mewkKyl5szjSTpZ6"
 } as const;
 const configuredPrice=(env:Env,plan:CalvrenPlan)=>{
-  if(plan==="starter")return priceId(env);
   if(liveMode(env))return LIVE_PRICE_IDS[plan];
+  if(plan==="starter")return priceId(env);
   return env(plans[plan].envKey)?.trim()||"";
 };
 // Existing $219/$389 subscribers retain their paid Growth/Pro access until an
 // explicitly approved subscription change. New checkouts use ONLY the new IDs.
 const LEGACY_LIVE_PRICE_IDS={
-  growth:["price_1Ua3rFQ9mewkKyl5dIhzjarI"],
-  pro:["price_1Ua3rNQ9mewkKyl5TrGGeeQU"]
+  starter:["price_1UQWVeQ9mewkKyl5kv85ccXb"],
+  growth:["price_1Ua3rFQ9mewkKyl5dIhzjarI","price_1UaAOfQ9mewkKyl5rXDk02Ff"],
+  pro:["price_1Ua3rNQ9mewkKyl5TrGGeeQU","price_1UaAOiQ9mewkKyl5NubJPt0S"]
 } as const;
 const planForPrice=(env:Env,value:unknown):CalvrenPlan|null=>{
   if(typeof value!=="string")return null;
   for(const plan of ["starter","growth","pro"] as const)
     if(stripeId(configuredPrice(env,plan),"price")&&configuredPrice(env,plan)===value)return plan;
   if(liveMode(env)){
+    if(LEGACY_LIVE_PRICE_IDS.starter.includes(value as typeof LEGACY_LIVE_PRICE_IDS.starter[number]))return "starter";
     if(LEGACY_LIVE_PRICE_IDS.growth.includes(value as typeof LEGACY_LIVE_PRICE_IDS.growth[number]))return "growth";
     if(LEGACY_LIVE_PRICE_IDS.pro.includes(value as typeof LEGACY_LIVE_PRICE_IDS.pro[number]))return "pro";
   }
@@ -63,7 +66,7 @@ const validPrice=(price:ObjectRow,id:string,amount:number)=>price?.id===id&&pric
   &&price.recurring?.interval==="month"&&(price.recurring?.interval_count||1)===1;
 
 const webhookReady=(env:Env)=>/^whsec_[a-zA-Z0-9]+$/.test(env("STRIPE_WEBHOOK_SECRET")||"");
-const billingReady=(env:Env)=>validKey(stripeKey(env))&&stripeId(priceId(env),"price")&&stripeId(setupPriceId(env),"price")&&webhookReady(env);
+const billingReady=(env:Env)=>validKey(stripeKey(env))&&(liveMode(env)||stripeId(priceId(env),"price"))&&stripeId(setupPriceId(env),"price")&&webhookReady(env);
 const dbConfig=(env:Env)=>{
   const url=env("SUPABASE_URL"),key=env("SUPABASE_SECRET_KEY")||env("SUPABASE_SERVICE_ROLE_KEY");
   if(!url||!key||!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url))throw Error("Billing database unavailable.");
@@ -133,22 +136,23 @@ const paid=(m:ObjectRow|null)=>!!m&&["active","trialing"].includes(m.subscriptio
   &&(!m.current_period_end||new Date(m.current_period_end).getTime()>Date.now());
 async function publicConfig(deps:BillingDependencies){
   const visible={
-    starter:{label:"Starter",amount:9900,ready:false,checkout:"subscription"},
-    growth:{label:"Growth",amount:24900,ready:false,checkout:"subscription"},
-    pro:{label:"Pro",amount:49900,ready:false,checkout:"subscription"}
+    starter:{label:"Starter",amount:24900,ready:false,checkout:"subscription"},
+    growth:{label:"Growth",amount:49900,ready:false,checkout:"subscription"},
+    pro:{label:"Pro",amount:77500,ready:false,checkout:"subscription"}
   };
   if(!billingReady(deps.env))return json({ready:false,plans:visible,message:"Subscription checkout is being configured."});
   try{
     const setup=await stripe(deps,"prices/"+encodeURIComponent(setupPriceId(deps.env)));
     if(setup.id!==setupPriceId(deps.env)||!setup.active||setup.recurring||setup.unit_amount!==34900||setup.currency!=="cad")
       return json({ready:false,plans:visible,message:"Setup price requires configuration."});
-    const starter=await stripe(deps,"prices/"+encodeURIComponent(priceId(deps.env)));
-    if(!validPrice(starter,priceId(deps.env),9900))
+    const starterId=configuredPrice(deps.env,"starter");
+    const starter=await stripe(deps,"prices/"+encodeURIComponent(starterId));
+    if(!validPrice(starter,starterId,24900))
       return json({ready:false,plans:visible,message:"Starter price requires configuration."});
     visible.starter.ready=true;
     for(const plan of ["growth","pro"] as const){
       const id=configuredPrice(deps.env,plan);
-      if(!stripeId(id,"price")||id===priceId(deps.env))continue;
+      if(!stripeId(id,"price")||id===starterId)continue;
       try{
         const price=await stripe(deps,"prices/"+encodeURIComponent(id));
         visible[plan].ready=validPrice(price,id,plans[plan].monthly);
@@ -260,7 +264,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
         if(!await deps.repository.consumeRateLimit(key,6,3600,new Date().toISOString()))
           return json({error:"Too many checkout attempts. Try again later."},429);
       }
-      const publicOrigin=deps.env("CALVREN_PUBLIC_URL")||"https://calvren.pages.dev";
+      const publicOrigin="https://calvren.ca";
       const origin=new URL(publicOrigin).origin;
       const p=new URLSearchParams({
         mode:"subscription",allow_promotion_codes:"true","line_items[0][price]":selectedPrice,"line_items[0][quantity]":"1",
