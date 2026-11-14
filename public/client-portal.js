@@ -5,7 +5,7 @@ const supabase=createClient("https://xjfsukhfmkgvlfpgjevg.supabase.co","sb_publi
 });
 const $=id=>document.getElementById(id);
 // Must match an explicitly allowed Supabase Auth Redirect URL.
-const clientRedirectUrl="https://calvren.pages.dev/client";
+const clientRedirectUrl="https://calvren.ca/client";
 const isBilling=!!$("billing-checkout");
 const checkoutReturn=!isBilling&&new URLSearchParams(location.search).get("checkout")==="success";
 let checkoutVerificationPending=checkoutReturn,checkoutVerificationRunning=false;
@@ -151,12 +151,16 @@ async function check(){
       $("client-membership-status").textContent=info.paid?
         (info.plan?planLabels[info.plan]+" · Active subscription":"Active subscription"):
         checkoutVerificationPending?"Confirming Stripe payment…":
-        info.status==="none"?"No subscription yet":info.status;
+        info.status==="none"?"No subscription yet":
+         info.status==="past_due"?"Payment overdue":
+         info.status==="canceled"?"Subscription canceled":
+         info.status==="unpaid"?"Payment required":
+         info.status==="incomplete"?"Payment pending":info.status;
       const dashboardStatus=$("client-dashboard-status");
       if(dashboardStatus){
         const connected=info.paid&&info.activation==="connected";
-        dashboardStatus.dataset.status=connected?"connected":info.paid?"setup":"inactive";
-        dashboardStatus.textContent=connected?"Automation connected":info.paid?"Setup in progress":"Not active";
+        dashboardStatus.dataset.status=info.paid?"connected":"inactive";
+        dashboardStatus.textContent=info.paid?"Subscription active":"Subscription not active";
       }
       renderModuleEntitlements(info);
       $("client-activation").textContent=info.paid?(info.activation==="connected"?
@@ -431,6 +435,9 @@ async function init(){
   if(returnedError)notice("Your account link could not be used: "+returnedError.replaceAll("+"," ")+". Request a fresh link.",true);
   else if(recovery&&user)notice("Choose a new password below to finish resetting your account.");
 }
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden&&!isBilling&&user&&!checkoutReturn)void check().catch(()=>{});
+});
 supabase.auth.onAuthStateChange(event=>{
   if(event==="PASSWORD_RECOVERY"){recovery=true;passwordPanelOpen=true;}
   setTimeout(()=>check().catch(()=>{}),0);
