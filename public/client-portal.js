@@ -51,7 +51,7 @@ const chosen=new URLSearchParams(location.search).get("plan");
 let selectedPlan=["starter","growth","pro"].includes(chosen)?chosen:"starter";
 let planAvailability={starter:false,growth:false,pro:false};
 const planLabels={starter:"Starter",growth:"Growth",pro:"Pro"};
-const planAmounts={starter:9900,growth:24900,pro:49900};
+const planAmounts={starter:24900,growth:49900,pro:77500};
 function selectBillingPlan(plan){
   if(!Object.hasOwn(planLabels,plan))return;
   selectedPlan=plan;
@@ -390,11 +390,7 @@ async function init(){
       const response=await fetch("/api/billing/public",{headers:{"Accept":"application/json"}});
       const data=await response.json();
       ready=response.ok&&!!data.ready;
-      planAvailability={
-        starter:ready&&((data.plans?.starter?.ready)??true),
-        growth:!!data.plans?.growth?.ready,
-        pro:ready&&!!data.plans?.pro?.ready
-      };
+      planAvailability={starter:false,growth:false,pro:false}; // Checkout paused until Stripe prices match displayed rates;
       if($("billing-stripe-link"))planAvailability={starter:false,growth:false,pro:false};
       selectBillingPlan(selectedPlan);
     }catch{
