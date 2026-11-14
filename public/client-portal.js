@@ -390,7 +390,11 @@ async function init(){
       const response=await fetch("/api/billing/public",{headers:{"Accept":"application/json"}});
       const data=await response.json();
       ready=response.ok&&!!data.ready;
-      planAvailability={starter:false,growth:false,pro:false}; // Checkout paused until Stripe prices match displayed rates;
+      planAvailability={
+        starter:ready&&!!data.plans?.starter?.ready,
+        growth:ready&&!!data.plans?.growth?.ready,
+        pro:ready&&!!data.plans?.pro?.ready
+      };
       if($("billing-stripe-link"))planAvailability={starter:false,growth:false,pro:false};
       selectBillingPlan(selectedPlan);
     }catch{
