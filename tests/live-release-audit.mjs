@@ -32,7 +32,7 @@ for(const [path,marker] of pages){
     assert.ok(html.includes('id="client-payment-pending"'));
   }
   if(path==="/payment.html"){
-    for(const label of ["CA$99","CA$249","CA$499"])
+    for(const label of ["CA$249","CA$499","CA$775"])
       assert.ok(html.includes(label),label+" is missing from checkout page");
     for(const tier of ["starter","growth","pro"])
       assert.ok(html.includes('data-select-plan="'+tier+'"'),"Missing "+tier+" option");
@@ -53,7 +53,7 @@ const config=await publicBilling.json();
 assert.equal(config.ready,true,"Stripe setup is not ready");
 assert.equal(config.test_mode,false,"Live checkout must not use Stripe test mode");
 assert.equal(config.setup_amount,34900,"Unexpected setup fee");
-for(const [tier,amount] of [["starter",9900],["growth",24900],["pro",49900]]){
+for(const [tier,amount] of [["starter",24900],["growth",49900],["pro",77500]]){
   assert.equal(config.plans?.[tier]?.ready,true,tier+" live Stripe price unavailable");
   assert.equal(config.plans[tier].amount,amount,tier+" has the wrong price");
 }
