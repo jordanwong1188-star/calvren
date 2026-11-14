@@ -12,7 +12,9 @@ const allowedFields:Record<string,number>={
   contact_phone:40,timezone:100,services:1200,service_areas:1000,business_hours:1000,
   lead_sources:800,lead_form_url:300,ai_tone:200,qualifying_questions:1500,
   booking_duration:20,booking_buffer:20,booking_rules:1200,calendar_email:254,
-  handoff_email:254,handoff_phone:40,handoff_instructions:1200,additional_notes:1500,kickoff_availability:500
+  handoff_email:254,handoff_phone:40,handoff_instructions:1200,additional_notes:1500,kickoff_availability:500,
+  website_platform:60,customer_faqs:1800,ai_boundaries:1000,response_channel:40,
+  calendar_platform:60,existing_sms_number:40,current_crm:120,monthly_leads:40
 };
 const required=["business_name","industry","description","contact_name","contact_email","services","business_hours","lead_sources","handoff_email"];
 const validEmail=(s:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
