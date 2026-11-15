@@ -12,19 +12,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Install video and image tools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           python -m pip install --user Pillow
+      - name: Recover original and inspect source scenes
+        run: |
+          git show 3626a913a64929c9955a545cd07072f2d9f59e5c:public/media/calvren-overview.mp4 > /tmp/calvren-overview-original.mp4
+          ffmpeg -hide_banner -loglevel error -y -i /tmp/calvren-overview-original.mp4 -vf "fps=1/2.5,scale=455:256,tile=3x2" -frames:v 1 public/media/calvren-video-original-contact.jpg
       - name: Replace outdated pricing and domain in the video
-        run: python scripts/refresh-calvren-overview.py public/media/calvren-overview.mp4 public/media/calvren-overview-new.mp4 public/media/calvren-overview.jpg
+        run: python scripts/refresh-calvren-overview.py /tmp/calvren-overview-original.mp4 public/media/calvren-overview-new.mp4 public/media/calvren-overview.jpg
       - name: Commit refreshed video and poster
         run: |
           mv public/media/calvren-overview-new.mp4 public/media/calvren-overview.mp4
           git config user.name "Calvren video updater"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/media/calvren-overview.mp4 public/media/calvren-overview.jpg
+          git add public/media/calvren-overview.mp4 public/media/calvren-overview.jpg public/media/calvren-video-original-contact.jpg
           if ! git diff --cached --quiet; then
             git commit -m "Refresh video prices and calvren.ca closing screen"
             git push
