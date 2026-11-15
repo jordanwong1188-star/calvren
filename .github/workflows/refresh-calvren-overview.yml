@@ -30,7 +30,7 @@ jobs:
           mv public/media/calvren-overview-new.mp4 public/media/calvren-overview.mp4
           git config user.name "Calvren video updater"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/media/calvren-overview.mp4 public/media/calvren-overview.jpg public/media/calvren-video-original-contact.jpg
+          git add public/media/calvren-overview.mp4 public/media/calvren-overview.jpg public/media/calvren-video-original-contact.jpg public/media/calvren-video-pricing-preview.jpg
           if ! git diff --cached --quiet; then
             git commit -m "Refresh video prices and calvren.ca closing screen"
             git push
