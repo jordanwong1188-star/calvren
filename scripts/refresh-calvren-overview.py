@@ -99,7 +99,7 @@ with tempfile.TemporaryDirectory() as work:
     end_overlay.save(end_path)
 
     # A single continuous encode keeps the original ~450 frames and sound, if any.
-    filtergraph="[0:v][1:v]overlay=0:0:enable='between(t,4.45,7.25)':format=auto[priced];[priced][2:v]overlay=0:0:enable='gte(t,7.25)':format=auto,format=yuv420p[v]"
+    filtergraph="[0:v][1:v]overlay=0:0:enable='between(t,5.70,7.34)':format=auto[priced];[priced][2:v]overlay=0:0:enable='gte(t,8.50)':format=auto,format=yuv420p[v]"
     run([
       "ffmpeg","-hide_banner","-loglevel","error","-y",
       "-i",str(source),"-loop","1","-framerate","30","-i",str(price_path),
