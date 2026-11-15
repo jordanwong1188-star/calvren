@@ -22,7 +22,7 @@ jobs:
       - name: Recover original and inspect source scenes
         run: |
           git show 3626a913a64929c9955a545cd07072f2d9f59e5c:public/media/calvren-overview.mp4 > /tmp/calvren-overview-original.mp4
-          ffmpeg -hide_banner -loglevel error -y -i /tmp/calvren-overview-original.mp4 -vf "fps=1/2.5,scale=455:256,tile=3x2" -frames:v 1 public/media/calvren-video-original-contact.jpg
+          ffmpeg -hide_banner -loglevel error -y -i /tmp/calvren-overview-original.mp4 -vf "fps=2,scale=300:169,tile=6x3" -frames:v 1 public/media/calvren-video-original-contact.jpg
       - name: Replace outdated pricing and domain in the video
         run: python scripts/refresh-calvren-overview.py /tmp/calvren-overview-original.mp4 public/media/calvren-overview-new.mp4 public/media/calvren-overview.jpg
       - name: Commit refreshed video and poster
