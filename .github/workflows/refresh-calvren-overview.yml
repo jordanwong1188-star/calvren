@@ -12,8 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Pillow
-        run: python -m pip install --user Pillow
+      - name: Install video and image tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install --user Pillow
       - name: Replace outdated pricing and domain in the video
         run: python scripts/refresh-calvren-overview.py public/media/calvren-overview.mp4 public/media/calvren-overview-new.mp4 public/media/calvren-overview.jpg
       - name: Commit refreshed video and poster
