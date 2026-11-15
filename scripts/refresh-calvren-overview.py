@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory() as t:
         run(["ffmpeg","-hide_banner","-loglevel","error","-y","-loop","1","-framerate","24","-i",str(picture),"-t",str(seconds),"-vf","format=yuv420p","-an","-c:v","libx264","-preset","veryfast","-crf","22",str(video)])
         parts.append(video)
     concat=tmp/"concat.txt"
-    concat.write_text("".join("file '"+str(p)+"'\\n" for p in parts))
+    concat.write_text("".join("file '"+str(p)+"'\n" for p in parts))
     run(["ffmpeg","-hide_banner","-loglevel","error","-y","-f","concat","-safe","0","-i",str(concat),"-c","copy","-movflags","+faststart",str(output)])
     assert output.stat().st_size>10000
     print("Updated Calvren overview:",round(duration,2),"->",round(probe(output)[0],2),"seconds")
