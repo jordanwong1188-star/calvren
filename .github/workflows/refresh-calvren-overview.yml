@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/refresh-calvren-overview.yml'
+      - 'scripts/refresh-calvren-overview.py'
   workflow_dispatch:
 permissions:
   contents: write
