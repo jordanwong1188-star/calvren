@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory() as temp:
     def extract(t,path):
         run(["ffmpeg","-hide_banner","-loglevel","error","-y","-ss",str(t),"-i",str(source),"-frames:v","1",str(path)])
     price_path=temp/"price.png";closing_path=temp/"closing.png"
-    extract(dur*.34,price_path)  # The original website film shows its pricing by ~5 seconds
+    extract(dur*.43,price_path)  # Original pricing slide is established around 6.5s
     extract(dur*.72,closing_path) # Final cinematic Calvren logo and CTA
     price=Image.open(price_path).convert("RGB")
     close=Image.open(closing_path).convert("RGB")
@@ -67,7 +67,7 @@ with tempfile.TemporaryDirectory() as temp:
     close.save(poster,quality=91,optimize=True)
 
     # Keep the opening animation, and replace the outdated price and website scenes.
-    start_dur=min(dur*.22,3.3)
+    start_dur=min(dur*.35,5.25)
     seg=temp/"opening.mp4"
     run(["ffmpeg","-hide_banner","-loglevel","error","-y","-i",str(source),"-t",str(start_dur),"-an","-vf",f"scale={w}:{h},fps=24,format=yuv420p","-c:v","libx264","-preset","veryfast","-crf","22",str(seg)])
     parts=[seg]
