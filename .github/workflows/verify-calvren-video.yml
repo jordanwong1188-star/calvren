@@ -1,0 +1,41 @@
+name: Verify live Calvren video
+on:
+  push:
+    paths:
+      - 'public/media/calvren-overview.mp4'
+      - 'public/index.html'
+      - '.github/workflows/verify-calvren-video.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check hosted video and page
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Source video sha256:"
+          sha256sum public/media/calvren-overview.mp4
+          for origin in https://calvren.ca https://calvren.pages.dev; do
+            echo "Checking origin: $origin"
+            ready=false
+            for attempt in 1 2 3 4 5 6; do
+              if curl -fsSL --max-time 18 "$origin/?video-check=$GITHUB_SHA-$attempt" -o /tmp/calvren-home.html &&
+                 grep -q 'full-video-inter-20261114' /tmp/calvren-home.html &&
+                 curl -fsSL --max-time 25 "$origin/media/calvren-overview.mp4?video-check=$GITHUB_SHA-$attempt" -o /tmp/calvren-live.mp4 &&
+                 cmp -s public/media/calvren-overview.mp4 /tmp/calvren-live.mp4; then
+                echo "PASS $origin: homepage references repaired video, and hosted MP4 exactly matches validated repository file."
+                ready=true
+                break
+              fi
+              echo "Attempt $attempt: site not yet serving current video."
+              sleep 8
+            done
+            if [ "$origin" = "https://calvren.ca" ] && [ "$ready" != true ]; then
+              echo "::error::calvren.ca does not yet serve the repaired MP4. Check host deployment."
+              exit 1
+            fi
+          done
