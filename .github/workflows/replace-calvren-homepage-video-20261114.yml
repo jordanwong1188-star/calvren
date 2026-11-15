@@ -1,0 +1,45 @@
+name: Replace Calvren homepage video
+on:
+  push:
+    paths:
+      - '.github/workflows/replace-calvren-homepage-video-20261114.yml'
+permissions:
+  contents: write
+jobs:
+  replace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact uploaded replacement and verify its integrity
+        env:
+          VIDEO_URL: 'https://storage.googleapis.com/vidiq-user-videos/1dd7c10c-b428-45da-9f38-76a3b5476664/f02e01a4-122f-408e-8034-be6d795a7af9.mp4?GoogleAccessId=ai-proxy-20261001%40studious-pen-429.vid.io.iam.gserviceaccount.com&Expires=1795331249&Signature=gK0hnyqQlw1eupeNmPJbIclrSeTFfGoX0HDIRz8fgZ%2FIPrqONnzpq%2FDa2Ahgu4ih5VeF8Z2SzXuah0bM4UTNN%2FbBHdsaoG1pgyDC%2FLPWigP6%2Fd9%2FXxmK%2FZSRzei3RwIgVyC0eNxkY4j%2BovM9IgJXzfyCsxXfGc2ooulYtj1%2B4PG2QJJwrAi94XvsceprsAsp2C%2BLYfQa%2B3e9yooaD55RjXfwi%2BlBlk7QMuOrnnMfXXt9KafwMcIGH%2BRagIhKu3xKHgbID8xBC2srmPee2UGV2aW8Yr8nBIhh7mClM6pkZlttIqYACONyeOmao4%2FtvW%2FngohanRTXZwPcghqsqJAktQ%3D%3D'
+        run: |
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 120 "$VIDEO_URL" -o public/media/calvren-overview.mp4
+          echo '6d0a92c87a643680fd38a8027b3d023d36207e89bbadaa72cba91c6e92937950  public/media/calvren-overview.mp4' | sha256sum -c -
+          test "$(stat -c%s public/media/calvren-overview.mp4)" -gt 1000000
+      - name: Validate and capture a thumbnail from the new video
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffprobe -v error -show_entries format=duration:stream=codec_type,codec_name,width,height -of json public/media/calvren-overview.mp4
+          ffmpeg -hide_banner -loglevel error -xerror -i public/media/calvren-overview.mp4 -f null -
+          ffmpeg -hide_banner -loglevel error -y -ss 0.9 -i public/media/calvren-overview.mp4 -frames:v 1 -q:v 3 public/media/calvren-overview.jpg
+      - name: Update video source and homepage caption
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('public/index.html')
+          s=p.read_text()
+          s=s.replace('full-video-inter-20261114','uploaded-ecacff9b-20261114')
+          s=s.replace('Meet Calvren in 15 seconds.','Meet Calvren in 10 seconds.')
+          assert 'uploaded-ecacff9b-20261114' in s
+          assert 'Meet Calvren in 10 seconds.' in s
+          p.write_text(s)
+          PY
+      - name: Commit original replacement video to homepage
+        run: |
+          git config user.name "Calvren video publisher"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/media/calvren-overview.mp4 public/media/calvren-overview.jpg public/index.html
+          git commit -m "Use user-provided 10-second Calvren homepage video"
+          git push
