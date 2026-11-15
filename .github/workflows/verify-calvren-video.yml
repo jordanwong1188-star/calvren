@@ -24,10 +24,10 @@ jobs:
             ready=false
             for attempt in 1 2 3 4 5 6; do
               if curl -fsSL --max-time 18 "$origin/?video-check=$GITHUB_SHA-$attempt" -o /tmp/calvren-home.html &&
-                 grep -q 'full-video-inter-20261114' /tmp/calvren-home.html &&
+                 grep -q 'uploaded-ecacff9b-20261114' /tmp/calvren-home.html &&
                  curl -fsSL --max-time 25 "$origin/media/calvren-overview.mp4?video-check=$GITHUB_SHA-$attempt" -o /tmp/calvren-live.mp4 &&
                  cmp -s public/media/calvren-overview.mp4 /tmp/calvren-live.mp4; then
-                echo "PASS $origin: homepage references repaired video, and hosted MP4 exactly matches validated repository file."
+                echo "PASS $origin: homepage references new uploaded video, and hosted MP4 exactly matches validated repository file."
                 ready=true
                 break
               fi
@@ -35,7 +35,7 @@ jobs:
               sleep 8
             done
             if [ "$origin" = "https://calvren.ca" ] && [ "$ready" != true ]; then
-              echo "::error::calvren.ca does not yet serve the repaired MP4. Check host deployment."
+              echo "::error::calvren.ca does not yet serve the uploaded MP4. Check host deployment."
               exit 1
             fi
           done
