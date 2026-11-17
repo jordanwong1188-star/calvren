@@ -5,7 +5,7 @@ const required = [
   { path: "/", fragments: ['data-cta="audit-hero"', "/conversion-cta.css?v=20261117-violet", "/contact.html?cta=hero#project-form", "/ai-receptionist.html", "CA$350", "CA$515"] },
   { path: "/contact.html", fragments: ['name="cta_source"', 'button-intent'] },
   { path: "/conversion-cta.css?v=20261117-violet", fragments: ["#7446d6", ".button.button-intent"] },
-  { path: "/ai-receptionist.html", fragments: ["AI receptionist", "CA$350", "CA$515", "200 call minutes", "CA$0.85/minute", "coming soon", "not operational yet", "/contact.html?workflow=ai-receptionist#project-form", "https://calvren.ca/ai-receptionist.html"] },
+  { path: "/ai-receptionist.html", fragments: ["AI receptionist", "CA$350", "CA$515", "Fewer missed opportunities", "Capture booking requests", "coming soon", "not operational yet", "/contact.html?workflow=ai-receptionist#project-form", "https://calvren.ca/ai-receptionist.html"] },
   { path: "/sitemap.xml", fragments: ["https://calvren.ca/ai-receptionist.html"] }
 ];
 
