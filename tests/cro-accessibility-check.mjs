@@ -12,13 +12,13 @@ try {
   assert.equal(await primary.count(), 1, "Homepage must have one prominent audit CTA");
   assert.match(await primary.getAttribute("href"), /\/contact\.html\?cta=hero#project-form$/);
   const color = await primary.evaluate(el => getComputedStyle(el).backgroundColor);
-  assert.equal(color, "rgb(185, 79, 48)", "Audit CTA should use the accessible terracotta accent");
+  assert.equal(color, "rgb(116, 70, 214)", "Audit CTA should use the accessible violet accent");
   assert.equal(await page.locator('[data-cta="audit-header"]').count(), 1);
   await primary.click();
   await page.waitForURL(url => url.pathname.includes("contact") && url.searchParams.get("cta") === "hero");
   assert.equal(await page.locator('#project-form [name="cta_source"]').inputValue(), "hero");
   assert.equal(await page.locator("#project-form").isVisible(), true);
-  assert.equal(await page.locator('#project-form button[type="submit"]').evaluate(el => getComputedStyle(el).backgroundColor), "rgb(185, 79, 48)");
+  assert.equal(await page.locator('#project-form button[type="submit"]').evaluate(el => getComputedStyle(el).backgroundColor), "rgb(116, 70, 214)");
   console.log("CALVREN_CRO_JOURNEY_PASSED: distinct audit CTA, direct visible form and cookie-free source attribution.");
 
   for (const path of ["/", "/contact.html"]) {
