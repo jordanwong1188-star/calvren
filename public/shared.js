@@ -44,6 +44,11 @@ document.querySelectorAll("[data-lead-form]").forEach(form=>{
     const input=form.querySelector('[name="'+key+'"]');
     if(input)input.value=campaignValue(key);
   }
+  const ctaSource=form.querySelector('[name="cta_source"]');
+  if(ctaSource){
+    const source=campaignValue("cta");
+    ctaSource.value=["hero","header","demo","referral","pricing"].includes(source)?source:"";
+  }
   form.addEventListener("submit",async event=>{
     event.preventDefault();
     const button=form.querySelector('button[type="submit"]'),error=form.querySelector("[data-form-error]");
