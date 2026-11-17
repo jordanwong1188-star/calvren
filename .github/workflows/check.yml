@@ -32,11 +32,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install --ignore-scripts --no-save --package-lock=false playwright@1.56.1
+      - run: npm install --ignore-scripts --no-save --package-lock=false playwright@1.56.1 @axe-core/playwright@4.14.0
       - run: node scripts/build-demo.mjs
       - run: npx playwright install --with-deps chromium
       - name: Start current source preview
         run: python3 -m http.server 8080 --directory public > /tmp/calvren-mvp-preview.log 2>&1 &
+      - name: Check lead-audit conversion journey and accessibility with axe-core
+        run: node tests/cro-accessibility-check.mjs
+        env:
+          CALVREN_TEST_SITE: http://127.0.0.1:8080
       - name: Check existing marketing pages and private inbox
         run: node tests/site-check.mjs
         env:
