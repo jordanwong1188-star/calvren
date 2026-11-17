@@ -8,6 +8,10 @@ on:
       - 'public/shared.js'
       - 'public/conversion-cta.css'
       - 'tests/live-cta-check.mjs'
+      - 'tests/cloudflare-origin.test.mjs'
+      - 'tests/cro-accessibility-check.mjs'
+      - '.github/workflows/check.yml'
+      - 'scripts/build-cloudflare.mjs'
       - '.github/workflows/live-cta-check.yml'
   workflow_dispatch:
 permissions:
