@@ -88,12 +88,14 @@ const enquiry=document.getElementById("project-form");
 const workflows={
   "real-estate":{industry:"Real estate",message:"I’d like help organising property enquiries and preparing replies for review."},
   "local-services":{industry:"Local services",message:"I’d like help organising quote requests and collecting the details needed before quoting."},
-  professional:{industry:"Professional services",message:"I’d like help preparing client intake summaries and initial reply drafts."}
+  professional:{industry:"Professional services",message:"I’d like help preparing client intake summaries and initial reply drafts."},
+  "ai-receptionist":{industry:"",message:"I’m interested in Calvren’s coming-soon AI receptionist. Please share availability and how it could work for my business."}
 };
 if(enquiry&&Object.hasOwn(workflows,workflow)){
   enquiry.querySelector('[name="workflow"]').value=workflow;
   enquiry.querySelector('[name="industry"]').value=workflows[workflow].industry;
   enquiry.querySelector('[name="message"]').value=workflows[workflow].message;
+  if(workflow==="ai-receptionist")enquiry.querySelector('[name="subject"]').value="AI receptionist enquiry — Calvren";
 }
 const filterButtons=[...document.querySelectorAll("[data-study-filter]")];
 if(filterButtons.length){

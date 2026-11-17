@@ -1,0 +1,25 @@
+/* Scoped AI receptionist landing page and separate homepage offer; keeps existing CTA accent. */
+.receptionist-teaser{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr);gap:48px;align-items:center;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.receptionist-teaser h2,.receptionist-hero h1{font-size:clamp(35px,4.8vw,65px);letter-spacing:-2px;line-height:1.09;margin:15px 0 24px;font-weight:600}
+.receptionist-teaser h2 em,.receptionist-hero h1 em{font-family:var(--serif);font-weight:400}
+.receptionist-teaser-copy>p:not(.eyebrow),.receptionist-hero-copy>p:not(.eyebrow){max-width:610px;line-height:1.85;color:var(--muted);font-size:16px}
+.receptionist-teaser-copy .button{margin-top:16px}
+.receptionist-teaser-price,.receptionist-price-card{background:#e9efdf;border:1px solid #d3dec8;border-radius:12px;padding:32px}
+.receptionist-money{font-size:clamp(40px,5vw,60px);font-weight:700;letter-spacing:-2px;line-height:1.2;margin:17px 0 7px;color:var(--ink)}
+.receptionist-money span{font-size:15px;letter-spacing:0;font-weight:500}
+.receptionist-teaser-price ul,.receptionist-price-card ul{padding-left:20px;line-height:1.85;margin:15px 0}
+.receptionist-caution{font-size:13px;line-height:1.7;color:#476257;border-top:1px solid #c4d3bc;padding-top:14px;margin-top:18px}
+.receptionist-hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(310px,.85fr);gap:54px;align-items:center}
+.receptionist-status{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:700;color:#466a55}
+.receptionist-hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:20px;margin-top:28px}
+.receptionist-price-card h2{font-size:24px;line-height:1.3;margin:10px 0}
+.receptionist-price-card .price-label{font-size:13px;color:#446454}
+.receptionist-feature-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.receptionist-feature-grid article{padding:28px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.receptionist-feature-grid h3{font-size:20px;margin:0 0 10px}
+.receptionist-feature-grid p{color:var(--muted);line-height:1.8;margin:0}
+.receptionist-next{border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:30px}
+.receptionist-next h2{font-size:clamp(30px,3.5vw,48px);line-height:1.15;margin:12px 0}
+.receptionist-next p{max-width:640px;color:var(--muted)}
+@media(max-width:860px){.receptionist-teaser,.receptionist-hero{grid-template-columns:1fr;gap:24px}.receptionist-feature-grid{grid-template-columns:1fr}.receptionist-next{flex-direction:column;align-items:flex-start}}
+@media(max-width:600px){.receptionist-teaser-price,.receptionist-price-card{padding:22px}.receptionist-hero-actions .button,.receptionist-next .button{width:100%}}
