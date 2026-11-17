@@ -1,0 +1,25 @@
+name: Verify Calvren conversion deployment
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/index.html'
+      - 'public/contact.html'
+      - 'public/shared.js'
+      - 'public/conversion-cta.css'
+      - 'tests/live-cta-check.mjs'
+      - '.github/workflows/live-cta-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm both Cloudflare and custom domain serve the new conversion experience
+        run: node tests/live-cta-check.mjs
