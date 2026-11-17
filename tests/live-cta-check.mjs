@@ -2,9 +2,9 @@ import { setTimeout as delay } from "node:timers/promises";
 
 const targets = ["https://calvren.pages.dev", "https://calvren.ca"];
 const required = [
-  { path: "/", fragments: ['data-cta="audit-hero"', "/conversion-cta.css?v=20261117", "/contact.html?cta=hero#project-form"] },
+  { path: "/", fragments: ['data-cta="audit-hero"', "/conversion-cta.css?v=20261117-violet", "/contact.html?cta=hero#project-form"] },
   { path: "/contact.html", fragments: ['name="cta_source"', 'button-intent'] },
-  { path: "/conversion-cta.css?v=20261117", fragments: ["#b94f30", ".button.button-intent"] }
+  { path: "/conversion-cta.css?v=20261117-violet", fragments: ["#7446d6", ".button.button-intent"] }
 ];
 
 async function verify(base) {
