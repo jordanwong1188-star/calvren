@@ -4,14 +4,14 @@ import { readFile } from "node:fs/promises";
 
 const read = file => readFile(new URL("../" + file, import.meta.url), "utf8");
 
-test("Cloudflare is the canonical production URL throughout public pages and SEO files", async () => {
+test("calvren.ca is the canonical public domain throughout public SEO pages", async () => {
   for (const file of [
     "public/index.html", "public/contact.html", "public/case-studies.html",
     "public/privacy.html", "public/sitemap.xml", "public/robots.txt"
   ]) {
     const content = await read(file);
     assert.ok(!content.includes("https://calvren.netlify.app"), file + " must not link to the outdated Netlify deployment.");
-    assert.ok(content.includes("https://calvren.pages.dev"), file + " must point to Cloudflare.");
+    assert.ok(content.includes("https://calvren.ca"), file + " must use the verified production custom-domain canonical.");
   }
   assert.match(await read("tests/site-check.mjs"), /CALVREN_TEST_SITE \|\| "https:\/\/calvren\.pages\.dev"/);
   assert.match(await read("scripts/build-cloudflare.mjs"), /CALVREN_SITE_URL \|\| "https:\/\/calvren\.pages\.dev"/);
