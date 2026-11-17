@@ -4,7 +4,8 @@ import AxeBuilder from "@axe-core/playwright";
 
 const base = process.env.CALVREN_TEST_SITE || "http://127.0.0.1:8080";
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const page = await context.newPage();
 try {
   await page.goto(base + "/", { waitUntil: "networkidle" });
   const primary = page.getByRole("link", { name: "Request a free audit" });
@@ -30,5 +31,6 @@ try {
     console.log("CALVREN_AXE_REPORT " + path + " " + JSON.stringify(summary));
   }
 } finally {
+  await context.close();
   await browser.close();
 }
