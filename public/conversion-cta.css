@@ -1,0 +1,27 @@
+/* Calvren's high-intent CTA accent. Reserved for audit requests, not general navigation. */
+/* #B94F30 on #F6F5EE: 4.55:1; #FFFAF3 on #B94F30: 4.79:1. */
+:root{--calvren-intent:#b94f30;--calvren-intent-hover:#9f3d24;--calvren-intent-label:#fffaf3}
+.marketing .button.button-intent{
+  background:var(--calvren-intent);border:1px solid var(--calvren-intent);
+  color:var(--calvren-intent-label);font-weight:700;
+  box-shadow:0 7px 18px rgba(130,52,29,.15);
+}
+.marketing .button.button-intent:hover{
+  background:var(--calvren-intent-hover);border-color:var(--calvren-intent-hover);
+  color:var(--calvren-intent-label);
+  box-shadow:0 10px 24px rgba(130,52,29,.22);
+}
+.marketing .button.button-intent:focus-visible{
+  outline:3px solid #183b31;outline-offset:4px;
+}
+.marketing .button.button-intent:active{transform:translateY(0)}
+.simple-home .hero-actions .button-intent{min-height:52px;justify-content:center}
+.simple-home .hero-cta-note{color:var(--muted);font-size:12px;line-height:1.65;margin-top:12px}
+.simple-contact #project-form{scroll-margin-top:130px}
+@media(max-width:600px){
+  .simple-home .hero-actions .button-intent{width:100%}
+  .simple-home .hero-actions{align-items:stretch}
+}
+@media(prefers-reduced-motion:reduce){
+  .marketing .button.button-intent{transition:none}
+}
