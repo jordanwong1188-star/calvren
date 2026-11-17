@@ -15,6 +15,17 @@ test("AI receptionist offer is distinct, not a working checkout",()=>{
   for(const existing of ["CA$249","CA$499","CA$775","CA$349"]){assert.ok(home.includes(existing),"Preserve existing pricing "+existing);}
   assert.equal((home.match(/class="calvren-tier(?: |")/g)||[]).length,3,"Keep exactly the existing three subscription cards");
 });
+test("AI receptionist benefit lists match subscription checkmark styling",()=>{
+  const css=get("public/receptionist.css"),home=get("public/index.html"),page=get("public/ai-receptionist.html");
+  for(const name of ["receptionist-teaser-price","receptionist-price-card"]){
+    assert.ok(css.includes("."+name+" li::before"),"Missing checkmark selector for "+name);
+    assert.ok(css.includes("."+name+" ul"),"Missing list selector for "+name);
+  }
+  assert.ok(css.includes('content:"✓"'),"Use the same checkmark as subscription cards");
+  assert.ok(css.includes("color:#326248"),"Match the subscription checkmark colour");
+  assert.ok(css.includes("list-style:none"),"Prevent default bullet markers");
+  for(const marketing of [home,page])assert.ok(marketing.includes("/receptionist.css?v=20261117-checkmarks"),"Load updated CSS without stale caching");
+});
 test("indexed pages have canonical, OG and social preview, and sitemap includes receptionist",()=>{
   for(const path of ["","contact.html","case-studies.html","privacy.html","ai-receptionist.html"]){
     const filename=path||"index.html",content=get("public/"+filename);

@@ -7,7 +7,10 @@
 .receptionist-teaser-price,.receptionist-price-card{background:#e9efdf;border:1px solid #d3dec8;border-radius:12px;padding:32px}
 .receptionist-money{font-size:clamp(40px,5vw,60px);font-weight:700;letter-spacing:-2px;line-height:1.2;margin:17px 0 7px;color:var(--ink)}
 .receptionist-money span{font-size:15px;letter-spacing:0;font-weight:500}
-.receptionist-teaser-price ul,.receptionist-price-card ul{padding-left:20px;line-height:1.85;margin:15px 0}
+.receptionist-teaser-price ul,.receptionist-price-card ul{padding:0;margin:15px 0;list-style:none;line-height:1.5}
+.receptionist-teaser-price li,.receptionist-price-card li{position:relative;padding:0 0 15px 23px;margin:0}
+.receptionist-teaser-price li::before,.receptionist-price-card li::before{content:"✓";position:absolute;left:0;top:1px;color:#326248;font-weight:700;font-size:14px}
+.receptionist-teaser-price li:last-child,.receptionist-price-card li:last-child{padding-bottom:0}
 .receptionist-caution{font-size:13px;line-height:1.7;color:#476257;border-top:1px solid #c4d3bc;padding-top:14px;margin-top:18px}
 .receptionist-hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(310px,.85fr);gap:54px;align-items:center}
 .receptionist-status{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:700;color:#466a55}
