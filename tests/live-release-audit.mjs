@@ -18,7 +18,7 @@ const pages=[
   ["/","calvren"],["/payment.html","data-select-plan"],["/ai-receptionist.html","Custom pricing"],
   ["/client.html","client-payment-success"],["/onboarding.html","onboarding-app"],
   ["/onboarding-preview.html","INTERACTIVE SAMPLE"],
-  ["/case-studies.html","case"],["/contact.html","contact"],["/privacy.html","privacy"]
+  ["/contact.html","contact"],["/privacy.html","privacy"]
 ];
 for(const [path,marker] of pages){
   const r=await request(path);
@@ -26,6 +26,16 @@ for(const [path,marker] of pages){
   assert.match(r.headers.get("content-type")||"",/text\/html/i,path+" must return HTML");
   const html=await r.text();
   assert.ok(html.toLowerCase().includes(marker.toLowerCase()),"Missing UI marker "+path);
+  if(["/","/contact.html","/ai-receptionist.html"].includes(path)){
+    assert.ok(!html.includes("/case-studies"),"Retired client-story link remains on "+path);
+    assert.ok(!html.includes("Client stories"),"Retired client-story navigation remains on "+path);
+  }
+  if(path==="/") {
+    assert.ok(!html.includes("proof-preview")&&!html.includes("ShineBros")&&!html.includes("ClearCraft"),
+      "Retired client stories remain on homepage");
+    for(const section of ["id="+'\"'+"solutions"+'\"',"id="+'\"'+"demo"+'\"',"id="+'\"'+"process"+'\"',"id="+'\"'+"pricing"+'\"'])
+      assert.ok(html.includes(section),"Required homepage section missing: "+section);
+  }
   if(path==="/client.html"){
     assert.ok(html.includes("Thank you for choosing Calvren."));
     assert.ok(html.includes("Complete your onboarding"));
@@ -49,6 +59,15 @@ for(const [path,marker] of pages){
     assert.ok(html.includes("NOT A LIVE ACCOUNT"),"Preview must state that it is not a live account");
   console.log("PUBLIC_PAGE_OK",path);
 }
+for(const obsolete of ["/case-studies","/case-studies.html"]){
+  const response=await request(obsolete,{redirect:"manual"});
+  assert.equal(response.status,301,"Retired page must redirect permanently: "+obsolete);
+  assert.equal(new URL(response.headers.get("location")||"",base).pathname,"/",
+    "Retired story URLs must lead visitors to the homepage");
+}
+const sitemap=await request("/sitemap.xml");
+assert.equal(sitemap.status,200);
+assert.ok(!(await sitemap.text()).includes("case-studies"),"Sitemap should exclude removed stories");
 for(const path of ["/favicon.svg","/client-portal.js","/onboarding.js","/billing.css"]){
   const r=await request(path);
   assert.equal(r.status,200,"Static asset unavailable: "+path);
