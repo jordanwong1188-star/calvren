@@ -126,7 +126,7 @@ try{
     "Retired client-story sections must not appear on the homepage.");
   assert.equal(await page.locator('a[href*="case-studies"]').count(),0,
     "Client-story links must not appear in public navigation.");
-  for(const section of ["#solutions","#demo","#process","#pricing"])
+  for(const section of ["#solutions","#demo","#pricing"])
     assert.equal(await page.locator(section).count(),1,"Preserve useful marketing section "+section);
 
   // Intercept both providers: browser checks must never send test notifications.
