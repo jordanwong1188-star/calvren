@@ -33,7 +33,7 @@ for(const [path,marker] of pages){
   if(path==="/") {
     assert.ok(!html.includes("proof-preview")&&!html.includes("ShineBros")&&!html.includes("ClearCraft"),
       "Retired client stories remain on homepage");
-    for(const section of ["id="+'\"'+"solutions"+'\"',"id="+'\"'+"demo"+'\"',"id="+'\"'+"process"+'\"',"id="+'\"'+"pricing"+'\"'])
+    for(const section of ['id="solutions"','id="demo"','id="process"','id="pricing"'])
       assert.ok(html.includes(section),"Required homepage section missing: "+section);
   }
   if(path==="/client.html"){
