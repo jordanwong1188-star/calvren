@@ -116,16 +116,3 @@ if(enquiry&&Object.hasOwn(workflows,workflow)){
   enquiry.querySelector('[name="message"]').value=workflows[workflow].message;
   if(workflow==="ai-receptionist")enquiry.querySelector('[name="subject"]').value="AI receptionist custom quote request — Calvren";
 }
-const filterButtons=[...document.querySelectorAll("[data-study-filter]")];
-if(filterButtons.length){
-  filterButtons.forEach(button=>button.addEventListener("click",()=>{
-    const selected=button.dataset.studyFilter;
-    filterButtons.forEach(node=>node.setAttribute("aria-pressed",String(node===button)));
-    let count=0;
-    document.querySelectorAll("[data-study]").forEach(study=>{
-      study.hidden=selected!=="all"&&study.dataset.study!==selected;
-      if(!study.hidden){count++;study.classList.add("is-revealed");}
-    });
-    document.getElementById("study-filter-status").textContent="Showing "+count+" illustrative "+(count===1?"example.":"examples.");
-  }));
-}
