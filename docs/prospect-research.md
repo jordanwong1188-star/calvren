@@ -3,8 +3,8 @@
 ## What is connected
 
 - The owner-run GitHub Action at .github/workflows/prospect-research.yml installs the Apache-2.0 open-source [Crawlee CheerioCrawler](https://github.com/apify/crawlee) pinned to @crawlee/cheerio 3.18.2 and executes scripts/prospect-research.mjs.
-- Discovery makes one bounded OpenStreetMap Overpass request in Vancouver for published business website tags. The crawler respects robots.txt, limits speed to 2 concurrent / 8 requests per minute, and visits at most 15 company homepage roots.
-- It runs weekly or from GitHub → Actions → Research Calvren prospects — review only → Run workflow. To research a particular shortlist, paste public business website roots into the websites input; blank uses OpenStreetMap discovery.
+- A weekly scheduled run tries **one** OpenStreetMap Overpass query for new Vancouver-area business website tags. If OSM is unavailable or returns no suitable sites, it uses the 12 public business websites in data/prospect-starter-sites.json instead. Push-triggered checks and manual runs default to this curated list to avoid unnecessary load on OSM. The crawler respects robots.txt, limits speed to 2 concurrent / 8 requests per minute, and visits at most 15 business homepage roots.
+- It runs weekly or from GitHub → Actions → Research Calvren prospects — review only → Run workflow. For a particular shortlist, paste public website roots into the websites input. Without URLs, choose **starter** (12 curated sites) or **osm** (try OSM discovery with automatic starter fallback).
 - It produces a GitHub Actions artifact (retained 14 days) with research-report.md, candidates.csv and candidates.json. Open the completed run to download the artifact. Do not expect automatic import into customer billing, the public site, or a CRM.
 - No AI API, paid subscription, bulk email sender, Google Maps scraper or external customer-data upload is added.
 - **Public repository caution:** GitHub Actions artifacts can be public. The report includes only public company names, websites, source links and review drafts. Never supply private personal contacts, passwords, sensitive customer information or private revenue data.
