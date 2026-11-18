@@ -75,6 +75,9 @@ test("receptionist enquiry uses existing validated Formspree lead form",()=>{
   assert.ok(shared.includes('"ai-receptionist"'));
   assert.ok(shared.includes('AI receptionist custom quote request — Calvren'));
   assert.ok(shared.includes('custom quote for Calvren’s AI receptionist'));
+  assert.ok(shared.includes('I’m interested in a custom quote for Calvren’s AI receptionist. Please share the pricing and setup options for my business.'));
+  assert.ok(!shared.includes('I’d like to discuss our expected call volume'));
+
   assert.ok(!shared.includes('AI receptionist at CA$425/month'));
   assert.ok(!shared.includes('plus CA$515 setup'));
 });
