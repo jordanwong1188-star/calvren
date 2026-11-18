@@ -226,8 +226,8 @@ try{
     const reveals=nativePage.locator("[data-reveal]");
     if(await reveals.count())assert.equal(await reveals.first().evaluate(node=>getComputedStyle(node).opacity),"1");
     if(path==="/ai-receptionist.html"){
-      assert.ok(await nativePage.locator('a[href="/payment?plan=receptionist"]').count()>0,
-        "The receptionist must retain a usable checkout link without JavaScript.");
+      assert.ok(await nativePage.locator('a[href="/contact.html?workflow=ai-receptionist#project-form"]').count()>0,
+        "The receptionist must retain a usable quote-request link without JavaScript.");
     }else{
       assert.equal(await nativePage.locator("[data-lead-form]").getAttribute("method"),"POST");
     }
