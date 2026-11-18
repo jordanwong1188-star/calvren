@@ -146,7 +146,7 @@ async function publicConfig(deps:BillingDependencies){
     starter:{label:"Starter",amount:24900,ready:false,checkout:"subscription"},
     growth:{label:"Growth",amount:49900,ready:false,checkout:"subscription"},
     pro:{label:"Pro",amount:77500,ready:false,checkout:"subscription"},
-    receptionist:{label:"AI Receptionist",amount:42500,setup_amount:51500,first_payment:94000,ready:false,checkout:"subscription",activation:"setup_required"}
+    receptionist:{label:"AI Receptionist",ready:false,checkout:"quote",quote_url:"/contact.html?workflow=ai-receptionist#project-form"}
   };
   if(!billingReady(deps.env))return json({ready:false,plans:visible,message:"Subscription checkout is being configured."});
   try{
@@ -158,17 +158,12 @@ async function publicConfig(deps:BillingDependencies){
     if(!validPrice(starter,starterId,24900))
       return json({ready:false,plans:visible,message:"Starter price requires configuration."});
     visible.starter.ready=true;
-    for(const plan of ["growth","pro","receptionist"] as const){
+    for(const plan of ["growth","pro"] as const){
       const id=configuredPrice(deps.env,plan);
       if(!stripeId(id,"price")||id===starterId)continue;
       try{
         const price=await stripe(deps,"prices/"+encodeURIComponent(id));
         visible[plan].ready=validPrice(price,id,plans[plan].monthly);
-        if(plan==="receptionist"){
-          const setupId=receptionistSetupId(deps.env);
-          const receptionistSetup=await stripe(deps,"prices/"+encodeURIComponent(setupId));
-          visible.receptionist.ready=visible.receptionist.ready&&validSetup(receptionistSetup,setupId,51500);
-        }
       }catch{visible[plan].ready=false;}
     }
     return json({ready:true,amount:starter.unit_amount,setup_amount:setup.unit_amount,
@@ -299,11 +294,17 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
             return json({error:"Invalid checkout request."},400);
           if(Object.hasOwn(payload,"plan")){
             if(!["starter","growth","pro","receptionist"].includes(payload.plan))
-              return json({error:"Choose Starter, Growth, Pro or AI Receptionist."},400);
+              return json({error:"Choose Starter, Growth, Pro or request a quote for AI Receptionist."},400);
             plan=payload.plan as CalvrenPlan;
           }
         }catch{return json({error:"Invalid checkout request."},400);}
       }
+      // AI receptionist is quoted per customer; do not create a public Stripe Checkout
+      // session from the retired fixed-price offer, even with a forged old client.
+      if(plan==="receptionist")return json({
+        error:"AI Receptionist uses custom quotes. Contact Calvren for tailored pricing before payment.",
+        quote_url:"/contact.html?workflow=ai-receptionist#project-form"
+      },409);
       const selectedPrice=configuredPrice(deps.env,plan);
       if(!stripeId(selectedPrice,"price"))
         return json({error:"This plan is not available for online checkout yet. Contact Calvren."},503);
@@ -314,10 +315,6 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       if(!stripeId(selectedSetup,"price"))return json({error:"Setup price is unavailable."},503);
       const verifiedSetup=await stripe(deps,"prices/"+encodeURIComponent(selectedSetup));
       if(!validSetup(verifiedSetup,selectedSetup,planSetupAmount(plan)))return json({error:"Setup price is unavailable."},503);
-      if(plan==="receptionist"){
-        const payload=JSON.parse(raw);
-        if(payload.accept_setup_terms!==true)return json({error:"Confirm that billing starts today and phone answering requires setup and testing."},400);
-      }
       if(paid(existing))return json({error:"Your subscription is already active. Open your client dashboard."},409);
       if(deps.repository){
         const key=createHash("sha256").update("billing-checkout:"+user.id).digest("hex");
@@ -336,7 +333,6 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
          // verified paid membership. The customer chooses when to start onboarding.
          success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/payment?plan="+encodeURIComponent(plan)+"&checkout=canceled",
       });
-      if(plan==="receptionist")p.set("custom_text[submit][message]","CA$940 today, then CA$425/month. Billing starts today. Phone answering requires onboarding, provider setup and successful call testing; it is not activated by payment.");
       if(existing?.stripe_customer_id)p.set("customer",existing.stripe_customer_id),p.delete("customer_email");
       const session=await stripe(deps,"checkout/sessions",p);
       if(!/^https:\/\/checkout\.stripe\.com\//.test(session.url||""))throw Error("Invalid Stripe checkout.");
