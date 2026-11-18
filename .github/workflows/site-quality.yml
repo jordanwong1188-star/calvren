@@ -1,0 +1,51 @@
+name: Calvren free site-quality checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'lighthouserc.json'
+      - '.github/workflows/site-quality.yml'
+  pull_request:
+    paths:
+      - 'public/**'
+      - 'lighthouserc.json'
+      - '.github/workflows/site-quality.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lighthouse:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install free Lighthouse CI
+        run: npm install --no-save --package-lock=false --ignore-scripts @lhci/cli@0.15.1
+      - name: Audit homepage, receptionist and contact page (informational baseline)
+        run: npx lhci autorun
+        continue-on-error: true
+      - name: Save private-in-Actions performance and SEO reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calvren-lighthouse-reports
+          path: |
+            artifacts/lighthouse/
+            .lighthouseci/
+          if-no-files-found: warn
+          retention-days: 7
+  local-links:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check local links without contacting external sites (report only)
+        uses: lycheeverse/lychee-action@v2
+        continue-on-error: true
+        with:
+          args: --offline --root-dir "$(pwd)/public" --no-progress 'public/**/*.html'
+          fail: false
