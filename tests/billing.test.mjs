@@ -38,7 +38,7 @@ function fixture({member=null,clientId=null,subscriptionPrice=priceId}={}){
     if(url.includes("/rest/v1/calvren_leads"))return Response.json([
       {data:{id:"1",status:"qualified",created_at:"2026-10-13T00:00:00Z"}}]);
     if(url.endsWith("/v1/prices/price_setup123"))return Response.json({id:"price_setup123",active:true,unit_amount:34900,currency:"cad",recurring:null});
-    if(url.endsWith("/v1/prices/"+priceId))return Response.json({id:priceId,active:true,unit_amount:24900,
+    if(url.endsWith("/v1/prices/"+priceId))return Response.json({id:priceId,active:true,unit_amount:27500,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
     if(url.endsWith("/v1/prices/price_growth123"))return Response.json({id:"price_growth123",active:true,unit_amount:49900,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
@@ -49,6 +49,7 @@ function fixture({member=null,clientId=null,subscriptionPrice=priceId}={}){
     if(url.endsWith("/v1/prices/price_1UaAOiQ9mewkKyl5NubJPt0S"))return Response.json({id:"price_1UaAOiQ9mewkKyl5NubJPt0S",active:true,unit_amount:49900,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
     if(url.endsWith("/v1/prices/price_1UbeD4Q9mewkKyl5J9C8cuMe"))return Response.json({id:"price_1UbeD4Q9mewkKyl5J9C8cuMe",active:true,unit_amount:24900,currency:"cad",recurring:{interval:"month",interval_count:1}});
+    if(url.endsWith("/v1/prices/price_1UdENaQ9mewkKyl5MBpGJDZS"))return Response.json({id:"price_1UdENaQ9mewkKyl5MBpGJDZS",active:true,unit_amount:27500,currency:"cad",recurring:{interval:"month",interval_count:1}});
     if(url.endsWith("/v1/prices/price_1UbeD6Q9mewkKyl5iEgpMMQm"))return Response.json({id:"price_1UbeD6Q9mewkKyl5iEgpMMQm",active:true,unit_amount:49900,currency:"cad",recurring:{interval:"month",interval_count:1}});
     if(url.endsWith("/v1/prices/price_1UbeD7Q9mewkKyl5szjSTpZ6"))return Response.json({id:"price_1UbeD7Q9mewkKyl5szjSTpZ6",active:true,unit_amount:77500,currency:"cad",recurring:{interval:"month",interval_count:1}});
     if(url.endsWith("/v1/subscriptions/"+subId))return Response.json({
@@ -78,8 +79,8 @@ test("billing public price only comes from configured Stripe price",async()=>{
   assert.equal(response.status,200);
   const value=await response.json();
   assert.equal(value.ready,true);
-  assert.equal(value.amount,24900);
-  assert.equal(value.first_payment,59800);
+  assert.equal(value.amount,27500);
+  assert.equal(value.first_payment,62400);
   assert.equal(value.plans.starter.ready,true);
   assert.equal(value.plans.growth.ready,false);
   assert.equal(value.plans.pro.checkout,"subscription");
@@ -342,8 +343,8 @@ test("live Stripe prices remain pinned to the three verified new recurring catal
   const data=await response.json();
   assert.equal(data.ready,true);
   assert.equal(data.test_mode,false);
-  assert.equal(data.plans.starter.amount,24900);
-  assert.ok(f.calls.some(call=>call.url.endsWith("/v1/prices/price_1UbeD4Q9mewkKyl5J9C8cuMe")));
+  assert.equal(data.plans.starter.amount,27500);
+  assert.ok(f.calls.some(call=>call.url.endsWith("/v1/prices/price_1UdENaQ9mewkKyl5MBpGJDZS")));
   assert.equal(data.plans.growth.ready,true);
   assert.equal(data.plans.pro.ready,true);
   assert.ok(f.calls.some(call=>call.url.endsWith("/v1/prices/price_1UbeD6Q9mewkKyl5iEgpMMQm")));
@@ -351,8 +352,10 @@ test("live Stripe prices remain pinned to the three verified new recurring catal
   assert.ok(!f.calls.some(call=>call.url.endsWith("/v1/prices/price_old_growth")));
 });
 
-test("grandfathered live Growth/Pro subscribers retain plan access after repricing",async()=>{
+test("grandfathered live Starter/Growth/Pro subscribers retain plan access after repricing",async()=>{
   for(const [expectedPlan,oldPrice] of [
+    ["starter","price_1UQWVeQ9mewkKyl5kv85ccXb"],
+    ["starter","price_1UbeD4Q9mewkKyl5J9C8cuMe"],
     ["growth","price_1Ua3rFQ9mewkKyl5dIhzjarI"],
     ["pro","price_1Ua3rNQ9mewkKyl5TrGGeeQU"]
   ]){

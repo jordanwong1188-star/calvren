@@ -20,7 +20,7 @@ const setupPriceId=(env:Env)=>env("STRIPE_SETUP_PRICE_ID")?.trim()||"";
 // All subscription entitlements derive from server-verified Stripe price IDs, never the browser.
 export type CalvrenPlan="starter"|"growth"|"pro"|"receptionist";
 const plans={
-  starter:{name:"Starter",monthly:24900,envKey:"STRIPE_PRICE_ID"},
+  starter:{name:"Starter",monthly:27500,envKey:"STRIPE_PRICE_ID"},
   growth:{name:"Growth",monthly:49900,envKey:"STRIPE_GROWTH_PRICE_ID"},
   pro:{name:"Pro",monthly:77500,envKey:"STRIPE_PRO_PRICE_ID"},
   receptionist:{name:"AI Receptionist",monthly:42500,envKey:"STRIPE_RECEPTIONIST_PRICE_ID"}
@@ -36,7 +36,7 @@ const features={
 // environment variable cannot silently send customers to an obsolete price.
 // In sandbox tests, use explicitly configured test price IDs.
 const LIVE_PRICE_IDS={
-  starter:"price_1UbeD4Q9mewkKyl5J9C8cuMe",
+  starter:"price_1UdENaQ9mewkKyl5MBpGJDZS",
   growth:"price_1UbeD6Q9mewkKyl5iEgpMMQm",
   pro:"price_1UbeD7Q9mewkKyl5szjSTpZ6",
   receptionist:"price_1UcywrQ9mewkKyl5NAYObAFI"
@@ -49,7 +49,7 @@ const configuredPrice=(env:Env,plan:CalvrenPlan)=>{
 // Existing $219/$389 subscribers retain their paid Growth/Pro access until an
 // explicitly approved subscription change. New checkouts use ONLY the new IDs.
 const LEGACY_LIVE_PRICE_IDS={
-  starter:["price_1UQWVeQ9mewkKyl5kv85ccXb"],
+  starter:["price_1UQWVeQ9mewkKyl5kv85ccXb","price_1UbeD4Q9mewkKyl5J9C8cuMe"],
   growth:["price_1Ua3rFQ9mewkKyl5dIhzjarI","price_1UaAOfQ9mewkKyl5rXDk02Ff"],
   pro:["price_1Ua3rNQ9mewkKyl5TrGGeeQU","price_1UaAOiQ9mewkKyl5NubJPt0S"]
 } as const;
@@ -143,7 +143,7 @@ const paid=(m:ObjectRow|null)=>!!m&&["active","trialing"].includes(m.subscriptio
   &&(!m.current_period_end||new Date(m.current_period_end).getTime()>Date.now());
 async function publicConfig(deps:BillingDependencies){
   const visible={
-    starter:{label:"Starter",amount:24900,ready:false,checkout:"subscription"},
+    starter:{label:"Starter",amount:27500,ready:false,checkout:"subscription"},
     growth:{label:"Growth",amount:49900,ready:false,checkout:"subscription"},
     pro:{label:"Pro",amount:77500,ready:false,checkout:"subscription"},
     receptionist:{label:"AI Receptionist",ready:false,checkout:"quote",quote_url:"/contact.html?workflow=ai-receptionist#project-form"}
@@ -155,7 +155,7 @@ async function publicConfig(deps:BillingDependencies){
       return json({ready:false,plans:visible,message:"Setup price requires configuration."});
     const starterId=configuredPrice(deps.env,"starter");
     const starter=await stripe(deps,"prices/"+encodeURIComponent(starterId));
-    if(!validPrice(starter,starterId,24900))
+    if(!validPrice(starter,starterId,27500))
       return json({ready:false,plans:visible,message:"Starter price requires configuration."});
     visible.starter.ready=true;
     for(const plan of ["growth","pro"] as const){
