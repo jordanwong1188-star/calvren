@@ -39,7 +39,7 @@ test("stock photography is realistic, accessible, traceable and not presented as
   assert.equal((home.match(/class="solution-photo"/g)||[]).length,3);
   assert.equal((home.match(/<img src="https:\/\/images\.unsplash\.com\/photo-/g)||[]).length,3);
   assert.ok(receptionist.includes('class="receptionist-workplace-photo section-wrap"'));
-  assert.ok(receptionist.includes("images.unsplash.com/photo-1663767117072-a97deef95956"));
+  assert.ok(receptionist.includes("images.unsplash.com/photo-1714079761488-e0c9b9ac4138"));
   assert.ok(!home.includes('class="solution-icon"'));
   const photoAlt=[...home.matchAll(/<img[^>]*alt="([^"]+)"[^>]*>/g)].map(x=>x[1]);
   assert.ok(photoAlt.length>=3&&photoAlt.every(x=>x.length>24));
