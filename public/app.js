@@ -29,6 +29,7 @@ $("demo-form").addEventListener("submit", (event) => {
     $("demo-empty").hidden = true; $("demo-results").hidden = false; $("demo-error").hidden = true;
     $("demo-state").textContent = "EXAMPLE PREPARED"; $("copy-reply").textContent = "Copy draft";
     setStatus("Example prepared. Lead type: " + lastResult.intent + ". A reply draft and proposed next action are ready for review.");
+    window.calvrenTrackEvent?.("demo_started");
   } catch (error) { $("demo-error").textContent = error.message; $("demo-error").hidden = false; }
 });
 $("copy-reply").addEventListener("click", async () => {
@@ -43,13 +44,30 @@ $("download-result").addEventListener("click", () => {
   document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   setStatus("Example record downloaded. This is a local preview, not an external CRM record.");
 });
-function updateEstimate() {
-  const tasks = Number($("monthly-tasks").value), minutes = Number($("minutes-per-task").value);
-  $("tasks-value").value = String(tasks); $("minutes-value").value = String(minutes);
-  $("hours-result").textContent = (tasks * minutes / 60).toFixed(1);
+let estimatorTracked=false;
+const cad=value=>new Intl.NumberFormat("en-CA",{style:"currency",currency:"CAD",maximumFractionDigits:0}).format(value);
+function updateEstimate(interacted=false) {
+  const tasks=Number($("monthly-tasks").value),minutes=Number($("minutes-per-task").value);
+  const share=Number($("automation-share").value)/100,review=Number($("review-minutes").value);
+  const hourly=Number($("hourly-value").value),plan=Number($("estimate-plan").value);
+  const totalHours=tasks*minutes/60;
+  const freedHours=Math.max(0,tasks*share*(minutes-review)/60);
+  const value=freedHours*hourly,difference=value-plan;
+  $("tasks-value").value=String(tasks);$("minutes-value").value=String(minutes);
+  $("share-value").value=String(Math.round(share*100))+"%";$("review-value").value=String(review);
+  $("hourly-value-display").value=cad(hourly);
+  $("hours-result").textContent=totalHours.toFixed(1);
+  $("saved-hours").textContent=freedHours.toFixed(1)+" hours";
+  $("monthly-value").textContent=cad(value);
+  $("comparison-result").textContent=(difference<0?"−":"+")+cad(Math.abs(difference));
+  $("comparison-note").textContent=difference>=0
+    ?"Illustrative labour-time value exceeds the monthly plan fee. This is not guaranteed cash savings."
+    :"Illustrative labour-time value is below the monthly plan fee. Response speed and reliability may still matter.";
+  if(interacted&&!estimatorTracked){estimatorTracked=true;window.calvrenTrackEvent?.("estimator_used");}
 }
-$("monthly-tasks").addEventListener("input", updateEstimate);
-$("minutes-per-task").addEventListener("input", updateEstimate);
+for(const id of ["monthly-tasks","minutes-per-task","automation-share","review-minutes","hourly-value"])
+  $(id).addEventListener("input",()=>updateEstimate(true));
+$("estimate-plan").addEventListener("change",()=>updateEstimate(true));
 updateCount(); updateEstimate();
 const initialScenario=new URLSearchParams(location.search).get("scenario");
 if(Object.hasOwn(scenarios,initialScenario))document.querySelector('[data-scenario="'+initialScenario+'"]')?.click();

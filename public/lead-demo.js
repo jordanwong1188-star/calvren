@@ -45,6 +45,25 @@
       {id:"timing",prompt:"When would you like service?",required:true}
     ]
   };
+  const demoPresets={
+    plumbing:{client:initial,name:"Alex Taylor",message:"Hi, my kitchen sink is leaking and I need someone to look at it.",
+      guide:"Start the leak enquiry, answer the emergency and location questions, then choose a simulated appointment."},
+    hvac:{client:{...safeClone(initial),id:"demo-hvac",business_name:"Example HVAC Service",
+      services:["Furnace repair","AC installation","Heating maintenance","Air quality inspection"],
+      qualifying_questions:[{id:"service",prompt:"What service do you need?",required:true},
+        {id:"area",prompt:"Which neighbourhood are you located in?",required:true},
+        {id:"timing",prompt:"When would you like service?",required:true}]},
+      name:"Taylor Lee",message:"Hi, our furnace stopped heating properly. Could we arrange a furnace repair appointment?",
+      guide:"Explore how service details and a preferred time are collected before a simulated HVAC booking."},
+    cleaning:{client:{...safeClone(initial),id:"demo-cleaning",business_name:"Example Cleaning Team",
+      services:["Office cleaning","Carpet cleaning","Move-out cleaning","Home cleaning"],
+      qualifying_questions:[{id:"service",prompt:"What service do you need?",required:true},
+        {id:"area",prompt:"What area is your property in?",required:true},
+        {id:"timing",prompt:"When would you like the cleaning?",required:true}]},
+      name:"Morgan Lee",message:"Hello, I need office cleaning for a small business. Could we find a time next week?",
+      guide:"See how a cleaning request gathers details before showing simulated appointment options."}
+  };
+  let selectedPreset="plumbing";
   let client, lead, clock;
   function append(tag, text, className) {
     const el=document.createElement(tag);
@@ -175,6 +194,7 @@
       const slot=lead.offered_slots[num];
       if(slot){
         lead.booked=slot;lead.status="booked";lead.offered_slots=[];
+        window.calvrenTrackEvent?.("demo_booked");
         say("assistant","Simulated appointment confirmed: "+slot.label+". No real calendar booking was made.");
         lead.notifications.push({event:"booked",status:"sent",message:"Simulated appointment for "+lead.name+": "+slot.label});
       }
@@ -244,13 +264,34 @@
     }):[append("li","Notifications will be logged here.")]));
     $("demo-resume-panel").hidden=!lead||lead.active||lead.opted_out;
     $("demo-resume").disabled=!$("demo-resume-consent").checked;
+    const hints=$("demo-reply-suggestions");
+    if(hints){
+      hints.replaceChildren();
+      const question=client.qualifying_questions.find(q=>q.id===lead?.waiting);
+      const kindOf=question?kind(question):"";
+      const options=lead?.status==="booking"?[]:
+        kindOf==="emergency"?["It can wait for a routine appointment.","Yes, this is urgent."]:
+        kindOf==="area"?["Burnaby","Vancouver"]:
+        kindOf==="timing"?["Next week","Friday morning"]:
+        kindOf==="service"?client.services.slice(0,2):[];
+      $("demo-help-text").textContent=lead?.status==="booking"?"Choose one of the simulated times above, or type 1, 2 or 3.":
+        "Select an example reply or type your own answer. No message is sent.";
+      for(const value of options){
+        const button=append("button",value);button.type="button";
+        button.addEventListener("click",()=>{$("demo-reply-message").value=value;$("demo-reply-message").focus();});
+        hints.append(button);
+      }
+    }
   }
   function reset(nextClient=client||initial){
     client=safeClone(nextClient);client.mode="demo";client.calendar.provider="demo";
     clock=new Date();lead=null;
     $("demo-config").value=JSON.stringify(client,null,2);
-    $("demo-name").value="Alex Taylor";
-    $("demo-message").value="Hi, my kitchen sink is leaking and I need someone to look at it.";
+    $("demo-name").value=demoPresets[selectedPreset]?.name||"Alex Taylor";
+    $("demo-message").value=demoPresets[selectedPreset]?.message||"Hi, I would like to request an appointment.";
+    $("demo-guide-text").textContent=demoPresets[selectedPreset]?.guide||"Answer each question in the simulated conversation.";
+    document.querySelectorAll("[data-demo-preset]").forEach(button=>
+      button.setAttribute("aria-pressed",String(button.dataset.demoPreset===selectedPreset)));
     $("demo-reply-message").value="";$("demo-resume-consent").checked=false;
     status("demo-intake-status","Ready for a fake enquiry.");status("demo-action-status","");
     render();
@@ -275,6 +316,7 @@
       const q=client.qualifying_questions.find(q=>kind(q)==="service");
       if(service&&q)lead.answers[q.id]=service;
       conversation();render();
+      window.calvrenTrackEvent?.("demo_started");
       status("demo-intake-status","Saved in this demo. No real messages or appointments were sent.");
     }catch(err){status("demo-intake-status",err.message||"Try the example enquiry again.",true);}
   });
@@ -286,10 +328,16 @@
   });
   $("demo-config-form").addEventListener("submit",event=>{
     event.preventDefault();
-    try{reset(validate(JSON.parse($("demo-config").value)));
+    try{const custom=validate(JSON.parse($("demo-config").value));selectedPreset="custom";reset(custom);
       status("demo-config-status","Demo business updated. Previous fake leads were cleared.");
     }catch(err){status("demo-config-status",err.message||"Check your demo business JSON.",true);}
   });
+  document.querySelectorAll("[data-demo-preset]").forEach(button=>button.addEventListener("click",()=>{
+    const which=button.dataset.demoPreset;
+    if(!Object.hasOwn(demoPresets,which))return;
+    selectedPreset=which;reset(demoPresets[which].client);
+    status("demo-config-status","Loaded a simulated "+which+" business. No real records or bookings.");
+  }));
   $("demo-reset").addEventListener("click",()=>reset());
   $("demo-handoff").addEventListener("click",()=>{if(lead){stop("Requested handoff");render();}});
   $("demo-resume-consent").addEventListener("change",render);

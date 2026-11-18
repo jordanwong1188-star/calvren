@@ -95,6 +95,8 @@ document.querySelectorAll("[data-lead-form]").forEach(form=>{
           signal:AbortSignal.timeout(5000)});
         if(!archive.ok)console.warn("Calvren private copy could not be saved.");
       }catch{console.warn("Calvren private copy is temporarily unavailable.");}
+      if(["project-enquiry","workflow-enquiry"].includes(form.getAttribute("name")||""))
+        window.calvrenTrackEvent?.("audit_submitted");
       location.assign(form.dataset.successUrl||"/thanks.html");
     }catch{
       error.textContent="We couldn’t submit this right now. Please try again, or email calvrenautomation@gmail.com.";

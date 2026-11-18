@@ -14,6 +14,7 @@ function download(name,value){
 function clearWorkspace(){
   token="";leads=[];readiness=null;$("admin-token").value="";$("lead-list").replaceChildren();$("service-state").replaceChildren();
   $("workspace").hidden=true;$("disconnect").hidden=true;$("auth-status").textContent="Not connected.";
+  $("analytics-summary").replaceChildren();$("analytics-extra").replaceChildren();$("analytics-trend").replaceChildren();
   $("workflow-form").reset();$("workflow-status").textContent="";$("inbox-status").textContent="";$("lead-search").value="";$("lead-filter").value="all";$("sales-filter").value="all";
 }
 function renderStatus(data){
@@ -31,6 +32,28 @@ function renderStatus(data){
     :!data.providerConfigured
     ?"Enquiries can be retained for review. Add the OpenAI API key and redeploy to enable draft preparation."
     :"Configuration is present. Verify a synthetic enquiry before processing real client data; provider billing and permissions still need to work.";
+}
+
+async function loadAnalytics(){
+  const result=await api("/api/metrics/summary");
+  const values=result.counts||{},summary=$("analytics-summary"),extra=$("analytics-extra"),trend=$("analytics-trend");
+  summary.replaceChildren();extra.replaceChildren();trend.replaceChildren();
+  for(const [key,label] of [["page_view","Page loads"],["audit_submitted","Audit requests received"],["demo_started","Demo starts"],["plan_click","Plan clicks"]]){
+    const card=textNode("div","","admin-metric");
+    card.append(textNode("strong",Number(values[key]||0).toLocaleString()),textNode("span",label));summary.append(card);
+  }
+  for(const [key,label] of [["audit_click","Audit CTA clicks"],["demo_open","Demo opens"],["demo_booked","Simulated bookings"],["pricing_view","Pricing views"],["estimator_used","Estimator uses"]])
+    extra.append(textNode("span",label+": "+Number(values[key]||0).toLocaleString()));
+  const daily=(result.daily||[]).slice(-7),max=Math.max(1,...daily.map(d=>Number(d.page_loads||0)));
+  for(const day of daily){
+    const row=textNode("div","","admin-trend-row"),bar=textNode("div","","admin-trend-bar"),fill=textNode("span","");
+    fill.style.width=(100*Number(day.page_loads||0)/max).toFixed(1)+"%";
+    bar.append(fill);
+    row.append(textNode("span",day.day.slice(5)),bar,textNode("span",day.page_loads+" loads · "+day.audit_submitted+" audits"));
+    trend.append(row);
+  }
+  if(!daily.length)trend.append(textNode("p","No tracked activity yet. New counts will appear here.","admin-note"));
+  $("analytics-status").textContent="These are anonymous event counts, not unique visitors. Reloads and bots may inflate totals. Only successful form receipts are counted as audit requests.";
 }
 async function loadStatus(){renderStatus(await api("/api/status"));}
 async function loadLeads(){const data=await api("/api/leads");if(!Array.isArray(data.leads))throw new Error("Unexpected inbox response.");leads=data.leads;renderLeads();}
@@ -143,7 +166,7 @@ $("auth-form").addEventListener("submit",async event=>{
   event.preventDefault();if(busy)return;busy=true;const button=event.currentTarget.querySelector("button[type=submit]");button.disabled=true;
   token=$("admin-token").value.trim();$("auth-status").textContent="Connecting…";
   try{
-    await loadStatus();await loadLeads();$("admin-token").value="";$("workspace").hidden=false;$("disconnect").hidden=false;
+    await loadStatus();await loadLeads();await loadAnalytics().catch(error=>{$("analytics-status").textContent=error.message;});$("admin-token").value="";$("workspace").hidden=false;$("disconnect").hidden=false;
     $("auth-status").textContent="Connected. Your enquiries remain private; drafts need your review.";
   }catch(error){clearWorkspace();$("auth-status").textContent=error.message;}
   finally{busy=false;button.disabled=false;}
@@ -166,6 +189,7 @@ async function refresh(task,element,success){
 }
 $("refresh-leads").addEventListener("click",()=>refresh(loadLeads,"inbox-status","Inbox refreshed."));
 $("refresh-status").addEventListener("click",()=>refresh(loadStatus,"auth-status","Service configuration checked."));
+$("refresh-analytics").addEventListener("click",()=>refresh(loadAnalytics,"analytics-status","Website activity refreshed."));
 $("lead-search").addEventListener("input",renderLeads);
 $("lead-filter").addEventListener("change",renderLeads);
 $("sales-filter").addEventListener("change",renderLeads);
