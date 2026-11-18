@@ -6,7 +6,7 @@ const read = file => readFile(new URL("../" + file, import.meta.url), "utf8");
 
 test("calvren.ca is the canonical public domain throughout public SEO pages", async () => {
   for (const file of [
-    "public/index.html", "public/contact.html", "public/case-studies.html",
+    "public/index.html", "public/contact.html", "public/ai-receptionist.html",
     "public/privacy.html", "public/sitemap.xml", "public/robots.txt"
   ]) {
     const content = await read(file);
