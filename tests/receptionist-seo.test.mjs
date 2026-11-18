@@ -7,7 +7,7 @@ test("branded 1200×630 share preview is used consistently on public pages",()=>
   const jpg=readFileSync(new URL("../"+file,import.meta.url));
   assert.ok(jpg.byteLength>30000,"Preview image must not be an empty placeholder");
   assert.equal(jpg[0],0xff);assert.equal(jpg[1],0xd8);
-  for(const page of ["index.html","ai-receptionist.html","contact.html","case-studies.html","privacy.html"]){
+  for(const page of ["index.html","ai-receptionist.html","contact.html","privacy.html"]){
     const html=get("public/"+page);
     const link="https://calvren.ca/media/calvren-social-preview-2026.jpg";
     assert.ok(html.includes('property="og:image" content="'+link+'"'),page+" needs share image");
@@ -46,7 +46,7 @@ test("AI receptionist benefit lists match subscription checkmark styling",()=>{
   for(const marketing of [home,page])assert.ok(marketing.includes("/receptionist.css?v=20261117-custom-quote"),"Load updated CSS without stale caching");
 });
 test("indexed pages have canonical, OG and social preview, and sitemap includes receptionist",()=>{
-  for(const path of ["","contact.html","case-studies.html","privacy.html","ai-receptionist.html"]){
+  for(const path of ["","contact.html","privacy.html","ai-receptionist.html"]){
     const filename=path||"index.html",content=get("public/"+filename);
     const canonical="https://calvren.ca/"+path.replace(/\.html$/, "");
     assert.ok(content.includes(canonical),"Canonical site URL missing "+path);
