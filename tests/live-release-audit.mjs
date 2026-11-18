@@ -15,7 +15,7 @@ async function request(path,options={}){
   throw last;
 }
 const pages=[
-  ["/","calvren"],["/payment.html","data-select-plan"],["/ai-receptionist.html","CA$425"],
+  ["/","calvren"],["/payment.html","data-select-plan"],["/ai-receptionist.html","Custom pricing"],
   ["/client.html","client-payment-success"],["/onboarding.html","onboarding-app"],
   ["/onboarding-preview.html","INTERACTIVE SAMPLE"],
   ["/case-studies.html","case"],["/contact.html","contact"],["/privacy.html","privacy"]
@@ -32,12 +32,19 @@ for(const [path,marker] of pages){
     assert.ok(html.includes('id="client-payment-pending"'));
   }
   if(path==="/payment.html"){
-    for(const label of ["CA$249","CA$499","CA$775","CA$425","CA$515"])
+    for(const label of ["CA$249","CA$499","CA$775"])
       assert.ok(html.includes(label),label+" is missing from checkout page");
-    for(const tier of ["starter","growth","pro","receptionist"])
+    for(const tier of ["starter","growth","pro"])
       assert.ok(html.includes('data-select-plan="'+tier+'"'),"Missing "+tier+" option");
   }
-  if(path==="/ai-receptionist.html")assert.ok(html.includes("CA$515"),"Receptionist setup fee must be public");
+  if(["/","/ai-receptionist.html","/payment.html"].includes(path)){
+    assert.ok(!html.includes("CA$425")&&!html.includes("CA$515")&&!html.includes("CA$940"),"Retired receptionist pricing must not be shown on "+path);
+    assert.ok(!html.includes("/payment?plan=receptionist"),"Retired checkout link must be removed on "+path);
+  }
+  if(path==="/ai-receptionist.html")
+    assert.ok(html.includes("/contact.html?workflow=ai-receptionist#project-form"),"Receptionist should request a custom quote");
+  if(path==="/payment.html")
+    assert.ok(!html.includes('data-select-plan="receptionist"'),"Receptionist is not a fixed-price checkout tier");
   if(path==="/onboarding-preview.html")
     assert.ok(html.includes("NOT A LIVE ACCOUNT"),"Preview must state that it is not a live account");
   console.log("PUBLIC_PAGE_OK",path);
@@ -54,13 +61,15 @@ const config=await publicBilling.json();
 assert.equal(config.ready,true,"Stripe setup is not ready");
 assert.equal(config.test_mode,false,"Live checkout must not use Stripe test mode");
 assert.equal(config.setup_amount,34900,"Unexpected setup fee");
-for(const [tier,amount] of [["starter",24900],["growth",49900],["pro",77500],["receptionist",42500]]){
+for(const [tier,amount] of [["starter",24900],["growth",49900],["pro",77500]]){
   assert.equal(config.plans?.[tier]?.ready,true,tier+" live Stripe price unavailable");
   assert.equal(config.plans[tier].amount,amount,tier+" has the wrong price");
 }
-assert.equal(config.plans.receptionist.setup_amount,51500,"Receptionist setup amount mismatch");
-assert.equal(config.plans.receptionist.first_payment,94000,"Receptionist initial charge mismatch");
-console.log("LIVE_STRIPE_PRICES_CORRECT",origin.hostname,JSON.stringify(Object.fromEntries(["starter","growth","pro","receptionist"].map(p=>[p,config.plans[p].amount]))));
+assert.equal(config.plans.receptionist.checkout,"quote","Receptionist must require a custom quote");
+assert.equal(config.plans.receptionist.ready,false,"Receptionist cannot offer fixed-price checkout");
+for(const key of ["amount","setup_amount","first_payment"])
+  assert.equal(Object.hasOwn(config.plans.receptionist,key),false,"Do not expose fixed receptionist "+key);
+console.log("LIVE_STRIPE_PRICES_CORRECT",origin.hostname,JSON.stringify(Object.fromEntries(["starter","growth","pro"].map(p=>[p,config.plans[p].amount]))));
 const secured=[
  {path:"/api/billing/me",method:"GET"},
  {path:"/api/billing/checkout",method:"POST",body:'{"plan":"pro"}'},
