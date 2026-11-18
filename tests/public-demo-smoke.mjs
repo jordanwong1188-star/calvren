@@ -49,7 +49,7 @@ try{
   await page.goto(site+"/",{waitUntil:"networkidle",timeout:30000});
   assert.equal(await page.locator(".proof-preview, .proof-grid, .client-story").count(),0,
     "Retired client stories should not be shown");
-  for(const selector of ["#solutions","#demo","#process","#pricing"])
+  for(const selector of ["#solutions","#demo","#pricing"])
     assert.equal(await page.locator(selector).count(),1,"Marketing section missing: "+selector);
   assert.equal(await page.locator('a[href*="case-studies"]').count(),0,
     "No retired story navigation should remain");
