@@ -1,0 +1,53 @@
+name: Research Calvren prospects — review only
+on:
+  workflow_dispatch:
+    inputs:
+      websites:
+        description: "Optional public business website roots, separated by commas or newlines. Blank uses OpenStreetMap discovery around Vancouver."
+        required: false
+        type: string
+      limit:
+        description: "Maximum business websites to research (1–15)"
+        required: false
+        default: "10"
+        type: string
+  schedule:
+    # Once a week, small public OSM discovery and bounded respectful crawling.
+    - cron: "23 17 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calvren-prospect-research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CALVREN_PROSPECT_WEBSITES: ${{ github.event.inputs.websites || '' }}
+      CALVREN_PROSPECT_LIMIT: ${{ github.event.inputs.limit || '10' }}
+      CRAWLEE_STORAGE_DIR: ${{ runner.temp }}/calvren-crawlee
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Apache-2.0 Crawlee HTTP crawler (no paid service)
+        run: npm install --registry=https://registry.npmjs.org/ --no-save --package-lock=false --ignore-scripts --omit=dev --no-audit --no-fund @crawlee/cheerio@3.18.2
+      - name: Verify qualification rules without external traffic
+        run: node --test tests/prospect-qualification.test.mjs
+      - name: Research a small set of public service-business websites
+        run: node scripts/prospect-research.mjs
+      - name: Upload ranked company-only research and review drafts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calvren-prospect-research-${{ github.run_id }}
+          path: artifacts/prospects/
+          if-no-files-found: warn
+          retention-days: 14
+
+# No outbound email, CRM write, Google Maps review scraping or paid API is enabled.
