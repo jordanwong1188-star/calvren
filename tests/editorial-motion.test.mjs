@@ -34,17 +34,20 @@ test("scroll animation respects visitor controls and does not hide content witho
     assert.ok(!js.includes(fragment),"Don't hijack scrolling or schedule continuous animation: "+fragment);
 });
 
-test("stock photography is realistic, accessible, traceable and not presented as testimonials",()=>{
+test("marketing pages use clean text-led sections without stock photography",()=>{
   const home=read("public/index.html"),receptionist=read("public/ai-receptionist.html");
-  assert.equal((home.match(/class="solution-photo"/g)||[]).length,3);
-  assert.equal((home.match(/<img src="https:\/\/images\.unsplash\.com\/photo-/g)||[]).length,3);
-  assert.ok(receptionist.includes('class="receptionist-workplace-photo section-wrap"'));
-  assert.ok(receptionist.includes("images.unsplash.com/photo-1714079761488-e0c9b9ac4138"));
-  assert.ok(!home.includes('class="solution-icon"'));
-  const photoAlt=[...home.matchAll(/<img[^>]*alt="([^"]+)"[^>]*>/g)].map(x=>x[1]);
-  assert.ok(photoAlt.length>=3&&photoAlt.every(x=>x.length>24));
-  for(const phrase of ["not Calvren customers","Unsplash License"])
-    assert.ok(read("docs/marketing-photo-sources.md").includes(phrase),"Photo source disclosure missing");
+  for(const [name,html] of [["home",home],["receptionist",receptionist]]){
+    assert.ok(!/<img\\b/i.test(html),name+" should contain no visible image elements");
+    assert.ok(!html.includes("images.unsplash.com"),name+" should not load stock photos");
+  }
+  const section=home.match(/<section[^>]*id="solutions"[\\s\\S]*?<\\/section>/)?.[0]||"";
+  assert.equal((section.match(/class="solution-card"/g)||[]).length,3);
+  assert.ok(!section.includes("solution-photo"));
+  assert.ok(receptionist.includes('class="receptionist-workday-note section-wrap"'));
+  assert.ok(receptionist.includes("More attention for the people"));
+  assert.ok(!receptionist.includes("receptionist-workplace-photo"));
+  assert.ok(!read("public/solutions.css").includes(".solution-photo"));
+  assert.ok(!read("public/receptionist.css").includes(".receptionist-photo-frame"));
 });
 
 test("Getting Started process section is entirely retired, retaining real sales paths",()=>{
