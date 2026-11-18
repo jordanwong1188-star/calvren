@@ -89,11 +89,7 @@
     pointer-events:none;
   }
   html.motion-enabled body.simple-home #solutions .solution-card.is-inview:before{transform:scaleX(1)}
-  html.motion-enabled body.motion-site .receptionist-photo-frame img{
-    transform:scale(1.045);
-    transition:transform 1.65s cubic-bezier(.19,1,.22,1);
-  }
-  html.motion-enabled body.motion-site .receptionist-photo-frame.is-inview img{transform:scale(1)}
+
 }
 @media(max-width:760px) and (prefers-reduced-motion:no-preference){
   html.motion-enabled body.motion-site [data-motion]{
