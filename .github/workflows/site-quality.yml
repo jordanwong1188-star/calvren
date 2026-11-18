@@ -47,5 +47,5 @@ jobs:
         uses: lycheeverse/lychee-action@v2
         continue-on-error: true
         with:
-          args: --offline --root-dir "$(pwd)/public" --no-progress 'public/**/*.html'
+          args: --offline --fallback-extensions html --root-dir "$(pwd)/public" --no-progress 'public/**/*.html'
           fail: false
