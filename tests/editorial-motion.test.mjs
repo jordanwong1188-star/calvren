@@ -37,10 +37,10 @@ test("scroll animation respects visitor controls and does not hide content witho
 test("marketing pages use clean text-led sections without stock photography",()=>{
   const home=read("public/index.html"),receptionist=read("public/ai-receptionist.html");
   for(const [name,html] of [["home",home],["receptionist",receptionist]]){
-    assert.ok(!/<img\\b/i.test(html),name+" should contain no visible image elements");
+    assert.ok(!html.includes("<img"),name+" should contain no visible image elements");
     assert.ok(!html.includes("images.unsplash.com"),name+" should not load stock photos");
   }
-  const section=home.match(/<section[^>]*id="solutions"[\\s\\S]*?<\\/section>/)?.[0]||"";
+  const section=home.slice(home.indexOf('id="solutions"'),home.indexOf('id="demo"'));
   assert.equal((section.match(/class="solution-card"/g)||[]).length,3);
   assert.ok(!section.includes("solution-photo"));
   assert.ok(receptionist.includes('class="receptionist-workday-note section-wrap"'));
