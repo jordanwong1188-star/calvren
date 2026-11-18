@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/prospect-*.mjs'
       - 'tests/prospect-qualification.test.mjs'
+      - 'data/prospect-starter-sites.json'
       - '.github/workflows/prospect-research.yml'
   workflow_dispatch:
     inputs:
@@ -17,6 +18,14 @@ on:
         required: false
         default: "10"
         type: string
+      discovery:
+        description: "Use curated website starter list or attempt OSM discovery with fallback"
+        required: false
+        type: choice
+        default: starter
+        options:
+          - starter
+          - osm
   schedule:
     # Once a week, small public OSM discovery and bounded respectful crawling.
     - cron: "23 17 * * 1"
@@ -35,6 +44,7 @@ jobs:
     env:
       CALVREN_PROSPECT_WEBSITES: ${{ github.event.inputs.websites || '' }}
       CALVREN_PROSPECT_LIMIT: ${{ github.event.inputs.limit || '10' }}
+      CALVREN_PROSPECT_DISCOVERY: ${{ github.event_name == 'schedule' && 'osm' || github.event.inputs.discovery || 'starter' }}
       CRAWLEE_STORAGE_DIR: /tmp/calvren-crawlee
     steps:
       - uses: actions/checkout@v4
