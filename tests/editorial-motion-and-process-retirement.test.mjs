@@ -38,11 +38,14 @@ test("editorial motion is active only on public marketing pages",()=>{
   assert.ok(!motionJs.includes("innerHTML"),"Don't split or replace SEO or screen-reader text");
 });
 
-test("solutions photography remains human-first and avoids decorative pictograms",()=>{
-  const solutions=home.match(/<section[^>]*id="solutions"[\s\S]*?<\/section>/)?.[0]||"";
-  assert.equal((solutions.match(/<figure class="solution-photo">/g)||[]).length,3);
-  assert.equal((solutions.match(/loading="lazy"/g)||[]).length,3);
+test("picture-free marketing keeps cards, text-led panel, and audit CTA",()=>{
+  const solutions=home.match(/<section[^>]*id="solutions"[\\s\\S]*?<\\/section>/)?.[0]||"";
+  assert.equal((solutions.match(/<article class="solution-card">/g)||[]).length,3);
+  assert.ok(!/<img\\b/i.test(solutions),"All stock photos must be removed");
+  assert.ok(!/<img\\b/i.test(receptionist),"Receptionist must be photo-free too");
+  assert.ok(!solutions.includes("solution-photo"));
   assert.ok(!solutions.includes('class="solution-icon"'));
-  assert.ok(receptionist.includes('class="receptionist-workplace-photo'));
+  assert.ok(receptionist.includes("receptionist-workday-note"));
+  assert.ok(!receptionist.includes("receptionist-workplace-photo"));
   assert.ok(solutions.includes("Request my free audit"));
 });
