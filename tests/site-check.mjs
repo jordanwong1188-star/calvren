@@ -31,7 +31,7 @@ try{
   // GitHub and Netlify start independently. Check the new deployment, not the previous live site.
   let ready=false;
   for(let attempt=0;attempt<(sourcePreview?1:32);attempt++){
-    const responses=await Promise.all(["/","/contact.html","/case-studies.html","/admin.html"].map(path=>context.request.get(site+path)));
+    const responses=await Promise.all(["/","/contact.html","/admin.html"].map(path=>context.request.get(site+path)));
     const html=await Promise.all(responses.map(response=>response.text()));
     if(responses.every(response=>response.status()===200)&&html.every((body,index)=>body.includes('name="calvren-version" content="'+(index===0?"simple-video-v2":version)+'"'))){ready=true;break;}
     if(!sourcePreview)await delay(15000);
@@ -78,7 +78,7 @@ try{
   await page.locator("#run-demo").click();
   assert.match(await page.locator("#lead-intent").textContent(),/quote/i);
 
-  for(const path of ["/","/contact.html","/case-studies.html","/ai-receptionist.html"]){
+  for(const path of ["/","/contact.html","/ai-receptionist.html"]){
     for(const width of [320,375,768,1440]){
       await page.setViewportSize({width,height:1000});
       await visit(path);
@@ -121,17 +121,13 @@ try{
   assert.equal(await page.locator("#project-industry").inputValue(),"Real estate");
   assert.match(await page.locator("#project-message").inputValue(),/property enquiries/i);
   assert.equal(await page.locator('#project-form [name="workflow"]').inputValue(),"real-estate");
-  await visit("/case-studies.html");
-  await screenshot("STUDIES");
-  assert.equal(await page.locator(".client-story").count(),2);
-  for(const [id,owner] of [["shine-bros","Jacob"],["clear-craft","Dylan"]]){
-    assert.match(await page.locator("#"+id).textContent(),new RegExp(owner));
-    assert.equal(await page.locator("#"+id+" .text-link").getAttribute("href"),"/contact.html?workflow=local-services");
-  }
-  await page.locator(".feedback-details > summary").click();
-  assert.equal(await page.locator("#publish-permission").isChecked(),false);
-  assert.equal(await page.locator("#publish-permission").getAttribute("required"),null);
-  assert.notEqual(await page.locator('[name="feedback-consent"]').getAttribute("required"),null);
+  await visit("/");
+  assert.equal(await page.locator(".proof-preview, .proof-grid, .client-story").count(),0,
+    "Retired client-story sections must not appear on the homepage.");
+  assert.equal(await page.locator('a[href*="case-studies"]').count(),0,
+    "Client-story links must not appear in public navigation.");
+  for(const section of ["#solutions","#demo","#process","#pricing"])
+    assert.equal(await page.locator(section).count(),1,"Preserve useful marketing section "+section);
 
   // Intercept both providers: browser checks must never send test notifications.
   let notificationCount=0,archiveCount=0,providerStatus=503,lastProviderBody="",lastArchiveBody="";
@@ -153,31 +149,23 @@ try{
   await page.route("**/*",intercept);
   for(const config of [
     {path:"/",form:"#contact-form",name:"#contact-name",email:"#contact-email",message:"#contact-message",consent:'[name="consent"]',action:"/thanks.html",formName:"workflow-enquiry"},
-    {path:"/contact.html",form:"#project-form",name:"#project-name",email:"#project-email",message:"#project-message",consent:'[name="consent"]',action:"/thanks.html",formName:"project-enquiry"},
-    {path:"/case-studies.html",form:"#review-form",name:"#review-name",email:"#review-email",message:"#review-experience",consent:'[name="feedback-consent"]',action:"/review-thanks.html",formName:"client-insight"}
+    {path:"/contact.html",form:"#project-form",name:"#project-name",email:"#project-email",message:"#project-message",consent:'[name="consent"]',action:"/thanks.html",formName:"project-enquiry"}
   ]){
     providerStatus=503;notificationCount=0;archiveCount=0;
     await visit(config.path);
     if(config.form==="#contact-form")await page.locator(".audit-details > summary").click();
-    if(config.form==="#review-form")await page.locator(".feedback-details > summary").click();
     const form=page.locator(config.form);
     assert.equal(await form.getAttribute("action"),endpoint);
     assert.equal(await form.getAttribute("data-success-url"),config.action);
     await page.locator(config.name).fill("Calvren QA");
     await page.locator(config.email).fill("qa@example.com");
     await page.locator(config.message).fill("Synthetic browser test for preserving feedback and enquiry fields.");
-    if(config.formName!=="client-insight"){
-      await form.locator('[name="business"]').fill("Calvren QA Services");
-      await form.locator('[name="phone"]').fill("+1 604 555 0123");
-      await form.locator('[name="industry"]').selectOption({label:"Plumbing"});
-      await form.locator('[name="challenge"]').selectOption({label:"Slow responses to customer enquiries"});
-      await form.locator('[name="preferred_call_time"]').fill("Weekdays after 5:30 PM, or Sunday at noon");
-      await form.locator('[name="callback_consent"]').check();
-    }
-    if(config.formName==="client-insight"){
-      await page.locator("#review-company").fill("Synthetic test company");
-      await page.locator("#review-workflow").fill("Synthetic test workflow");
-    }
+    await form.locator('[name="business"]').fill("Calvren QA Services");
+    await form.locator('[name="phone"]').fill("+1 604 555 0123");
+    await form.locator('[name="industry"]').selectOption({label:"Plumbing"});
+    await form.locator('[name="challenge"]').selectOption({label:"Slow responses to customer enquiries"});
+    await form.locator('[name="preferred_call_time"]').fill("Weekdays after 5:30 PM, or Sunday at noon");
+    await form.locator('[name="callback_consent"]').check();
     await form.locator(config.consent).check();
     await form.locator('button[type="submit"]').click();
     await form.locator("[data-form-error]").waitFor({state:"visible"});
@@ -201,25 +189,22 @@ try{
     assert.equal(values.get("formspree-archived"),"yes");
     assert.equal(values.get("website"),"");
     assert.equal(values.get("_gotcha"),"");
-    if(config.formName!=="client-insight"){
-      assert.equal(values.get("phone"),"+1 604 555 0123");
-      assert.equal(values.get("business"),"Calvren QA Services");
-      assert.equal(values.get("callback_consent"),"yes");
-      assert.equal(values.get("challenge"),"Slow responses to customer enquiries");
-      assert.equal(values.get("preferred_call_time"),"Weekdays after 5:30 PM, or Sunday at noon");
-    }
-    if(config.formName==="client-insight")assert.equal(values.has("publication-permission"),false);
+    assert.equal(values.get("phone"),"+1 604 555 0123");
+    assert.equal(values.get("business"),"Calvren QA Services");
+    assert.equal(values.get("callback_consent"),"yes");
+    assert.equal(values.get("challenge"),"Slow responses to customer enquiries");
+    assert.equal(values.get("preferred_call_time"),"Weekdays after 5:30 PM, or Sunday at noon");
   }
   await page.unroute("**/*",intercept);
 
   const reduced=await browser.newContext({reducedMotion:"reduce",viewport:{width:375,height:1000}});
   const reducedPage=await reduced.newPage();
-  await reducedPage.goto(site+"/case-studies.html",{waitUntil:"networkidle"});
+  await reducedPage.goto(site+"/contact.html",{waitUntil:"networkidle"});
   assert.equal(await reducedPage.locator("[data-reveal]").first().evaluate(node=>getComputedStyle(node).opacity),"1");
   await reduced.close();
   const native=await browser.newContext({javaScriptEnabled:false,viewport:{width:320,height:1000}});
   const nativePage=await native.newPage();
-  for(const path of ["/","/contact.html","/case-studies.html","/ai-receptionist.html"]){
+  for(const path of ["/","/contact.html","/ai-receptionist.html"]){
     await nativePage.goto(site+path,{waitUntil:"networkidle"});
     assert.equal(await nativePage.locator("#site-navigation").isVisible(),true);
     // Not every marketing landing page uses an entrance reveal or embeds a lead form.
