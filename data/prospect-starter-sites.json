@@ -1,0 +1,65 @@
+{
+  "note": "Public business homepages from November 2026 Vancouver-area website research. Not verified buyers, clients or consented marketing contacts. Used only if public OSM discovery is unavailable.",
+  "companies": [
+    {
+      "name": "Clear & Clean Home Services",
+      "website": "https://www.clearandclean.ca/",
+      "sector": "cleaning"
+    },
+    {
+      "name": "Coal Harbour Mechanical",
+      "website": "https://coalharbourmechanical.com/",
+      "sector": "hvac"
+    },
+    {
+      "name": "PJB Mechanical",
+      "website": "https://pjbmechanical.com/",
+      "sector": "plumber"
+    },
+    {
+      "name": "Proflow Plumbing & Heating",
+      "website": "https://proflowbc.ca/",
+      "sector": "plumber"
+    },
+    {
+      "name": "Alliance Total Solution",
+      "website": "https://www.goodhvac.ca/",
+      "sector": "hvac"
+    },
+    {
+      "name": "Rain & Shine Home Services",
+      "website": "https://www.rainandshine-vancouver.com/",
+      "sector": "cleaning"
+    },
+    {
+      "name": "Flat Mate Property Services",
+      "website": "https://www.flatmateclean.ca/",
+      "sector": "cleaning"
+    },
+    {
+      "name": "Umbrella Property Services",
+      "website": "https://umbrellaservices.ca/",
+      "sector": "cleaning"
+    },
+    {
+      "name": "Jamieson Mechanical",
+      "website": "https://jamiesonmechanical.com/",
+      "sector": "plumber"
+    },
+    {
+      "name": "Alma Plumbing & Heating",
+      "website": "https://www.almaplumbingandheating.com/",
+      "sector": "plumber"
+    },
+    {
+      "name": "Ace Tech",
+      "website": "https://acetechltd.ca/",
+      "sector": "hvac"
+    },
+    {
+      "name": "High Mark Plumbing & Heating",
+      "website": "https://highmarkplumbing.com/",
+      "sector": "plumber"
+    }
+  ]
+}
