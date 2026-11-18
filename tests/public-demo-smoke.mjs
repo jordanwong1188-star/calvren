@@ -46,15 +46,16 @@ try{
   // may be listed before next week's morning openings. Compare time sets.
   assert.deepEqual(openings.Friday.slice().sort(),["9:00 AM","12:45 PM","3:15 PM"].sort());
   assert.deepEqual(openings.Thursday.slice().sort(),["8:45 AM","12:15 PM","3:00 PM"].sort());
-  await page.goto(site+"/case-studies.html",{waitUntil:"networkidle",timeout:30000});
-  const studyText=await page.locator("#workflow-studies").innerText();
-  for(const name of ["ShineBros Window Cleaning","ClearCraft Automotive Detailing","Jacob","Dylan"]) {
-    assert.ok(studyText.includes(name),"Missing client business: "+name);
-  }
-  assert.equal(await page.locator(".client-story").count(),2);
+  await page.goto(site+"/",{waitUntil:"networkidle",timeout:30000});
+  assert.equal(await page.locator(".proof-preview, .proof-grid, .client-story").count(),0,
+    "Retired client stories should not be shown");
+  for(const selector of ["#solutions","#demo","#process","#pricing"])
+    assert.equal(await page.locator(selector).count(),1,"Marketing section missing: "+selector);
+  assert.equal(await page.locator('a[href*="case-studies"]').count(),0,
+    "No retired story navigation should remain");
   assert.deepEqual(errors,[],"No browser JavaScript exceptions.");
   assert.deepEqual(privateRequests,[],"Guest simulation must not use private APIs or even signup APIs.");
-  console.log("CALVREN_PUBLIC_DEMO_SMOKE_PASSED: guest response, six distinct weekday slot sets, simulated booking, reset, named studies, no private API.");
+  console.log("CALVREN_PUBLIC_DEMO_SMOKE_PASSED: guest response, six distinct weekday slot sets, simulated booking, reset, essential service sections, no private API.");
 }finally{
   await browser.close();
 }
