@@ -1,4 +1,3 @@
 User-agent: *
-Disallow: /admin.html
 Disallow: /api/
 Sitemap: https://calvren.ca/sitemap.xml

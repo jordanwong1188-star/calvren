@@ -3,7 +3,7 @@ import {Buffer} from "node:buffer";
 
 type Env=(name:string)=>string|undefined;
 type Row=Record<string,any>;
-type Plan="starter"|"growth"|"pro"|null;
+type Plan="starter"|"growth"|"pro"|"receptionist"|null;
 type Member=Row; // Runtime membership shape is validated by the server's Stripe webhook and auth route.
 interface HubDependencies {env:Env; fetch?:typeof fetch; user:{id:string;email:string};member:Member|null;plan:Plan;}
 const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});

@@ -4,7 +4,7 @@ import {setTimeout as delay} from "node:timers/promises";
 import {chromium} from "playwright";
 import {checkOwnerWorkspace} from "./admin-browser-check.mjs";
 
-const site=process.env.CALVREN_TEST_SITE || "https://calvren.pages.dev";
+const site=process.env.CALVREN_TEST_SITE || "https://calvren.ca";
 const sourcePreview=new URL(site).hostname === "127.0.0.1" || new URL(site).hostname === "localhost";
 const version="conversion-v1";
 const normalisePath=path=>path.endsWith(".html")?path.slice(0,-5):path.endsWith("/")?path.slice(0,-1):path;
@@ -317,6 +317,7 @@ try{
   assert.equal(await accountPage.locator("#client-signup").isVisible(),false);
   await accountPage.locator('[data-auth-view="signup"]').first().click();
   assert.equal(await accountPage.locator("#client-signup").isVisible(),true);
+  await accountPage.locator("#signup-name").fill("Test Client");
   await accountPage.locator("#signup-email").fill("new@example.com");
   assert.equal(await accountPage.locator("#signup-password").getAttribute("minlength"),"8");
   assert.equal(await accountPage.locator("#new-client-password").getAttribute("minlength"),"8");

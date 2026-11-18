@@ -2,12 +2,12 @@ import { setTimeout as delay } from "node:timers/promises";
 
 const targets = ["https://calvren.pages.dev", "https://calvren.ca"];
 const required = [
-  { path: "/", fragments: ['data-cta="audit-hero"', "/conversion-cta.css?v=20261117-violet", "/receptionist.css?v=20261117-checkmarks", "/contact.html?cta=hero#project-form", "/ai-receptionist.html", "CA$350", "CA$515"] },
+  { path: "/", fragments: ['data-cta="audit-hero"', "/conversion-cta.css?v=20261117-dark-orange", "/receptionist.css?v=20261117-checkmarks", "/contact.html?cta=hero#project-form", "/ai-receptionist.html", "CA$425", "CA$515"] },
   { path: "/contact.html", fragments: ['name="cta_source"', 'button-intent'] },
-  { path: "/conversion-cta.css?v=20261117-violet", fragments: ["#7446d6", ".button.button-intent"] },
+  { path: "/conversion-cta.css?v=20261117-dark-orange", fragments: ["#ad461f", ".button.button-intent"] },
   { path: "/receptionist.css?v=20261117-checkmarks", fragments: ['content:"✓"', "list-style:none", ".receptionist-teaser-price li::before", ".receptionist-price-card li::before"] },
-  { path: "/ai-receptionist.html", fragments: ["/receptionist.css?v=20261117-checkmarks", "AI receptionist", "CA$350", "CA$515", "Fewer missed opportunities", "Capture booking requests", "coming soon", "not operational yet", "/contact.html?workflow=ai-receptionist#project-form", "https://calvren.ca/ai-receptionist.html"] },
-  { path: "/sitemap.xml", fragments: ["https://calvren.ca/ai-receptionist.html"] }
+  { path: "/ai-receptionist.html", fragments: ["/receptionist.css?v=20261117-checkmarks", "AI receptionist", "CA$425", "CA$515", "Fewer missed opportunities", "Capture booking requests", "Subscribe &amp; start setup", "/payment?plan=receptionist", "/contact.html?workflow=ai-receptionist#project-form", "https://calvren.ca/ai-receptionist"] },
+  { path: "/sitemap.xml", fragments: ["https://calvren.ca/ai-receptionist"] }
 ];
 
 async function verify(base) {

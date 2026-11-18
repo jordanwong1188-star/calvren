@@ -386,3 +386,73 @@ test("re-priced live subscriptions assign the correct signed webhook entitlement
     assert.equal(f.saved[0].stripe_price_id,price);
   }
 });
+
+function receptionistFixture(){
+  const f=fixture(),baseFetch=f.deps.fetch;
+  f.deps.env=name=>({STRIPE_RECEPTIONIST_PRICE_ID:"price_receptionist425",STRIPE_RECEPTIONIST_SETUP_PRICE_ID:"price_receptionistsetup515"}[name]||env(name));
+  f.deps.fetch=async(url,init={})=>{
+    if(url.endsWith('/prices/price_receptionist425'))return Response.json({id:"price_receptionist425",active:true,currency:"cad",unit_amount:42500,recurring:{interval:"month",interval_count:1}});
+    if(url.endsWith('/prices/price_receptionistsetup515'))return Response.json({id:"price_receptionistsetup515",active:true,currency:"cad",unit_amount:51500,recurring:null});
+    return baseFetch(url,init);
+  };
+  return f;
+}
+test("receptionist checkout charges its own monthly and setup prices and requires setup acknowledgement",async()=>{
+  const f=receptionistFixture();
+  const unconfirmed=await handleBilling(f.req("checkout","POST",true,{body:JSON.stringify({plan:"receptionist"})}),f.deps);
+  assert.equal(unconfirmed.status,400);
+  assert.ok(!f.calls.some(c=>c.url.endsWith("/checkout/sessions")));
+  const response=await handleBilling(f.req("checkout","POST",true,{body:JSON.stringify({plan:"receptionist",accept_setup_terms:true})}),f.deps);
+  assert.equal(response.status,200);
+  const body=new URLSearchParams(f.calls.find(c=>c.url.endsWith("/checkout/sessions")).init.body);
+  assert.equal(body.get("line_items[0][price]"),"price_receptionist425");
+  assert.equal(body.get("line_items[1][price]"),"price_receptionistsetup515");
+  assert.equal(body.get("subscription_data[metadata][requested_plan]"),"receptionist");
+  assert.match(body.get("custom_text[submit][message]"),/CA\$940 today, then CA\$425\/month/);
+});
+test("receptionist availability verifies both Stripe prices independently of existing plans",async()=>{
+  const f=receptionistFixture();
+  let body=await (await handleBilling(f.req("public"),f.deps)).json();
+  assert.equal(body.plans.receptionist.ready,true);
+  assert.equal(body.plans.receptionist.first_payment,94000);
+  const previous=f.deps.fetch;
+  f.deps.fetch=async(url,init)=>url.endsWith('/prices/price_receptionistsetup515')?Response.json({id:"price_receptionistsetup515",active:true,currency:"cad",unit_amount:34900}):previous(url,init);
+  body=await (await handleBilling(f.req("public"),f.deps)).json();
+  assert.equal(body.plans.receptionist.ready,false);
+  assert.equal(body.plans.starter.ready,true);
+  const response=await handleBilling(f.req("checkout","POST",true,{body:JSON.stringify({plan:"receptionist",accept_setup_terms:true})}),f.deps);
+  assert.equal(response.status,503);
+});
+test("verified receptionist payment grants setup entitlement without claiming voice activation",async()=>{
+  const f=fixture({member:{auth_user_id:userId,stripe_customer_id:customerId,stripe_subscription_id:subId,stripe_price_id:"price_1UcywrQ9mewkKyl5NAYObAFI",subscription_status:"active",client_id:"business_fixture",welcome_email_sent_at:"2026-11-17"}});
+  f.deps.env=name=>name==="STRIPE_SECRET_KEY"?"sk_live_fixture123":env(name);
+  const body=await (await handleBilling(f.req("me","GET",true),f.deps)).json();
+  assert.equal(body.plan,"receptionist");assert.equal(body.paid,true);assert.equal(body.activation,"pending");
+  assert.deepEqual(body.included_features,["ai_receptionist_setup"]);
+  const automation=await (await handleBilling(f.req("automation","GET",true),f.deps)).json();
+  assert.equal(automation.status,"setup_pending");
+});
+test("invoice payment failure resolves current subscription and does not trust a stale event status",async()=>{
+  const f=fixture(),baseFetch=f.deps.fetch;
+  f.deps.fetch=async(url,init)=>{
+    if(url.endsWith('/invoices/in_fixture'))return Response.json({parent:{type:"subscription_details",subscription_details:{subscription:subId}}});
+    if(url.endsWith('/subscriptions/'+subId))return Response.json({id:subId,customer:customerId,status:"past_due",metadata:{auth_user_id:userId},items:{data:[{price:{id:priceId}}]}});
+    return baseFetch(url,init);
+  };
+  const signed=signedPayload({id:"evt_fixture",livemode:false,type:"invoice.payment_failed",data:{object:{id:"in_fixture",status:"paid"}}});
+  const response=await handleBilling(f.req("webhook","POST",false,{headers:{"Stripe-Signature":signed.header},body:signed.raw}),f.deps);
+  assert.equal(response.status,200);assert.equal(f.saved[0].subscription_status,"past_due");
+});
+test("risk webhook resolves invoice payments and records a review without changing subscriptions",async()=>{
+  const f=fixture(),baseFetch=f.deps.fetch;
+  f.deps.fetch=async(url,init)=>{
+    if(url.includes('/invoice_payments?'))return Response.json({data:[{id:"inpay_fixture",invoice:"in_fixture"}],has_more:false});
+    if(url.endsWith('/invoices/in_fixture'))return Response.json({parent:{type:"subscription_details",subscription_details:{subscription:subId}}});
+    if(url.includes('stripe_subscription_id=eq.'))return Response.json([{auth_user_id:userId}]);
+    return baseFetch(url,init);
+  };
+  const signed=signedPayload({id:"evt_riskfixture",livemode:false,type:"charge.refunded",data:{object:{id:"ch_fixture",payment_intent:"pi_fixture"}}});
+  const response=await handleBilling(f.req("webhook","POST",false,{headers:{"Stripe-Signature":signed.header},body:signed.raw}),f.deps);
+  assert.equal(response.status,200);assert.equal((await response.json()).review_required,true);
+  assert.equal(f.saved.length,0,"Partial refunds must not automatically cancel a customer's plan");
+});

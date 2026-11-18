@@ -18,13 +18,15 @@ const liveMode=(env:Env)=>/^(?:sk|rk)_live_/.test(stripeKey(env));
 const priceId=(env:Env)=>env("STRIPE_PRICE_ID")?.trim()||"";
 const setupPriceId=(env:Env)=>env("STRIPE_SETUP_PRICE_ID")?.trim()||"";
 // All subscription entitlements derive from server-verified Stripe price IDs, never the browser.
-export type CalvrenPlan="starter"|"growth"|"pro";
+export type CalvrenPlan="starter"|"growth"|"pro"|"receptionist";
 const plans={
   starter:{name:"Starter",monthly:24900,envKey:"STRIPE_PRICE_ID"},
   growth:{name:"Growth",monthly:49900,envKey:"STRIPE_GROWTH_PRICE_ID"},
-  pro:{name:"Pro",monthly:77500,envKey:"STRIPE_PRO_PRICE_ID"}
+  pro:{name:"Pro",monthly:77500,envKey:"STRIPE_PRO_PRICE_ID"},
+  receptionist:{name:"AI Receptionist",monthly:42500,envKey:"STRIPE_RECEPTIONIST_PRICE_ID"}
 } as const;
 const features={
+  receptionist:["ai_receptionist_setup"],
   starter:["lead_response","booking"],
   growth:["lead_response","booking","follow_ups","review_requests","monthly_reports"],
   pro:["lead_response","booking","follow_ups","review_requests","monthly_reports","custom_integrations","advanced_workflows","unified_inbox","priority_support"]
@@ -36,7 +38,8 @@ const features={
 const LIVE_PRICE_IDS={
   starter:"price_1UbeD4Q9mewkKyl5J9C8cuMe",
   growth:"price_1UbeD6Q9mewkKyl5iEgpMMQm",
-  pro:"price_1UbeD7Q9mewkKyl5szjSTpZ6"
+  pro:"price_1UbeD7Q9mewkKyl5szjSTpZ6",
+  receptionist:"price_1UcywrQ9mewkKyl5NAYObAFI"
 } as const;
 const configuredPrice=(env:Env,plan:CalvrenPlan)=>{
   if(liveMode(env))return LIVE_PRICE_IDS[plan];
@@ -52,7 +55,7 @@ const LEGACY_LIVE_PRICE_IDS={
 } as const;
 const planForPrice=(env:Env,value:unknown):CalvrenPlan|null=>{
   if(typeof value!=="string")return null;
-  for(const plan of ["starter","growth","pro"] as const)
+  for(const plan of ["starter","growth","pro","receptionist"] as const)
     if(stripeId(configuredPrice(env,plan),"price")&&configuredPrice(env,plan)===value)return plan;
   if(liveMode(env)){
     if(LEGACY_LIVE_PRICE_IDS.starter.includes(value as typeof LEGACY_LIVE_PRICE_IDS.starter[number]))return "starter";
@@ -61,6 +64,10 @@ const planForPrice=(env:Env,value:unknown):CalvrenPlan|null=>{
   }
   return null;
 };
+const receptionistSetupId=(env:Env)=>liveMode(env)?"price_1UcywyQ9mewkKyl5btYpSECu":env("STRIPE_RECEPTIONIST_SETUP_PRICE_ID")?.trim()||"";
+const planSetupId=(env:Env,plan:CalvrenPlan)=>plan==="receptionist"?receptionistSetupId(env):setupPriceId(env);
+const planSetupAmount=(plan:CalvrenPlan)=>plan==="receptionist"?51500:34900;
+const validSetup=(price:ObjectRow,id:string,amount:number)=>price?.id===id&&price.active===true&&!price.recurring&&price.currency==="cad"&&price.unit_amount===amount;
 const validPrice=(price:ObjectRow,id:string,amount:number)=>price?.id===id&&price.active===true
   &&price.currency==="cad"&&price.unit_amount===amount
   &&price.recurring?.interval==="month"&&(price.recurring?.interval_count||1)===1;
@@ -138,7 +145,8 @@ async function publicConfig(deps:BillingDependencies){
   const visible={
     starter:{label:"Starter",amount:24900,ready:false,checkout:"subscription"},
     growth:{label:"Growth",amount:49900,ready:false,checkout:"subscription"},
-    pro:{label:"Pro",amount:77500,ready:false,checkout:"subscription"}
+    pro:{label:"Pro",amount:77500,ready:false,checkout:"subscription"},
+    receptionist:{label:"AI Receptionist",amount:42500,setup_amount:51500,first_payment:94000,ready:false,checkout:"subscription",activation:"setup_required"}
   };
   if(!billingReady(deps.env))return json({ready:false,plans:visible,message:"Subscription checkout is being configured."});
   try{
@@ -150,12 +158,17 @@ async function publicConfig(deps:BillingDependencies){
     if(!validPrice(starter,starterId,24900))
       return json({ready:false,plans:visible,message:"Starter price requires configuration."});
     visible.starter.ready=true;
-    for(const plan of ["growth","pro"] as const){
+    for(const plan of ["growth","pro","receptionist"] as const){
       const id=configuredPrice(deps.env,plan);
       if(!stripeId(id,"price")||id===starterId)continue;
       try{
         const price=await stripe(deps,"prices/"+encodeURIComponent(id));
         visible[plan].ready=validPrice(price,id,plans[plan].monthly);
+        if(plan==="receptionist"){
+          const setupId=receptionistSetupId(deps.env);
+          const receptionistSetup=await stripe(deps,"prices/"+encodeURIComponent(setupId));
+          visible.receptionist.ready=visible.receptionist.ready&&validSetup(receptionistSetup,setupId,51500);
+        }
       }catch{visible[plan].ready=false;}
     }
     return json({ready:true,amount:starter.unit_amount,setup_amount:setup.unit_amount,
@@ -180,16 +193,55 @@ async function webhook(request:Request,deps:BillingDependencies){
   if(event.livemode!==liveMode(deps.env))return json({error:"Stripe environment mismatch."},400);
   const obj=event?.data?.object;
   if(!obj||typeof obj!=="object")return json({ok:true,ignored:true});
+  const objectId=(value:any)=>typeof value==="string"?value:value?.id;
+  const invoiceSubscription=(invoice:ObjectRow)=>objectId(invoice.parent?.subscription_details?.subscription||invoice.subscription);
+  if(["charge.refunded","charge.dispute.created","radar.early_fraud_warning.created"].includes(event.type)){
+    let intent=objectId(obj.payment_intent);
+    if(!intent){
+      const chargeId=event.type==="charge.refunded"?obj.id:objectId(obj.charge);
+      if(stripeId(chargeId,"ch"))intent=objectId((await stripe(deps,"charges/"+encodeURIComponent(chargeId))).payment_intent);
+    }
+    // Resolve through InvoicePayment -> Invoice -> Subscription for Basil and later.
+    // Do not cancel/refund a subscription automatically on a partial refund or warning.
+    let reconciled=0;
+    if(stripeId(intent,"pi")){
+      let after="";
+      do{
+        const params=new URLSearchParams({"payment[type]":"payment_intent","payment[payment_intent]":intent,status:"paid",limit:"100"});
+        if(after)params.set("starting_after",after);
+        const result=await stripe(deps,"invoice_payments?"+params);
+        for(const payment of result.data||[]){
+          const invoiceId=objectId(payment.invoice);
+          if(!stripeId(invoiceId,"in"))continue;
+          const invoice=await stripe(deps,"invoices/"+encodeURIComponent(invoiceId));
+          const subscriptionId=invoiceSubscription(invoice);
+          if(!stripeId(subscriptionId,"sub"))continue;
+          const rows=await queryDb(deps,"calvren_billing_memberships?"+new URLSearchParams({stripe_subscription_id:"eq."+subscriptionId,select:"auth_user_id",limit:"1"}));
+          if(rows.length){
+            console.warn(JSON.stringify({event:"calvren_billing_review_required",stripe_event_id:event.id,kind:event.type,subscription_id:subscriptionId,invoice_id:invoiceId}));
+            reconciled++;
+          }
+        }
+        after=result.has_more?result.data?.at(-1)?.id||"":"";
+      }while(after);
+    }
+    return json({ok:true,review_required:reconciled>0});
+  }
   let subId:string|undefined,userId:string|undefined;
-  if(event.type==="checkout.session.completed"&&obj.mode==="subscription"&&obj.payment_status!=="unpaid"){
-    subId=typeof obj.subscription==="string"?obj.subscription:obj.subscription?.id;
-    userId=obj.client_reference_id;
-  }else if(["customer.subscription.created","customer.subscription.updated","customer.subscription.deleted"].includes(event.type)){
+  if(["checkout.session.completed","checkout.session.async_payment_succeeded"].includes(event.type)&&obj.mode==="subscription"&&["paid","no_payment_required"].includes(obj.payment_status)){
+    subId=objectId(obj.subscription);userId=obj.client_reference_id;
+  }else if(["customer.subscription.created","customer.subscription.updated","customer.subscription.deleted","customer.subscription.paused","customer.subscription.resumed"].includes(event.type)){
     subId=obj.id;userId=obj.metadata?.auth_user_id;
+  }else if(["invoice.paid","invoice.payment_failed"].includes(event.type)){
+    if(!stripeId(obj.id,"in"))return json({ok:true,ignored:true});
+    subId=invoiceSubscription(await stripe(deps,"invoices/"+encodeURIComponent(obj.id)));
   }else return json({ok:true,ignored:true});
-  if(!stripeId(subId,"sub")||!userId||!uuid.test(userId))return json({ok:true,ignored:true});
-  // Always retrieve the current subscription, never trust stale or out-of-order event bodies.
+  if(!stripeId(subId,"sub"))return json({ok:true,ignored:true});
+  // Always retrieve current state; a delayed webhook must not restore stale access.
   const current=await stripe(deps,"subscriptions/"+encodeURIComponent(subId));
+  const owners=await queryDb(deps,"calvren_billing_memberships?"+new URLSearchParams({stripe_subscription_id:"eq."+subId,select:"auth_user_id",limit:"1"}));
+  userId=owners[0]?.auth_user_id||userId||current.metadata?.auth_user_id;
+  if(!userId||!uuid.test(userId))return json({ok:true,ignored:true});
   const items=Array.isArray(current?.items?.data)?current.items.data:[];
   const matched=items.find((item:ObjectRow)=>planForPrice(deps.env,item?.price?.id)!==null);
   const allowedPrice=matched?.price?.id;
@@ -230,7 +282,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
         try{await ensureWelcomeEmail(deps,user.id,user.email);}catch{console.warn(JSON.stringify({event:"calvren_welcome_mail_retry_later"}));}
       }
       return json({email:user.email,paid:paid(existing),status:existing?.subscription_status||"none",
-        expires_at:existing?.current_period_end||null,activation:existing?.client_id?"connected":"pending",
+        expires_at:existing?.current_period_end||null,activation:planForPrice(deps.env,existing?.stripe_price_id)==="receptionist"?"pending":existing?.client_id?"connected":"pending",
         plan:paid(existing)?planForPrice(deps.env,existing?.stripe_price_id):null,
         included_features:paid(existing)&&planForPrice(deps.env,existing?.stripe_price_id)?
           features[planForPrice(deps.env,existing.stripe_price_id)!]:[]});
@@ -246,8 +298,8 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
           if(!payload||typeof payload!=="object"||Array.isArray(payload))
             return json({error:"Invalid checkout request."},400);
           if(Object.hasOwn(payload,"plan")){
-            if(!["starter","growth","pro"].includes(payload.plan))
-              return json({error:"Choose Starter, Growth or Pro."},400);
+            if(!["starter","growth","pro","receptionist"].includes(payload.plan))
+              return json({error:"Choose Starter, Growth, Pro or AI Receptionist."},400);
             plan=payload.plan as CalvrenPlan;
           }
         }catch{return json({error:"Invalid checkout request."},400);}
@@ -258,6 +310,14 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       const verified=await stripe(deps,"prices/"+encodeURIComponent(selectedPrice));
       if(!validPrice(verified,selectedPrice,plans[plan].monthly))
         return json({error:"This plan's verified Stripe price is unavailable. Contact Calvren."},503);
+      const selectedSetup=planSetupId(deps.env,plan);
+      if(!stripeId(selectedSetup,"price"))return json({error:"Setup price is unavailable."},503);
+      const verifiedSetup=await stripe(deps,"prices/"+encodeURIComponent(selectedSetup));
+      if(!validSetup(verifiedSetup,selectedSetup,planSetupAmount(plan)))return json({error:"Setup price is unavailable."},503);
+      if(plan==="receptionist"){
+        const payload=JSON.parse(raw);
+        if(payload.accept_setup_terms!==true)return json({error:"Confirm that billing starts today and phone answering requires setup and testing."},400);
+      }
       if(paid(existing))return json({error:"Your subscription is already active. Open your client dashboard."},409);
       if(deps.repository){
         const key=createHash("sha256").update("billing-checkout:"+user.id).digest("hex");
@@ -268,7 +328,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
       const origin=new URL(publicOrigin).origin;
       const p=new URLSearchParams({
         mode:"subscription",allow_promotion_codes:"true","line_items[0][price]":selectedPrice,"line_items[0][quantity]":"1",
-        "line_items[1][price]":setupPriceId(deps.env),"line_items[1][quantity]":"1",
+        "line_items[1][price]":selectedSetup,"line_items[1][quantity]":"1",
         client_reference_id:user.id,"subscription_data[metadata][auth_user_id]":user.id,
         "subscription_data[metadata][requested_plan]":plan,
         customer_email:user.email,
@@ -276,6 +336,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
          // verified paid membership. The customer chooses when to start onboarding.
          success_url:origin+"/client.html?checkout=success",cancel_url:origin+"/payment?plan="+encodeURIComponent(plan)+"&checkout=canceled",
       });
+      if(plan==="receptionist")p.set("custom_text[submit][message]","CA$940 today, then CA$425/month. Billing starts today. Phone answering requires onboarding, provider setup and successful call testing; it is not activated by payment.");
       if(existing?.stripe_customer_id)p.set("customer",existing.stripe_customer_id),p.delete("customer_email");
       const session=await stripe(deps,"checkout/sessions",p);
       if(!/^https:\/\/checkout\.stripe\.com\//.test(session.url||""))throw Error("Invalid Stripe checkout.");
@@ -326,6 +387,7 @@ export async function handleBilling(request:Request,deps:BillingDependencies):Pr
     }
     if(path==="/api/billing/automation"&&request.method==="GET"){
       if(!paid(existing))return json({error:"An active subscription is required."},403);
+      if(planForPrice(deps.env,existing?.stripe_price_id)==="receptionist")return json({status:"setup_pending",message:"Your AI receptionist subscription is active. Phone answering requires business onboarding, provider configuration and successful call testing. Calvren will confirm activation separately.",leads:[]});
       if(!existing?.client_id)return json({status:"setup_pending",message:"Your automation is being connected by Calvren. No live integrations are enabled yet.",leads:[]});
       // Private service key; never authorize by client_id from the browser.
       const clientId=existing.client_id;

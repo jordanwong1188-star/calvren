@@ -13,8 +13,8 @@ test("calvren.ca is the canonical public domain throughout public SEO pages", as
     assert.ok(!content.includes("https://calvren.netlify.app"), file + " must not link to the outdated Netlify deployment.");
     assert.ok(content.includes("https://calvren.ca"), file + " must use the verified production custom-domain canonical.");
   }
-  assert.match(await read("tests/site-check.mjs"), /CALVREN_TEST_SITE \|\| "https:\/\/calvren\.pages\.dev"/);
-  assert.match(await read("scripts/build-cloudflare.mjs"), /CALVREN_SITE_URL \|\| "https:\/\/calvren\.pages\.dev"/);
+  assert.match(await read("tests/site-check.mjs"), /CALVREN_TEST_SITE \|\| "https:\/\/calvren\.ca"/);
+  assert.match(await read("scripts/build-cloudflare.mjs"), /CALVREN_SITE_URL \|\| "https:\/\/calvren\.ca"/);
 });
 test("Public demo and operator workspace stay separate, and demo JS revalidates on new deploys", async () => {
   const homepage = await read("public/index.html");

@@ -2,7 +2,7 @@ import { readFile, writeFile, readdir } from "node:fs/promises";
 
 // Cloudflare Pages is Calvren's single public production origin.
 // A custom HTTPS domain can replace it using CALVREN_SITE_URL in the Cloudflare build.
-const configured=process.env.CALVREN_SITE_URL || "https://calvren.pages.dev";
+const configured=process.env.CALVREN_SITE_URL || "https://calvren.ca";
 const url=new URL(configured);
 if(url.protocol!=="https:"||url.username||url.password||url.search||url.hash||url.pathname!=="/")throw new Error("CALVREN_SITE_URL must be an HTTPS origin.");
 for(const file of await readdir(new URL("../public/",import.meta.url))){
