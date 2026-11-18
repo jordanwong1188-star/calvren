@@ -1,12 +1,24 @@
-# AI receptionist subscription — 17 November 2026
+# AI receptionist — custom quotes (updated 17 November 2026)
 
-- Separate from Starter / Growth / Pro: CAD 425 monthly and CAD 515 one-time setup. First payment CAD 940. Owner confirmed no tax collection for this release.
-- Live monthly price: `price_1UcywrQ9mewkKyl5NAYObAFI`; setup: `price_1UcywyQ9mewkKyl5btYpSECu`. These are public catalog identifiers, not credentials.
-- Authenticated Checkout uses verified server-side prices, requires acknowledgement that billing starts at purchase, and verifies subscription lifecycle events before account access.
-- Payment grants managed onboarding access only. No voice agent, phone number, forwarding, call routing or recording service is provisioned by checkout. Existing Twilio integration is SMS. The operator must configure a voice provider, agree the client's scope and activation date, and test calls before delivery.
-- There are no automatic minute-overage charges. Additional scope needs a separate client agreement; marketing benefit lists make no unlimited-use claim.
-- Existing account storage permits one subscription per login. Existing subscribers must contact Calvren to discuss an additional service, rather than buying two plans on the same login.
-- Refund/dispute/fraud events resolve InvoicePayment -> Invoice -> Subscription and produce `calvren_billing_review_required` entries in private backend logs. Operators must review those entries and Stripe's dashboard; no automatic refund or cancellation is performed.
-- Existing Starter/Growth/Pro prices and CAD 349 setup are unchanged. Voice-provider usage and Stripe processing are not free GitHub tools.
+## Current public offer
 
-Validation: automated billing tests cover independent setup-price verification, acknowledgement, correct line items, setup-only access, invoice failure reconciliation and risk-event resolution. No real customer payment was made during verification.
+- The homepage, AI receptionist page and contact form present **Custom pricing / Request a custom quote**. No receptionist monthly or setup amount is displayed publicly.
+- Clients are asked about expected calls, service hours, booking process, existing telephone provider and integration requirements before receiving an individualized written quote.
+- The AI receptionist is separate from Starter / Growth / Pro. The three standard plans retain their existing prices and authenticated Stripe checkout.
+- The contact form continues to send quote enquiries through the existing Formspree flow and private Calvren lead archive. Quote requests do **not** initiate payment or activate an AI voice service.
+- The retired fixed-price receptionist choice has been removed from public billing screens. The billing API advertises quote-only status without any receptionist amounts. Signed-in attempts to request a receptionist checkout now receive HTTP 409 and a quote URL; no Stripe Checkout Session is created.
+- Older links such as /payment?plan=receptionist redirect visitors to the custom-quote form. A no-JavaScript visitor can still select the visible custom-quote links on the marketing pages.
+- Existing paid receptionist subscriptions, if any, remain recognized by their original Stripe price ID and retain setup-only entitlements. No subscription is canceled, repriced or refunded by this website update.
+
+## Internal / historical Stripe records
+
+- The previously created live monthly price (CAD 425) is `price_1UcywrQ9mewkKyl5NAYObAFI` and the setup price (CAD 515) is `price_1UcywyQ9mewkKyl5btYpSECu`. They remain in the Stripe catalog for account history and existing subscription recognition; the public website no longer creates new sessions for them.
+- The prior implementation charged CAD 940 initially (first month + setup). That historical checkout design is retired for new customers.
+- Do not promise unlimited use or start a new customer subscription until monthly allowance, overflow handling, setup costs, call recording/consent approach, and activation date are explicitly agreed. A quote request is not a finalized payment contract.
+- Provider usage and Stripe processing are not free. A GitHub repository is not a live voice provider.
+- The existing Twilio integration supports SMS; a voice agent, telephone routing/forwarding and recording still require separate approved setup and real call testing.
+
+## Operations and verification
+
+- After approving a specific quote, issue a matching scoped Stripe product/payment arrangement deliberately (rather than re-enabling the old public price). Do not reuse the old fixed-price checkout by accident.
+- Verify the new quote language, existing plan checkout, rejection of old receptionist checkout attempts and existing member entitlements through source and live read-only tests. No real customer card charge is needed for test verification.
