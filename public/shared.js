@@ -22,7 +22,7 @@ if(menuButton&&navigation){
 }
 document.querySelectorAll("#year").forEach(node=>node.textContent=String(new Date().getFullYear()));
 const reducedMotion=matchMedia("(prefers-reduced-motion:reduce)");
-if("IntersectionObserver" in window&&!reducedMotion.matches){
+if("IntersectionObserver" in window&&!reducedMotion.matches&&!document.body.classList.contains("motion-site")){
   const observer=new IntersectionObserver(entries=>{
     for(const entry of entries)if(entry.isIntersecting){entry.target.classList.add("is-revealed");observer.unobserve(entry.target);}
   },{threshold:.04});
