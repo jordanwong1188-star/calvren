@@ -16,7 +16,7 @@ if(body.classList.contains("motion-site")&&!reducedMotion.matches&&"Intersection
     node.style.setProperty("--motion-delay",Math.min(270,Math.max(0,delay))+"ms");
     items.push(node);
   };
-  const sections=document.querySelectorAll("main > section, main > figure.receptionist-workplace-photo");
+  const sections=document.querySelectorAll("main > section");
   for(const section of sections){
     const isHero=section.matches(".hero,.contact-hero,.receptionist-hero");
     const headings=section.querySelectorAll("h1,h2");
@@ -46,7 +46,7 @@ if(body.classList.contains("motion-site")&&!reducedMotion.matches&&"Intersection
   }
   // Chosen focal points add visual variety without animating forms or whole sections.
   const highlights=[
-    [".receptionist-photo-frame","media",70],
+    [".receptionist-workday-note-inner","panel",70],
     [".solutions-action","panel",80],
     [".demo-section .preview-details","panel",70],
     [".receptionist-next .button","copy",180],
