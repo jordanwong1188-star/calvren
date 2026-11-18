@@ -40,7 +40,7 @@ test("solutions retain a professional responsive layout without pictures",()=>{
   for(const width of ["940px","700px","390px"])
     assert.ok(styles.includes("@media(max-width:"+width+")"),"Missing breakpoint "+width);
   assert.ok(styles.includes("grid-template-columns:1fr"),"Cards should stack on mobile");
-  const solution=homepage.match(/<section[^>]*id="solutions"[\\s\\S]*?<\\/section>/)?.[0]||"";
+  const solution=homepage.slice(homepage.indexOf('id="solutions"'),homepage.indexOf('id="demo"'));
   assert.equal((solution.match(/<article class="solution-card">/g)||[]).length,3);
   assert.ok(!solution.includes("<img")&&!solution.includes("solution-photo"),"No photographs in Solutions");
   assert.ok(!homepage.includes("images.unsplash.com"),"No external stock photos on homepage");
