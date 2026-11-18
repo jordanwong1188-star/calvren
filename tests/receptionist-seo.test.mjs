@@ -38,6 +38,17 @@ test("indexed pages have canonical, OG and social preview, and sitemap includes 
   const ld=get("public/ai-receptionist.html").match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
   assert.ok(ld); assert.ok(JSON.parse(ld[1])["@graph"].some(x=>x["@type"]==="Service"));
 });
+test("receptionist FAQ answers common objections without promising instant voice activation",()=>{
+  const page=get("public/ai-receptionist.html"),css=get("public/receptionist.css");
+  for(const question of ["Can I keep my existing business phone number?",
+    "Will the receptionist automatically book appointments?",
+    "What happens when someone needs a person?",
+    "Does subscribing activate the phone service immediately?"])
+    assert.ok(page.includes(question),"Missing FAQ: "+question);
+  assert.ok(page.includes("Phone answering starts only after onboarding"));
+  assert.ok(css.includes(".receptionist-faq summary:focus-visible"));
+});
+
 test("receptionist enquiry uses existing validated Formspree lead form",()=>{
   const contact=get("public/contact.html"),shared=get("public/shared.js");
   assert.ok(contact.includes('id="project-form"'));
