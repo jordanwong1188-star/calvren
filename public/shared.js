@@ -43,7 +43,7 @@ const campaignValue=key=>{
 // audit enquiry still attributes the original campaign. Nothing is stored.
 const campaignKeys=["utm_source","utm_medium","utm_campaign"];
 const marketingPages=new Set(["/","/index.html","/contact","/contact.html",
-  "/case-studies","/case-studies.html","/ai-receptionist","/ai-receptionist.html",
+  "/ai-receptionist","/ai-receptionist.html",
   "/try-demo","/try-demo.html"]);
 document.querySelectorAll('a[href^="/"]').forEach(link=>{
   const destination=new URL(link.getAttribute("href"),location.origin);
