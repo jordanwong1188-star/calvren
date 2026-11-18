@@ -78,7 +78,7 @@ try{
   await page.locator("#run-demo").click();
   assert.match(await page.locator("#lead-intent").textContent(),/quote/i);
 
-  for(const path of ["/","/contact.html","/case-studies.html"]){
+  for(const path of ["/","/contact.html","/case-studies.html","/ai-receptionist.html"]){
     for(const width of [320,375,768,1440]){
       await page.setViewportSize({width,height:1000});
       await visit(path);
@@ -219,7 +219,7 @@ try{
   await reduced.close();
   const native=await browser.newContext({javaScriptEnabled:false,viewport:{width:320,height:1000}});
   const nativePage=await native.newPage();
-  for(const path of ["/","/contact.html","/case-studies.html"]){
+  for(const path of ["/","/contact.html","/case-studies.html","/ai-receptionist.html"]){
     await nativePage.goto(site+path,{waitUntil:"networkidle"});
     assert.equal(await nativePage.locator("#site-navigation").isVisible(),true);
     assert.equal(await nativePage.locator("[data-reveal]").first().evaluate(node=>getComputedStyle(node).opacity),"1");
@@ -349,8 +349,8 @@ try{
   assert.equal(calls.find(x=>x.kind==="signup").payload.passwordLength,8);
   assert.equal(calls.find(x=>x.kind==="resend").payload.type,"signup");
   assert.equal(calls.find(x=>x.kind==="resend").payload.email,"new@example.com");
-  assert.equal(calls.find(x=>x.kind==="resend").payload.redirectTo,"https://calvren.pages.dev/client");
-  assert.equal(calls.find(x=>x.kind==="reset").payload.redirectTo,"https://calvren.pages.dev/client");
+  assert.equal(calls.find(x=>x.kind==="resend").payload.redirectTo,"https://calvren.ca/client");
+  assert.equal(calls.find(x=>x.kind==="reset").payload.redirectTo,"https://calvren.ca/client");
   assert.equal(calls.find(x=>x.kind==="legacy").payload.shouldCreateUser,false);
   await accountContext.close();
 
