@@ -1,0 +1,20 @@
+{
+  "ci": {
+    "collect": {
+      "staticDistDir": "./public",
+      "url": [
+        "http://localhost/",
+        "http://localhost/ai-receptionist.html",
+        "http://localhost/contact.html"
+      ],
+      "numberOfRuns": 1,
+      "settings": {
+        "chromeFlags": "--no-sandbox --disable-dev-shm-usage"
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "./artifacts/lighthouse"
+    }
+  }
+}
