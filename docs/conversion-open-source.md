@@ -14,7 +14,7 @@ Goal: help a new AI-automation business turn more relevant visitors into genuine
 | Repository | Licence / cost consideration | Decision |
 | --- | --- | --- |
 | [dequelabs/axe-core-npm](https://github.com/dequelabs/axe-core-npm) | MPL-2.0, free open-source testing package | **Integrated in GitHub Actions**, not served to visitors |
-| [GoogleChrome/lighthouse-ci](https://github.com/GoogleChrome/lighthouse-ci) | Apache-2.0, free source; consumes test runner resources | Candidate for later page-speed regression monitoring |
+| [GoogleChrome/lighthouse-ci](https://github.com/GoogleChrome/lighthouse-ci) | Apache-2.0; free GitHub workflow runs for public repository | **Integrated in GitHub Actions**; local-only performance/SEO report artifacts, no tracking script |
 | [umami-software/umami](https://github.com/umami-software/umami) | MIT, free to self-host; requires a running service and database | **Deferred** until hosting/account setup is agreed |
 | [PostHog/posthog](https://github.com/PostHog/posthog) | Mixed/open-core licensing, free allowances vary; external analytics | **Deferred** to avoid a new hosted service or trackers |
 | [growthbook/growthbook](https://github.com/growthbook/growthbook) | Open core; check current terms for any commercial rollout | **Deferred** until there is enough traffic for credible A/B tests |
@@ -37,14 +37,18 @@ Goal: help a new AI-automation business turn more relevant visitors into genuine
 
 ## Additional research — 17 November 2026
 
-These are recommendations, not installed integrations. Code can be free while infrastructure and usage cost money. No repository by itself creates qualified traffic.
+The first two tools below are now integrated as **informational GitHub Actions checks**; the remainder are recommendations, not installed integrations. Code can be free while infrastructure and usage can cost money. No repository by itself creates qualified traffic.
 
 | Repository | Use for Calvren | Cost / implementation | Priority |
 | --- | --- | --- | --- |
-| [GoogleChrome/lighthouse-ci](https://github.com/GoogleChrome/lighthouse-ci) | Catch mobile speed, accessibility and SEO regressions before they hurt enquiries | Apache-2.0; run in existing public-repository CI; no client-data transfer or analytics service required | First |
-| [lycheeverse/lychee](https://github.com/lycheeverse/lychee) | Catch broken booking, support, internal and campaign landing-page links | MIT or Apache-2.0; CI tool, no paid hosting service required | First |
+| [GoogleChrome/lighthouse-ci](https://github.com/GoogleChrome/lighthouse-ci) | Audits homepage, receptionist, contact for baseline mobile performance and SEO | **Installed**: `lighthouserc.json` and `.github/workflows/site-quality.yml`; saved 7-day Actions artifacts; first run must be reviewed | First |
+| [lycheeverse/lychee](https://github.com/lycheeverse/lychee) | Find broken links in static site source | **Installed**: offline report-only `lychee-action@v2` in `.github/workflows/site-quality.yml`. Clean URLs rewritten by Cloudflare can produce false positives; live-site checks remain authoritative | First |
 | [catamphetamine/libphonenumber-js](https://github.com/catamphetamine/libphonenumber-js) | Help clients enter usable Canadian/international callback numbers during onboarding | MIT; bundle locally; use possible-number feedback without rejecting valid formatting unnecessarily | Next UX improvement |
 | [umami-software/umami](https://github.com/umami-software/umami) | Measure which campaigns send visits and completed enquiries | MIT source; needs a deployed analytics service/database or a hosted plan. Not currently connected | Highest marketing measurement value once hosting is chosen |
 | [knadh/listmonk](https://github.com/knadh/listmonk) | Send newsletters to prospects who subscribe | AGPL-3.0; requires hosting, PostgreSQL and an email sender; sending may cost money. No campaigns or contact uploads made | Later, after an opted-in audience exists |
 
 Primary sources: each repository README/LICENSE; Lighthouse CI configuration documentation at https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md . Existing axe-core tests and form `cta_source` capture remain installed. SEO metadata, social previews, structured data, robots and sitemap are website code, not an external SEO service. Search Console ownership/submission is not verified by these changes.
+
+## Verification note
+
+The quality workflow is a free source-code/reporting integration, **not** a new hosted analytics service or proof of SEO ranking. GitHub Actions results must be inspected before claiming a passing Lighthouse or Lychee run. The site already includes standard canonical URLs, descriptions, social previews, structured data, sitemap and robots. Google Search Console ownership and sitemap submission are separate account-level steps and have not been verified from source code. No external tool, ad spend, new analytics server or client-data upload was authorized by this workflow.
