@@ -30,7 +30,7 @@ test("AI receptionist is quote-only and never advertises the retired checkout",(
   }
   assert.ok(!billing.includes('data-select-plan="receptionist"'));
   assert.ok(billing.includes("Get a custom AI Receptionist quote"));
-  for(const existing of ["CA$249","CA$499","CA$775","CA$349"])
+  for(const existing of ["CA$275","CA$499","CA$775","CA$349"])
     assert.ok(home.includes(existing),"Preserve existing pricing "+existing);
   assert.equal((home.match(/class="calvren-tier(?: |")/g)||[]).length,3,"Keep exactly three standard subscriptions");
 });
