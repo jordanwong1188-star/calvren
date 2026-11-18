@@ -35,7 +35,7 @@ jobs:
     env:
       CALVREN_PROSPECT_WEBSITES: ${{ github.event.inputs.websites || '' }}
       CALVREN_PROSPECT_LIMIT: ${{ github.event.inputs.limit || '10' }}
-      CRAWLEE_STORAGE_DIR: ${{ runner.temp }}/calvren-crawlee
+      CRAWLEE_STORAGE_DIR: /tmp/calvren-crawlee
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
