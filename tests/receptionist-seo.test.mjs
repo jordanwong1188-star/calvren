@@ -2,6 +2,21 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 const get=(file)=>readFileSync(new URL("../"+file,import.meta.url),"utf8");
+test("branded 1200×630 share preview is used consistently on public pages",()=>{
+  const file="public/media/calvren-social-preview-2026.jpg";
+  const jpg=readFileSync(new URL("../"+file,import.meta.url));
+  assert.ok(jpg.byteLength>30000,"Preview image must not be an empty placeholder");
+  assert.equal(jpg[0],0xff);assert.equal(jpg[1],0xd8);
+  for(const page of ["index.html","ai-receptionist.html","contact.html","case-studies.html","privacy.html"]){
+    const html=get("public/"+page);
+    const link="https://calvren.ca/media/calvren-social-preview-2026.jpg";
+    assert.ok(html.includes('property="og:image" content="'+link+'"'),page+" needs share image");
+    assert.ok(html.includes('name="twitter:image" content="'+link+'"'),page+" needs Twitter card");
+    assert.ok(html.includes('property="og:image:width" content="1200"'),page+" needs 1200 width");
+    assert.ok(html.includes('property="og:image:height" content="630"'),page+" needs 630 height");
+    assert.ok(html.includes('property="og:image:alt"'),page+" needs alt text");
+  }
+});
 test("AI receptionist is quote-only and never advertises the retired checkout",()=>{
   const page=get("public/ai-receptionist.html"),home=get("public/index.html"),
     billing=get("public/payment.html"),portal=get("public/client-portal.js");
@@ -58,5 +73,8 @@ test("receptionist enquiry uses existing validated Formspree lead form",()=>{
   assert.ok(contact.includes('id="project-form"'));
   assert.ok(contact.includes('action="https://formspree.io/f/xrperqkk"'));
   assert.ok(shared.includes('"ai-receptionist"'));
-  assert.ok(shared.includes('AI receptionist enquiry — Calvren'));
+  assert.ok(shared.includes('AI receptionist custom quote request — Calvren'));
+  assert.ok(shared.includes('custom quote for Calvren’s AI receptionist'));
+  assert.ok(!shared.includes('AI receptionist at CA$425/month'));
+  assert.ok(!shared.includes('plus CA$515 setup'));
 });

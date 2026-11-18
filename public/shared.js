@@ -108,13 +108,13 @@ const workflows={
   "real-estate":{industry:"Real estate",message:"I’d like help organising property enquiries and preparing replies for review."},
   "local-services":{industry:"Local services",message:"I’d like help organising quote requests and collecting the details needed before quoting."},
   professional:{industry:"Professional services",message:"I’d like help preparing client intake summaries and initial reply drafts."},
-  "ai-receptionist":{industry:"",message:"I would like a custom quote for Calvren’s AI receptionist. Please advise on monthly pricing, setup, included call usage, phone-provider compatibility and booking options for my business."}
+  "ai-receptionist":{industry:"",message:"I’m interested in a custom quote for Calvren’s AI receptionist. I’d like to discuss our expected call volume, business hours, appointment booking and phone system. Please contact me about suitable pricing and setup options."}
 };
 if(enquiry&&Object.hasOwn(workflows,workflow)){
   enquiry.querySelector('[name="workflow"]').value=workflow;
   enquiry.querySelector('[name="industry"]').value=workflows[workflow].industry;
   enquiry.querySelector('[name="message"]').value=workflows[workflow].message;
-  if(workflow==="ai-receptionist")enquiry.querySelector('[name="subject"]').value="AI receptionist enquiry — Calvren";
+  if(workflow==="ai-receptionist")enquiry.querySelector('[name="subject"]').value="AI receptionist custom quote request — Calvren";
 }
 const filterButtons=[...document.querySelectorAll("[data-study-filter]")];
 if(filterButtons.length){
