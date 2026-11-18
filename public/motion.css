@@ -1,0 +1,124 @@
+/*
+ * Calvren / editorial motion.
+ * Calm, deliberate reveals; no scroll-jacking, autoplay effects or dependencies.
+ * JavaScript is progressive: without it, every element is fully visible.
+ */
+.calvren-reading-progress{
+  position:fixed;
+  z-index:90;
+  top:0;
+  left:0;
+  width:100%;
+  height:3px;
+  pointer-events:none;
+  transform:scaleX(0);
+  transform-origin:0 50%;
+  background:linear-gradient(90deg,#8aa673 0%,#dbebc1 52%,#ab4827 100%);
+  will-change:transform;
+}
+@media(prefers-reduced-motion:no-preference){
+  html.motion-enabled body.motion-site [data-motion]{
+    opacity:0;
+    transform:translate3d(0,24px,0);
+    filter:blur(2px);
+    transition:
+      opacity .78s cubic-bezier(.2,.65,.2,1),
+      transform .95s cubic-bezier(.18,.74,.15,1),
+      filter .8s ease;
+    transition-delay:var(--motion-delay,0ms);
+  }
+  html.motion-enabled body.motion-site [data-motion="kicker"]{
+    transform:translate3d(-12px,11px,0);
+    filter:none;
+    transition-duration:.75s;
+  }
+  html.motion-enabled body.motion-site [data-motion="headline"]{
+    transform:translate3d(0,37px,0);
+    clip-path:inset(0 0 18% 0);
+    transition:
+      opacity .82s cubic-bezier(.2,.65,.2,1),
+      transform 1s cubic-bezier(.18,.74,.15,1),
+      clip-path 1s cubic-bezier(.18,.74,.15,1),
+      filter .85s ease;
+    transition-delay:var(--motion-delay,0ms);
+  }
+  html.motion-enabled body.motion-site [data-motion="card"]{
+    transform:translate3d(0,39px,0) scale(.98);
+    filter:blur(2px);
+    transition-duration:.93s;
+  }
+  html.motion-enabled body.motion-site [data-motion="media"]{
+    opacity:.45;
+    transform:translate3d(0,28px,0) scale(.97);
+    clip-path:inset(0 0 8% 0 round 12px);
+    transition:
+      opacity 1s ease,
+      transform 1.2s cubic-bezier(.19,1,.22,1),
+      clip-path 1.2s cubic-bezier(.19,1,.22,1),
+      filter 1s ease;
+    transition-delay:var(--motion-delay,0ms);
+  }
+  html.motion-enabled body.motion-site [data-motion="panel"]{
+    opacity:.5;
+    transform:translate3d(0,25px,0) scale(.985);
+    filter:none;
+    transition-duration:1s;
+  }
+  html.motion-enabled body.motion-site [data-motion].is-inview{
+    opacity:1;
+    filter:none;
+    transform:none;
+    clip-path:inset(0 0 0 0 round 0px);
+  }
+  /* Cards feel connected as they arrive; no extra pictograms. */
+  html.motion-enabled body.simple-home #solutions .solution-card{
+    position:relative;
+    overflow:hidden;
+  }
+  html.motion-enabled body.simple-home #solutions .solution-card:before{
+    content:"";
+    position:absolute;
+    inset:0 auto auto 0;
+    height:3px;
+    width:100%;
+    transform:scaleX(0);
+    transform-origin:left center;
+    background:linear-gradient(90deg,#668960,#afc894);
+    transition:transform .9s cubic-bezier(.2,.7,.2,1);
+    transition-delay:calc(var(--motion-delay,0ms) + 300ms);
+    pointer-events:none;
+  }
+  html.motion-enabled body.simple-home #solutions .solution-card.is-inview:before{transform:scaleX(1)}
+  html.motion-enabled body.motion-site .receptionist-photo-frame img{
+    transform:scale(1.045);
+    transition:transform 1.65s cubic-bezier(.19,1,.22,1);
+  }
+  html.motion-enabled body.motion-site .receptionist-photo-frame.is-inview img{transform:scale(1)}
+}
+@media(max-width:760px) and (prefers-reduced-motion:no-preference){
+  html.motion-enabled body.motion-site [data-motion]{
+    transform:translate3d(0,18px,0);
+    filter:none;
+    transition-duration:.65s;
+  }
+  html.motion-enabled body.motion-site [data-motion="headline"]{
+    transform:translate3d(0,26px,0);
+    clip-path:inset(0 0 10% 0);
+  }
+  html.motion-enabled body.motion-site [data-motion="media"]{
+    transform:translate3d(0,13px,0);
+    clip-path:none;
+  }
+  html.motion-enabled body.motion-site [data-motion].is-inview{transform:none;opacity:1;clip-path:none}
+  .calvren-reading-progress{height:2px}
+}
+@media(prefers-reduced-motion:reduce){
+  .calvren-reading-progress{display:none!important}
+  html body.motion-site [data-motion]{
+    opacity:1!important;
+    transform:none!important;
+    clip-path:none!important;
+    filter:none!important;
+    transition:none!important;
+  }
+}
