@@ -186,3 +186,39 @@ html{scroll-padding-top:120px}
 .marketing .calvren-tier .button span{font-size:19px}
 @media(max-width:900px){.marketing .calvren-pricing-grid{grid-template-columns:1fr;max-width:640px}.marketing .calvren-tier{padding:28px}.marketing .calvren-tier h3{min-height:0}.marketing .calvren-tier .calvren-tier-intro{min-height:0;margin-bottom:5px}.marketing .calvren-tier .calvren-tier-payoff{min-height:0}}
 @media(max-width:600px){.marketing .calvren-tier{padding:23px 21px}.marketing .calvren-tier-top{min-height:0}.marketing .calvren-tier-badge{max-width:145px;font-size:8px}.marketing .calvren-tier .calvren-tier-amount{margin-bottom:18px}.marketing .calvren-tier-features li{padding-bottom:13px}}
+
+/* Client experiences: quiet, review-style cards without invented quotations or star ratings. */
+.simple-studies .client-story{
+  gap:clamp(20px,4vw,54px);
+  align-items:stretch;
+  margin:0 0 26px;
+  padding:28px;
+  background:rgba(255,255,255,.45);
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+.simple-studies .story-identity{padding:clamp(8px,1.6vw,20px) 0;}
+.simple-studies .story-identity>p{
+  display:inline-block;
+  margin-top:7px;
+  padding:9px 13px;
+  border:1px solid #183b3126;
+  border-radius:50px;
+  background:#f6f5ee;
+}
+.simple-studies .story-experience{
+  position:relative;
+  padding:clamp(24px,3vw,38px);
+  background:#f6f5ee;
+  border:1px solid #183b311d;
+  border-left:4px solid #ad461f;
+  border-radius:10px;
+}
+.simple-studies .story-experience .eyebrow{color:#326248;margin-bottom:14px;}
+.simple-studies .story-experience h3{font-size:clamp(23px,2.3vw,31px);line-height:1.27;}
+.simple-studies .story-experience>p:not(.eyebrow){font-size:15px;line-height:1.75;}
+.simple-studies .story-note{max-width:850px;margin-top:8px;}
+@media(max-width:600px){
+  .simple-studies .client-story{padding:18px;gap:12px;}
+  .simple-studies .story-experience{padding:23px;}
+}
