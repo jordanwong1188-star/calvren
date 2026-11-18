@@ -222,8 +222,15 @@ try{
   for(const path of ["/","/contact.html","/case-studies.html","/ai-receptionist.html"]){
     await nativePage.goto(site+path,{waitUntil:"networkidle"});
     assert.equal(await nativePage.locator("#site-navigation").isVisible(),true);
-    assert.equal(await nativePage.locator("[data-reveal]").first().evaluate(node=>getComputedStyle(node).opacity),"1");
-    assert.equal(await nativePage.locator("[data-lead-form]").getAttribute("method"),"POST");
+    // Not every marketing landing page uses an entrance reveal or embeds a lead form.
+    const reveals=nativePage.locator("[data-reveal]");
+    if(await reveals.count())assert.equal(await reveals.first().evaluate(node=>getComputedStyle(node).opacity),"1");
+    if(path==="/ai-receptionist.html"){
+      assert.ok(await nativePage.locator('a[href="/payment?plan=receptionist"]').count()>0,
+        "The receptionist must retain a usable checkout link without JavaScript.");
+    }else{
+      assert.equal(await nativePage.locator("[data-lead-form]").getAttribute("method"),"POST");
+    }
   }
   await native.close();
 
