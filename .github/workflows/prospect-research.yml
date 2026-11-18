@@ -1,5 +1,11 @@
 name: Research Calvren prospects — review only
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/prospect-*.mjs'
+      - 'tests/prospect-qualification.test.mjs'
+      - '.github/workflows/prospect-research.yml'
   workflow_dispatch:
     inputs:
       websites:
