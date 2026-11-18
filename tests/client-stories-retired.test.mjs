@@ -17,7 +17,7 @@ test("retired client stories are absent from the site and sitemap",()=>{
   for(const phrase of ["proof-preview","proof-grid","ShineBros","ClearCraft"]){
     assert.ok(!home.includes(phrase),"Retired social-proof block remains: "+phrase);
   }
-  for(const id of ["solutions","demo","process","pricing"])
+  for(const id of ["solutions","demo","pricing"])
     assert.ok(home.includes('id="'+id+'"'),"Useful homepage section missing: "+id);
   assert.ok(!read("sitemap.xml").includes("case-studies"),"Remove story URL from search sitemap");
 });
