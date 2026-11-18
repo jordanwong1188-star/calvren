@@ -48,7 +48,7 @@ try{
   assert.deepEqual(openings.Thursday.slice().sort(),["8:45 AM","12:15 PM","3:00 PM"].sort());
   await page.goto(site+"/case-studies.html",{waitUntil:"networkidle",timeout:30000});
   const studyText=await page.locator("#workflow-studies").innerText();
-  for(const name of ["ShinerBros Window Cleaning","ClearCraft Automotive Detailing","Jacob","Dylan"]) {
+  for(const name of ["ShineBros Window Cleaning","ClearCraft Automotive Detailing","Jacob","Dylan"]) {
     assert.ok(studyText.includes(name),"Missing client business: "+name);
   }
   assert.equal(await page.locator(".client-story").count(),2);
