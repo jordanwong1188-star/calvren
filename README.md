@@ -15,7 +15,7 @@ Calvren now includes a reusable Lead Conversion MVP alongside the existing marke
 A live B2B AI automation website and single-owner enquiry workspace for Jordan Wong.
 
 - Website: https://calvren.pages.dev
-- Case studies and client feedback: https://calvren.pages.dev/case-studies.html
+- Services, free lead audit and AI receptionist: https://calvren.ca/
 - Contact: https://calvren.pages.dev/contact.html
 - Private owner workspace: https://calvren.pages.dev/admin.html (token protected; not promoted to visitors)
 - Old Netlify hosting (legacy only): https://app.netlify.com/projects/calvren
