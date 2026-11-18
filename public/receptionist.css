@@ -26,3 +26,11 @@
 .receptionist-next p{max-width:640px;color:var(--muted)}
 @media(max-width:860px){.receptionist-teaser,.receptionist-hero{grid-template-columns:1fr;gap:24px}.receptionist-feature-grid{grid-template-columns:1fr}.receptionist-next{flex-direction:column;align-items:flex-start}}
 @media(max-width:600px){.receptionist-teaser-price,.receptionist-price-card{padding:22px}.receptionist-hero-actions .button,.receptionist-next .button{width:100%}}
+
+/* Accessible FAQ answers help qualified prospects understand setup before enquiring. */
+.receptionist-faq{border-top:1px solid var(--line);max-width:1000px}
+.receptionist-faq h2{font-size:clamp(28px,3.5vw,45px);margin:12px 0 25px}
+.receptionist-faq details{border-bottom:1px solid var(--line);padding:17px 0}
+.receptionist-faq summary{cursor:pointer;font-size:17px;font-weight:600;line-height:1.55}
+.receptionist-faq details p{max-width:760px;color:var(--muted);line-height:1.8;margin:14px 0 2px}
+.receptionist-faq summary:focus-visible{outline:3px solid #ad461f;outline-offset:5px;border-radius:3px}
