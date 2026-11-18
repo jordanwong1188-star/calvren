@@ -40,3 +40,13 @@
 # Keep authenticated billing and checkout logic current after each deployment.
 /client-portal.js
   Cache-Control: no-cache, must-revalidate
+
+# Editorial marketing assets should revalidate after design updates.
+/solutions.css
+  Cache-Control: no-cache, must-revalidate
+/receptionist.css
+  Cache-Control: no-cache, must-revalidate
+/motion.css
+  Cache-Control: no-cache, must-revalidate
+/motion.js
+  Cache-Control: no-cache, must-revalidate
