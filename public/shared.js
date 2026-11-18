@@ -39,6 +39,25 @@ const campaignValue=key=>{
   const value=(campaignParams.get(key)||"").trim();
   return /^[a-zA-Z0-9 _.-]{1,80}$/.test(value)?value:"";
 };
+// Keep non-identifying campaign tags on internal marketing links so the
+// audit enquiry still attributes the original campaign. Nothing is stored.
+const campaignKeys=["utm_source","utm_medium","utm_campaign"];
+const marketingPages=new Set(["/","/index.html","/contact","/contact.html",
+  "/case-studies","/case-studies.html","/ai-receptionist","/ai-receptionist.html",
+  "/try-demo","/try-demo.html"]);
+document.querySelectorAll('a[href^="/"]').forEach(link=>{
+  const destination=new URL(link.getAttribute("href"),location.origin);
+  if(!marketingPages.has(destination.pathname))return;
+  let changed=false;
+  for(const key of campaignKeys){
+    const value=campaignValue(key);
+    if(value&&!destination.searchParams.has(key)){
+      destination.searchParams.set(key,value);
+      changed=true;
+    }
+  }
+  if(changed)link.setAttribute("href",destination.pathname+destination.search+destination.hash);
+});
 document.querySelectorAll("[data-lead-form]").forEach(form=>{
   for(const key of ["utm_source","utm_medium","utm_campaign"]){
     const input=form.querySelector('[name="'+key+'"]');
