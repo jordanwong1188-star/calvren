@@ -15,7 +15,7 @@ async function request(path,options={}){
   throw last;
 }
 const pages=[
-  ["/","calvren"],["/payment.html","data-select-plan"],
+  ["/","calvren"],["/payment.html","data-select-plan"],["/ai-receptionist.html","CA$425"],
   ["/client.html","client-payment-success"],["/onboarding.html","onboarding-app"],
   ["/onboarding-preview.html","INTERACTIVE SAMPLE"],
   ["/case-studies.html","case"],["/contact.html","contact"],["/privacy.html","privacy"]
@@ -32,11 +32,12 @@ for(const [path,marker] of pages){
     assert.ok(html.includes('id="client-payment-pending"'));
   }
   if(path==="/payment.html"){
-    for(const label of ["CA$249","CA$499","CA$775"])
+    for(const label of ["CA$249","CA$499","CA$775","CA$425","CA$515"])
       assert.ok(html.includes(label),label+" is missing from checkout page");
-    for(const tier of ["starter","growth","pro"])
+    for(const tier of ["starter","growth","pro","receptionist"])
       assert.ok(html.includes('data-select-plan="'+tier+'"'),"Missing "+tier+" option");
   }
+  if(path==="/ai-receptionist.html")assert.ok(html.includes("CA$515"),"Receptionist setup fee must be public");
   if(path==="/onboarding-preview.html")
     assert.ok(html.includes("NOT A LIVE ACCOUNT"),"Preview must state that it is not a live account");
   console.log("PUBLIC_PAGE_OK",path);
@@ -53,11 +54,13 @@ const config=await publicBilling.json();
 assert.equal(config.ready,true,"Stripe setup is not ready");
 assert.equal(config.test_mode,false,"Live checkout must not use Stripe test mode");
 assert.equal(config.setup_amount,34900,"Unexpected setup fee");
-for(const [tier,amount] of [["starter",24900],["growth",49900],["pro",77500]]){
+for(const [tier,amount] of [["starter",24900],["growth",49900],["pro",77500],["receptionist",42500]]){
   assert.equal(config.plans?.[tier]?.ready,true,tier+" live Stripe price unavailable");
   assert.equal(config.plans[tier].amount,amount,tier+" has the wrong price");
 }
-console.log("LIVE_STRIPE_PRICES_CORRECT",origin.hostname,JSON.stringify(Object.fromEntries(["starter","growth","pro"].map(p=>[p,config.plans[p].amount]))));
+assert.equal(config.plans.receptionist.setup_amount,51500,"Receptionist setup amount mismatch");
+assert.equal(config.plans.receptionist.first_payment,94000,"Receptionist initial charge mismatch");
+console.log("LIVE_STRIPE_PRICES_CORRECT",origin.hostname,JSON.stringify(Object.fromEntries(["starter","growth","pro","receptionist"].map(p=>[p,config.plans[p].amount]))));
 const secured=[
  {path:"/api/billing/me",method:"GET"},
  {path:"/api/billing/checkout",method:"POST",body:'{"plan":"pro"}'},
