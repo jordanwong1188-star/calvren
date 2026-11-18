@@ -1,0 +1,227 @@
+/* The Calvren solution journey — benefits before features.
+   Scoped to the homepage; other pages and existing pricing stay untouched. */
+.simple-home #solutions{
+  border-top:1px solid var(--line);
+  scroll-margin-top:92px;
+}
+.simple-home #solutions .solutions-heading{
+  align-items:end;
+  gap:clamp(32px,5vw,80px);
+  margin-bottom:36px;
+}
+.simple-home #solutions .solutions-heading>div:first-child{max-width:660px;min-width:0}
+.simple-home #solutions .solutions-heading h2{
+  max-width:680px;
+  font-size:clamp(42px,5vw,64px);
+  line-height:1.07;
+  letter-spacing:-1.6px;
+}
+.simple-home #solutions .solutions-heading h2 em{color:#57724c}
+.simple-home #solutions .solutions-intro{
+  max-width:370px;
+  flex:0 1 370px;
+  padding-left:22px;
+  border-left:2px solid #a5ba8b;
+}
+.simple-home #solutions .solutions-intro p{
+  max-width:none;
+  color:#475e52;
+  font-size:15px;
+  line-height:1.75;
+}
+.simple-home #solutions .solutions-intro small{
+  display:block;
+  margin-top:12px;
+  color:#63766a;
+  font-size:12px;
+  line-height:1.6;
+}
+.simple-home #solutions .solution-journey{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:17px;
+}
+.simple-home #solutions .solution-card{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  padding:clamp(23px,2.6vw,34px);
+  border:1px solid #cfdbcd;
+  border-radius:12px;
+  background:#fffef9;
+  box-shadow:0 5px 20px rgba(28,57,42,.035);
+}
+.simple-home #solutions .solution-card:nth-child(2){background:#edf1e6}
+.simple-home #solutions .solution-card-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:30px;
+}
+.simple-home #solutions .solution-step{
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1.1px;
+  color:#536f58;
+}
+.simple-home #solutions .solution-icon{
+  display:grid;
+  place-items:center;
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  background:#e6eddb;
+  color:#254f3b;
+  flex-shrink:0;
+}
+.simple-home #solutions .solution-card:nth-child(2) .solution-icon{background:#dce8cd}
+.simple-home #solutions .solution-icon svg{
+  width:25px;
+  height:25px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.simple-home #solutions .solution-friction{
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.7px;
+  text-transform:uppercase;
+  line-height:1.5;
+  color:#648060;
+  margin:0 0 10px;
+}
+.simple-home #solutions .solution-card h3{
+  font-family:var(--serif);
+  font-size:clamp(29px,2.7vw,38px);
+  font-weight:400;
+  line-height:1.11;
+  letter-spacing:-.55px;
+  margin:0 0 18px;
+  min-height:85px;
+}
+.simple-home #solutions .solution-card .solution-copy{
+  max-width:330px;
+  min-height:0;
+  font-size:14px;
+  line-height:1.85;
+  color:#4d6155;
+  margin:0 0 34px;
+}
+.simple-home #solutions .solution-example{
+  margin-top:auto;
+  padding-top:19px;
+  border-top:1px solid #d7e1d2;
+}
+.simple-home #solutions .solution-example-label{
+  display:block;
+  margin-bottom:9px;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:#6a806b;
+}
+.simple-home #solutions .solution-example-flow{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  color:#264d3a;
+  font-size:12px;
+  font-weight:650;
+  line-height:1.55;
+}
+.simple-home #solutions .solution-flow-arrow{color:#a74928;font-size:17px}
+.simple-home #solutions .solutions-action{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:36px;
+  margin-top:22px;
+  padding:clamp(25px,3.8vw,42px);
+  background:#1b4034;
+  color:#f8f7f0;
+  border-radius:12px;
+}
+.simple-home #solutions .solutions-action-kicker{
+  display:block;
+  margin-bottom:12px;
+  color:#c3d8b6;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1.3px;
+}
+.simple-home #solutions .solutions-action-copy>p{
+  max-width:490px;
+  font-family:var(--serif);
+  font-size:clamp(28px,3vw,39px);
+  line-height:1.12;
+  letter-spacing:-.4px;
+}
+.simple-home #solutions .solutions-action-copy>small{
+  display:block;
+  max-width:420px;
+  margin-top:13px;
+  font-size:13px;
+  line-height:1.75;
+  color:#c5d8ca;
+}
+.simple-home #solutions .solutions-action-links{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:10px;
+  min-width:225px;
+}
+.simple-home #solutions .solutions-action .button{
+  min-height:52px;
+  width:100%;
+  gap:16px;
+  justify-content:space-between;
+  font-size:13px;
+}
+.simple-home #solutions .solutions-demo-link{
+  font-size:12px;
+  font-weight:600;
+  line-height:1.6;
+  padding:7px 0;
+  text-decoration:underline;
+  text-underline-offset:4px;
+}
+.simple-home #solutions .solutions-demo-link:hover{color:#d8ef9d}
+.simple-home #solutions .solutions-action-links>p{
+  color:#bfd0c1;
+  font-size:10px;
+  line-height:1.6;
+}
+@media(max-width:940px){
+  .simple-home #solutions .solutions-heading{display:block}
+  .simple-home #solutions .solutions-intro{max-width:630px;margin-top:23px}
+  .simple-home #solutions .solution-journey{gap:12px}
+  .simple-home #solutions .solution-card{padding:22px}
+  .simple-home #solutions .solution-card h3{font-size:30px;min-height:100px}
+  .simple-home #solutions .solution-card .solution-copy{font-size:13px}
+}
+@media(max-width:700px){
+  .simple-home #solutions .solutions-heading h2{font-size:clamp(38px,9.2vw,51px)}
+  .simple-home #solutions .solutions-intro{padding-left:16px}
+  .simple-home #solutions .solution-journey{grid-template-columns:1fr;gap:14px}
+  .simple-home #solutions .solution-card{padding:25px}
+  .simple-home #solutions .solution-card-top{margin-bottom:24px}
+  .simple-home #solutions .solution-card h3{min-height:0;font-size:33px;max-width:440px}
+  .simple-home #solutions .solution-card .solution-copy{max-width:530px;margin-bottom:26px;font-size:15px}
+  .simple-home #solutions .solutions-action{grid-template-columns:1fr;gap:23px}
+  .simple-home #solutions .solutions-action-links{min-width:0;width:100%}
+  .simple-home #solutions .solutions-action .button{max-width:370px}
+}
+@media(max-width:390px){
+  .simple-home #solutions .solutions-action .button{max-width:none}
+  .simple-home #solutions .solution-card h3{font-size:31px}
+}
+@media(prefers-reduced-motion:reduce){
+  .simple-home #solutions .solutions-action .button{transition:none}
+}
