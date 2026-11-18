@@ -50,24 +50,24 @@ let ready=false;
 let savedPlan=null;
 try{savedPlan=sessionStorage.getItem("calvren-checkout-plan");}catch{}
 const chosen=new URLSearchParams(location.search).get("plan")||savedPlan;
-let selectedPlan=["starter","growth","pro","receptionist"].includes(chosen)?chosen:"starter";
-let planAvailability={starter:false,growth:false,pro:false,receptionist:false};
-const planLabels={starter:"Starter",growth:"Growth",pro:"Pro",receptionist:"AI Receptionist"};
-const planAmounts={starter:24900,growth:49900,pro:77500,receptionist:42500};
+if(new URLSearchParams(location.search).get("plan")==="receptionist")location.replace("/contact.html?workflow=ai-receptionist#project-form");
+let selectedPlan=["starter","growth","pro"].includes(chosen)?chosen:"starter";
+let planAvailability={starter:false,growth:false,pro:false};
+const planLabels={starter:"Starter",growth:"Growth",pro:"Pro"};
+const planAmounts={starter:24900,growth:49900,pro:77500};
 function selectBillingPlan(plan){
   if(!Object.hasOwn(planLabels,plan))return;
   selectedPlan=plan;
   try{sessionStorage.setItem("calvren-checkout-plan",plan);}catch{}
   const accountLink=document.querySelector("#billing-account-link a");
   if(accountLink)accountLink.href="/client.html?next=checkout&plan="+encodeURIComponent(plan);
-  const terms=$("receptionist-setup-terms");if(terms)terms.hidden=plan!=="receptionist";
   for(const button of document.querySelectorAll("[data-select-plan]"))
     button.setAttribute("aria-pressed",String(button.dataset.selectPlan===plan));
-  if($("billing-selected-tier"))$("billing-selected-tier").textContent=planLabels[plan]+(plan==="receptionist"?"":" automation");
+  if($("billing-selected-tier"))$("billing-selected-tier").textContent=planLabels[plan]+" automation";
   if($("billing-price"))$("billing-price").textContent=money(planAmounts[plan],"cad")+" / month";
-  if($("billing-first-payment"))$("billing-first-payment").textContent=money(planAmounts[plan]+(plan==="receptionist"?51500:34900),"cad")+" due initially";
+  if($("billing-first-payment"))$("billing-first-payment").textContent=money(planAmounts[plan]+34900,"cad")+" due initially";
   if($("billing-price-note"))$("billing-price-note").textContent=planAvailability[plan]?
-    (plan==="receptionist"?"CA$940 today, then CA$425/month. Billing starts today. Phone answering begins only after onboarding, provider configuration and successful call testing.":"First payment includes CA$349 one-time setup. Renewals charge the monthly plan only, before applicable taxes. Setup and activation require your approved onboarding scope."):
+    "First payment includes CA$349 one-time setup. Renewals charge the monthly plan only, before applicable taxes. Setup and activation require your approved onboarding scope.":
     "Secure online checkout for this plan is temporarily unavailable. Please contact Calvren for assistance.";
   if($("billing-checkout"))$("billing-checkout").textContent="Continue with "+planLabels[plan]+" on Stripe ↗";
 }
@@ -175,7 +175,7 @@ async function check(){
           "Choose a subscription to activate a client workspace.";
       const startArea=$("client-start-area"),startButton=$("client-checkout"),startNote=$("client-checkout-note");
       if(startArea)startArea.hidden=!!info.paid||checkoutVerificationPending;
-      if(startButton){startButton.disabled=!ready||checkoutVerificationPending;startButton.textContent=selectedPlan==="receptionist"?"Review AI receptionist setup & subscribe →":"Continue with "+planLabels[selectedPlan]+" on Stripe ↗";}
+      if(startButton){startButton.disabled=!ready||checkoutVerificationPending;startButton.textContent="Continue with "+planLabels[selectedPlan]+" on Stripe ↗";}
       for(const link of document.querySelectorAll('a[href="/payment"],a[href="/payment.html"]'))link.href="/payment?plan="+encodeURIComponent(selectedPlan);
       if(info.paid&&checkoutVerificationPending){
         checkoutVerificationPending=false;
@@ -352,9 +352,7 @@ async function startCheckout(button){
   button.disabled=true;
   notice("Opening Stripe checkout…");
   try{
-    if(!isBilling&&selectedPlan==="receptionist"){location.assign("/payment?plan=receptionist");return;}
-    if(selectedPlan==="receptionist"&&!$("receptionist-setup-ack")?.checked){notice("Please confirm the setup and billing terms before continuing.",true);return;}
-    const result=await api("checkout",{method:"POST",body:{plan:selectedPlan,accept_setup_terms:isBilling&&$("receptionist-setup-ack")?.checked===true}});
+    const result=await api("checkout",{method:"POST",body:{plan:selectedPlan}});
     const url=new URL(result.url);
     if(url.protocol!=="https:"||url.hostname!=="checkout.stripe.com")throw Error("Invalid checkout destination.");
     location.assign(url.href);
@@ -406,13 +404,12 @@ async function init(){
       planAvailability={
         starter:ready&&!!data.plans?.starter?.ready,
         growth:ready&&!!data.plans?.growth?.ready,
-        pro:ready&&!!data.plans?.pro?.ready,
-        receptionist:ready&&!!data.plans?.receptionist?.ready
+        pro:ready&&!!data.plans?.pro?.ready
       };
-      if($("billing-stripe-link"))planAvailability={starter:false,growth:false,pro:false,receptionist:false};
+      if($("billing-stripe-link"))planAvailability={starter:false,growth:false,pro:false};
       selectBillingPlan(selectedPlan);
     }catch{
-      planAvailability={starter:false,growth:false,pro:false,receptionist:false};
+      planAvailability={starter:false,growth:false,pro:false};
       selectBillingPlan(selectedPlan);
     }
   }
