@@ -21,6 +21,7 @@ export async function checkOwnerWorkspace({page,site,screenshot}){
     if(!allow)return respond({error:"Authentication required."},401);
     if(path==="/api/status")return respond({providerConfigured:true,persistentStorage:true,websiteIntake:true,environment:"production",model:"qa-model"});
     if(path==="/api/leads"&&request.method()==="GET")return respond({leads:records,limit:100});
+    if(path==="/api/metrics/summary")return respond({window_days:30,counts:{page_view:12,audit_submitted:2,demo_started:3,plan_click:1,audit_click:5,demo_open:4,demo_booked:1,pricing_view:7,estimator_used:2},daily:[{day:"2026-11-18",page_loads:12,audit_submitted:2,demo_started:3}]});
     if(path==="/api/workflow"&&request.method()==="POST"){
       manualCount++;const payload=request.postDataJSON();
       assert.equal(payload.name,"Synthetic manual intake");
@@ -49,6 +50,8 @@ export async function checkOwnerWorkspace({page,site,screenshot}){
     await page.locator("#workspace").waitFor({state:"visible"});
     assert.equal(await page.locator("#admin-token").inputValue(),"");
     assert.equal(await page.locator(".service-check").count(),3);
+    assert.equal(await page.locator(".admin-metric").count(),4);
+    assert.match(await page.locator("#analytics-summary").textContent(),/12/);
     assert.equal(await page.locator(".lead-card").count(),3);
     assert.equal(await page.locator("#lead-list img").count(),0);
     assert.match(await page.locator(".lead-card").first().textContent(),/QA <img/);
