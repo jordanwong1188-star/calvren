@@ -39,10 +39,10 @@ test("editorial motion is active only on public marketing pages",()=>{
 });
 
 test("picture-free marketing keeps cards, text-led panel, and audit CTA",()=>{
-  const solutions=home.match(/<section[^>]*id="solutions"[\\s\\S]*?<\\/section>/)?.[0]||"";
+  const solutions=home.slice(home.indexOf('id="solutions"'),home.indexOf('id="demo"'));
   assert.equal((solutions.match(/<article class="solution-card">/g)||[]).length,3);
-  assert.ok(!/<img\\b/i.test(solutions),"All stock photos must be removed");
-  assert.ok(!/<img\\b/i.test(receptionist),"Receptionist must be photo-free too");
+  assert.ok(!solutions.includes("<img"),"All stock photos must be removed");
+  assert.ok(!receptionist.includes("<img"),"Receptionist must be photo-free too");
   assert.ok(!solutions.includes("solution-photo"));
   assert.ok(!solutions.includes('class="solution-icon"'));
   assert.ok(receptionist.includes("receptionist-workday-note"));
