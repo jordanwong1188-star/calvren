@@ -2,7 +2,7 @@
 // Public business homepages only. No Google reviews, contact-email harvesting,
 // automated messages, social account crawling or invented revenue estimates.
 import { CheerioCrawler } from "@crawlee/cheerio";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { eligibleSeeds, evaluateWebsite } from "./prospect-qualification.mjs";
 
 const MAX = Math.max(1,Math.min(15,Number.parseInt(process.env.CALVREN_PROSPECT_LIMIT||"10",10)||10));
@@ -46,9 +46,16 @@ async function discoverFromOsm(){
 let seeds=eligibleSeeds(requested,MAX);
 let discovery="User-provided website roots";
 if(!requested.length){
-  discovery="OpenStreetMap website tags in Metro Vancouver";
-  try { seeds=await discoverFromOsm(); }
-  catch(e){failures.push("Discovery: "+String(e?.message||e).slice(0,180));}
+  if(process.env.CALVREN_PROSPECT_DISCOVERY==="osm"){
+    discovery="OpenStreetMap website tags in Metro Vancouver";
+    try { seeds=await discoverFromOsm(); }
+    catch(e){failures.push("OSM discovery unavailable; using curated starter sites: "+String(e?.message||e).slice(0,140));}
+  }
+  if(!seeds.length){
+    const seedFile=JSON.parse(await readFile(new URL("../data/prospect-starter-sites.json",import.meta.url),"utf8"));
+    seeds=eligibleSeeds(seedFile.companies||[],MAX);
+    discovery="Public Vancouver-area business website starter list (fallback; owner review required)";
+  }
 }
 const records=new Map();
 if(seeds.length){
