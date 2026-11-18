@@ -1,0 +1,145 @@
+/* Calvren public-site scroll direction.
+   Editorial timing and small depth cues; no scroll-jacking or text splitting. */
+.marketing.calvren-flow-enabled .calvren-flow-item{
+  --flow-delay:0ms;
+  transition:
+    opacity 760ms cubic-bezier(.16,1,.3,1),
+    transform 850ms cubic-bezier(.16,1,.3,1),
+    filter 760ms cubic-bezier(.16,1,.3,1),
+    clip-path 950ms cubic-bezier(.16,1,.3,1);
+  transition-delay:var(--flow-delay);
+}
+.marketing.calvren-flow-enabled .calvren-flow-item:not(.calvren-flow-visible){
+  opacity:0;
+  transform:translate3d(0,30px,0);
+  filter:blur(4px);
+}
+.marketing.calvren-flow-enabled .calvren-flow-item.calvren-flow-visible{
+  opacity:1;
+  transform:none;
+  filter:none;
+}
+.marketing.calvren-flow-enabled .calvren-flow-item[data-flow-kind="hero"]:not(.calvren-flow-visible){
+  transform:translate3d(0,24px,0);
+}
+.marketing.calvren-flow-enabled .calvren-flow-item[data-flow-kind="card"]:not(.calvren-flow-visible){
+  transform:translate3d(0,46px,0) scale(.975);
+  filter:blur(2px);
+}
+.marketing.calvren-flow-enabled .calvren-flow-item[data-flow-kind="panel"]:not(.calvren-flow-visible){
+  transform:translate3d(0,36px,0) scale(.985);
+}
+.marketing.calvren-flow-enabled .calvren-flow-item[data-flow-kind="photo"]{
+  overflow:hidden;
+}
+.marketing.calvren-flow-enabled .calvren-flow-item[data-flow-kind="photo"]:not(.calvren-flow-visible){
+  opacity:.45;
+  transform:translate3d(0,25px,0) scale(1.025);
+  clip-path:inset(7% 2.5% 7% 2.5% round 14px);
+}
+.marketing.calvren-flow-enabled .calvren-flow-item[data-flow-kind="photo"].calvren-flow-visible{
+  clip-path:inset(0 0 0 0 round 0);
+}
+/* An understated editorial underline reveals after section headlines. */
+.marketing.calvren-flow-enabled main .section-heading h2.calvren-flow-item::after{
+  content:"";
+  display:block;
+  width:49px;
+  height:2px;
+  margin-top:20px;
+  background:#ad461f;
+  transform:scaleX(0);
+  transform-origin:left center;
+  transition:transform 720ms cubic-bezier(.16,1,.3,1) 220ms;
+}
+.marketing.calvren-flow-enabled main .section-heading h2.calvren-flow-visible::after{
+  transform:scaleX(1);
+}
+/* Unified section seams; a recognizable visual rhythm without heavy animation. */
+.simple-home #solutions,
+.simple-home #pricing,
+.simple-home #ai-receptionist,
+.simple-home .faq{
+  position:relative;
+}
+.simple-home #solutions::before,
+.simple-home #pricing::before,
+.simple-home #ai-receptionist::before{
+  content:"";
+  position:absolute;
+  left:48px;
+  top:0;
+  height:2px;
+  width:clamp(48px,9vw,120px);
+  background:linear-gradient(90deg,#ad461f,#b4c896);
+  opacity:.6;
+  pointer-events:none;
+}
+.simple-home #solutions::before{top:-1px}
+.simple-home #pricing::before,
+.simple-home #ai-receptionist::before{top:0}
+/* Visitors can see reading progress without an obstructive sticky widget. */
+.calvren-reading-line{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  height:3px;
+  z-index:1001;
+  background:linear-gradient(90deg,#ad461f 0%,#c67747 72%,#d9bf8a 100%);
+  transform:scaleX(0);
+  transform-origin:left center;
+  pointer-events:none;
+  will-change:transform;
+}
+.marketing.calvren-flow-enabled #solutions .solution-card{
+  transition:
+    opacity 760ms cubic-bezier(.16,1,.3,1),
+    transform 850ms cubic-bezier(.16,1,.3,1),
+    filter 760ms cubic-bezier(.16,1,.3,1),
+    box-shadow 260ms ease,
+    border-color 260ms ease;
+  transition-delay:var(--flow-delay),var(--flow-delay),var(--flow-delay),0ms,0ms;
+}
+@media(hover:hover) and (pointer:fine){
+  .marketing.calvren-flow-enabled #solutions .solution-card.calvren-flow-visible:hover{
+    transform:translateY(-6px);
+    box-shadow:0 16px 38px rgba(24,59,49,.12);
+    border-color:#a8be9f;
+  }
+  .marketing.calvren-flow-enabled #pricing .calvren-tier.calvren-flow-visible:hover{
+    box-shadow:0 18px 42px rgba(24,59,49,.11);
+  }
+}
+/* Ease back animation on smaller screens and limit paint work. */
+@media(max-width:860px){
+  .simple-home #solutions::before,
+  .simple-home #pricing::before,
+  .simple-home #ai-receptionist::before{left:24px}
+  .marketing.calvren-flow-enabled .calvren-flow-item:not(.calvren-flow-visible){
+    transform:translate3d(0,19px,0);
+    filter:none;
+  }
+  .marketing.calvren-flow-enabled .calvren-flow-item[data-flow-kind="card"]:not(.calvren-flow-visible){
+    transform:translate3d(0,24px,0);
+  }
+  .marketing.calvren-flow-enabled .calvren-flow-item[data-flow-kind="photo"]:not(.calvren-flow-visible){
+    transform:translate3d(0,12px,0);
+  }
+}
+@media(max-width:600px){
+  .simple-home #solutions::before,
+  .simple-home #pricing::before,
+  .simple-home #ai-receptionist::before{left:22px}
+  .marketing.calvren-flow-enabled .calvren-flow-item{transition-duration:620ms,670ms,620ms,760ms}
+}
+/* Accessibility: never hide content from users who prefer minimal motion. */
+@media(prefers-reduced-motion:reduce),(prefers-reduced-data:reduce){
+  .marketing .calvren-flow-item{
+    opacity:1!important;transform:none!important;filter:none!important;
+    clip-path:none!important;transition:none!important;animation:none!important;
+  }
+  .marketing .calvren-reading-line{display:none!important}
+  .marketing main .section-heading h2.calvren-flow-item::after{transition:none!important;transform:none!important}
+  html{scroll-behavior:auto!important}
+}
