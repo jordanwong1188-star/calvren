@@ -40,7 +40,14 @@ test("solutions styling stays scoped, responsive and keyboard accessible",()=>{
   for(const width of ["940px","700px","390px"])
     assert.ok(styles.includes("@media(max-width:"+width+")"),"No responsive rules for "+width);
   assert.ok(styles.includes("grid-template-columns:1fr"),"Mobile should use one column");
-  assert.ok(homepage.includes('class="solution-icon" aria-hidden="true"'),"Decorative icons should not be announced");
+  assert.equal((homepage.match(/<figure class="solution-photo">/g)||[]).length,3,"Every solution card needs a real photo");
+  assert.equal((homepage.match(/loading="lazy" decoding="async"/g)||[]).length>=3,true,"Photographs must load lazily");
+  assert.ok(!homepage.includes('class="solution-icon"'),"Remove decorative solution pictograms");
+  for(const source of ["photo-1753162657634-454a046ea091","photo-1770013413878-2530e2c3d82b","photo-1762341117875-03dcc0997c96"])
+    assert.ok(homepage.includes(source),"Missing sourced photograph: "+source);
+  const receptionist=read("public/ai-receptionist.html");
+  assert.ok(receptionist.includes("receptionist-workplace-photo"),"Receptionist page needs a human workplace photo");
+  assert.ok(receptionist.includes("photo-1663767117072-a97deef95956"),"Receptionist photo must use the sourced image");
   assert.ok(styles.includes("min-width:0"),"Cards must shrink without horizontal overflow");
   assert.ok(styles.includes("prefers-reduced-motion"),"Reduced motion preference should be preserved");
   assert.ok(homepage.includes("Request my free audit"),"Prominent CTA text is missing");
