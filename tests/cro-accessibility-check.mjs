@@ -21,6 +21,21 @@ try {
   assert.equal(await page.locator('#project-form button[type="submit"]').evaluate(el => getComputedStyle(el).backgroundColor), "rgb(173, 70, 31)");
   console.log("CALVREN_CRO_JOURNEY_PASSED: distinct audit CTA, direct visible form and cookie-free source attribution.");
 
+  // A campaign arriving on the homepage must retain its source on the audit
+  // form without setting cookies or storing a marketing identifier.
+  await page.goto(base + "/?utm_source=linkedin&utm_medium=social&utm_campaign=nov-outreach", {waitUntil:"networkidle"});
+  const campaignCta=page.getByRole("link",{name:"Request a free audit"});
+  const campaignUrl=new URL(await campaignCta.getAttribute("href"),base);
+  assert.equal(campaignUrl.searchParams.get("utm_source"),"linkedin");
+  assert.equal(campaignUrl.searchParams.get("utm_medium"),"social");
+  assert.equal(campaignUrl.searchParams.get("utm_campaign"),"nov-outreach");
+  await campaignCta.click();
+  await page.waitForURL(url=>url.pathname.includes("contact")&&url.searchParams.get("utm_source")==="linkedin");
+  for(const [key,value] of Object.entries({utm_source:"linkedin",utm_medium:"social",utm_campaign:"nov-outreach"})){
+    assert.equal(await page.locator('#project-form [name="'+key+'"]').inputValue(),value);
+  }
+  console.log("CALVREN_CAMPAIGN_ATTRIBUTION_PASSED: LinkedIn UTM attribution preserved through homepage CTA.");
+
   for (const path of ["/", "/contact.html"]) {
     await page.goto(base + path, { waitUntil: "networkidle" });
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
