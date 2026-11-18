@@ -38,57 +38,51 @@
 /* Custom-quote pricing is a descriptive label, not a numeric amount. */
 .receptionist-money.is-custom-quote{font-size:clamp(30px,3.8vw,48px);letter-spacing:-1.4px;line-height:1.18}
 
-/* Real workplace image: credible context, no simulated product screens or robot art. */
-.receptionist-workplace-photo{margin:0 auto;padding-top:0;padding-bottom:0}
-.receptionist-photo-frame{
-  position:relative;
-  isolation:isolate;
-  overflow:hidden;
-  border-radius:14px;
-  background:#dfe8d9;
-  height:clamp(220px,30vw,375px);
+/* Text-led workday statement replaces the decorative workplace photo. */
+.receptionist-workday-note{
+  margin:0 auto;
+  padding-top:0;
+  padding-bottom:0;
 }
-.receptionist-photo-frame:after{
-  content:"";
-  position:absolute;
-  inset:20% 0 0;
-  pointer-events:none;
-  background:linear-gradient(0deg,rgba(12,39,28,.72),rgba(12,39,28,0));
+.receptionist-workday-note-inner{
+  display:grid;
+  grid-template-columns:minmax(0,1.3fr) minmax(0,.8fr);
+  align-items:end;
+  gap:clamp(26px,5vw,80px);
+  padding:clamp(32px,4vw,58px);
+  border:1px solid #d5dfd1;
+  border-radius:13px;
+  background:#e8eee3;
 }
-.receptionist-photo-frame img{
-  width:100%;
-  height:100%;
-  display:block;
-  object-fit:cover;
-  object-position:center 47%;
-}
-.receptionist-photo-caption{
-  position:absolute;
-  z-index:1;
-  bottom:clamp(22px,3vw,42px);
-  left:clamp(22px,3vw,42px);
-  right:24px;
-  max-width:570px;
-  color:#fffdf6;
-  text-shadow:0 1px 8px rgba(0,0,0,.15);
-}
-.receptionist-photo-caption span{
-  display:block;
-  margin-bottom:10px;
+.receptionist-workday-note .eyebrow{
   font-size:10px;
-  font-weight:700;
-  letter-spacing:1.5px;
+  color:#536a57;
+  margin:0 0 17px;
 }
-.receptionist-photo-caption strong{
-  display:block;
+.receptionist-workday-note h2{
   font-family:var(--serif);
   font-weight:400;
-  font-size:clamp(24px,3vw,40px);
-  letter-spacing:-.35px;
-  line-height:1.12;
+  font-size:clamp(30px,4vw,50px);
+  line-height:1.1;
+  letter-spacing:-1px;
+  max-width:620px;
+  margin:0;
 }
-@media(max-width:600px){
-  .receptionist-photo-frame{height:300px}
-  .receptionist-photo-frame img{object-position:54% center}
-  .receptionist-photo-caption strong{font-size:26px}
+.receptionist-workday-note h2 em{font-weight:400}
+.receptionist-workday-note-inner>p{
+  color:#4c6154;
+  line-height:1.85;
+  font-size:15px;
+  max-width:420px;
+  padding-left:21px;
+  border-left:2px solid #b5c9aa;
+}
+@media(max-width:760px){
+  .receptionist-workday-note-inner{
+    grid-template-columns:1fr;
+    align-items:start;
+    gap:24px;
+    padding:29px 24px;
+  }
+  .receptionist-workday-note-inner>p{max-width:none}
 }
