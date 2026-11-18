@@ -35,20 +35,21 @@ test("solutions provide a clear next action with consent-friendly audit link and
   assert.ok(homepage.includes('/solutions.css?v=20261118-scroll-journey'),"Load versioned design stylesheet");
 });
 
-test("solutions styling stays scoped, responsive and keyboard accessible",()=>{
-  assert.ok(styles.includes(".simple-home #solutions"),"Style only the homepage solutions");
+test("solutions retain a professional responsive layout without pictures",()=>{
+  assert.ok(styles.includes(".simple-home #solutions"),"Keep styles scoped to the marketing page");
   for(const width of ["940px","700px","390px"])
-    assert.ok(styles.includes("@media(max-width:"+width+")"),"No responsive rules for "+width);
-  assert.ok(styles.includes("grid-template-columns:1fr"),"Mobile should use one column");
-  assert.equal((homepage.match(/<figure class="solution-photo">/g)||[]).length,3,"Every solution card needs a real photo");
-  assert.equal((homepage.match(/loading="lazy" decoding="async"/g)||[]).length>=3,true,"Photographs must load lazily");
-  assert.ok(!homepage.includes('class="solution-icon"'),"Remove decorative solution pictograms");
-  for(const source of ["photo-1758876020967-e5a80e49463a","photo-1558965509-228052befa6b","photo-1771054243991-e7b2d194ac96"])
-    assert.ok(homepage.includes(source),"Missing sourced photograph: "+source);
-  const receptionist=read("public/ai-receptionist.html");
-  assert.ok(receptionist.includes("receptionist-workplace-photo"),"Receptionist page needs a human workplace photo");
-  assert.ok(receptionist.includes("photo-1714079761488-e0c9b9ac4138"),"Receptionist photo must use the sourced image");
+    assert.ok(styles.includes("@media(max-width:"+width+")"),"Missing breakpoint "+width);
+  assert.ok(styles.includes("grid-template-columns:1fr"),"Cards should stack on mobile");
+  const solution=homepage.match(/<section[^>]*id="solutions"[\\s\\S]*?<\\/section>/)?.[0]||"";
+  assert.equal((solution.match(/<article class="solution-card">/g)||[]).length,3);
+  assert.ok(!solution.includes("<img")&&!solution.includes("solution-photo"),"No photographs in Solutions");
+  assert.ok(!homepage.includes("images.unsplash.com"),"No external stock photos on homepage");
+  assert.ok(!homepage.includes('class="solution-icon"'),"Keep decorative pictograms removed");
+  assert.ok(styles.includes(".solution-card-top"),"Preserve card typography and structure");
   assert.ok(styles.includes("min-width:0"),"Cards must shrink without horizontal overflow");
-  assert.ok(styles.includes("prefers-reduced-motion"),"Reduced motion preference should be preserved");
-  assert.ok(homepage.includes("Request my free audit"),"Prominent CTA text is missing");
+  const receptionist=read("public/ai-receptionist.html");
+  assert.ok(!receptionist.includes("<img")&&!receptionist.includes("images.unsplash.com"));
+  assert.ok(receptionist.includes("receptionist-workday-note"),"Retain the editorial section without its photo");
+  assert.ok(styles.includes("prefers-reduced-motion"),"Respect reduced-motion preferences");
+  assert.ok(homepage.includes("Request my free audit"),"Retain primary conversion path");
 });
