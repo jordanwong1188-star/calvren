@@ -397,31 +397,32 @@ function receptionistFixture(){
   };
   return f;
 }
-test("receptionist checkout charges its own monthly and setup prices and requires setup acknowledgement",async()=>{
+test("receptionist checkout is quote-only and cannot create a Stripe session",async()=>{
   const f=receptionistFixture();
-  const unconfirmed=await handleBilling(f.req("checkout","POST",true,{body:JSON.stringify({plan:"receptionist"})}),f.deps);
-  assert.equal(unconfirmed.status,400);
-  assert.ok(!f.calls.some(c=>c.url.endsWith("/checkout/sessions")));
-  const response=await handleBilling(f.req("checkout","POST",true,{body:JSON.stringify({plan:"receptionist",accept_setup_terms:true})}),f.deps);
-  assert.equal(response.status,200);
-  const body=new URLSearchParams(f.calls.find(c=>c.url.endsWith("/checkout/sessions")).init.body);
-  assert.equal(body.get("line_items[0][price]"),"price_receptionist425");
-  assert.equal(body.get("line_items[1][price]"),"price_receptionistsetup515");
-  assert.equal(body.get("subscription_data[metadata][requested_plan]"),"receptionist");
-  assert.match(body.get("custom_text[submit][message]"),/CA\$940 today, then CA\$425\/month/);
+  for(const payload of [{plan:"receptionist"},{plan:"receptionist",accept_setup_terms:true}]){
+    const response=await handleBilling(f.req("checkout","POST",true,{body:JSON.stringify(payload)}),f.deps);
+    assert.equal(response.status,409);
+    const result=await response.json();
+    assert.equal(result.quote_url,"/contact.html?workflow=ai-receptionist#project-form");
+    assert.match(result.error,/custom quote/i);
+  }
+  assert.ok(!f.calls.some(c=>c.url.endsWith("/checkout/sessions")),
+    "Neither old account selections nor forged requests may open fixed receptionist checkout");
 });
-test("receptionist availability verifies both Stripe prices independently of existing plans",async()=>{
+test("public billing offers quote URL without exposing receptionist prices",async()=>{
   const f=receptionistFixture();
-  let body=await (await handleBilling(f.req("public"),f.deps)).json();
-  assert.equal(body.plans.receptionist.ready,true);
-  assert.equal(body.plans.receptionist.first_payment,94000);
-  const previous=f.deps.fetch;
-  f.deps.fetch=async(url,init)=>url.endsWith('/prices/price_receptionistsetup515')?Response.json({id:"price_receptionistsetup515",active:true,currency:"cad",unit_amount:34900}):previous(url,init);
-  body=await (await handleBilling(f.req("public"),f.deps)).json();
-  assert.equal(body.plans.receptionist.ready,false);
+  const response=await handleBilling(f.req("public"),f.deps);
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.ready,true);
   assert.equal(body.plans.starter.ready,true);
-  const response=await handleBilling(f.req("checkout","POST",true,{body:JSON.stringify({plan:"receptionist",accept_setup_terms:true})}),f.deps);
-  assert.equal(response.status,503);
+  assert.equal(body.plans.receptionist.checkout,"quote");
+  assert.equal(body.plans.receptionist.ready,false);
+  assert.equal(body.plans.receptionist.quote_url,"/contact.html?workflow=ai-receptionist#project-form");
+  for(const key of ["amount","setup_amount","first_payment"])
+    assert.equal(Object.hasOwn(body.plans.receptionist,key),false);
+  assert.ok(!f.calls.some(c=>c.url.endsWith("/prices/price_receptionist425")));
+  assert.ok(!f.calls.some(c=>c.url.endsWith("/prices/price_receptionistsetup515")));
 });
 test("verified receptionist payment grants setup entitlement without claiming voice activation",async()=>{
   const f=fixture({member:{auth_user_id:userId,stripe_customer_id:customerId,stripe_subscription_id:subId,stripe_price_id:"price_1UcywrQ9mewkKyl5NAYObAFI",subscription_status:"active",client_id:"business_fixture",welcome_email_sent_at:"2026-11-17"}});
