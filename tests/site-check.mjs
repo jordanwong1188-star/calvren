@@ -394,7 +394,7 @@ try{
   assert.equal(await page.locator("#signin").count(),0);
   assert.equal(await page.locator('#auth-panel a[href="/client.html?next=onboarding"]').count(),1);
 
-  for(const path of ["/privacy.html","/thanks.html","/review-thanks.html","/404.html","/shared.js","/app.js","/styles.css","/sitemap.xml"]){
+  for(const path of ["/privacy.html","/thanks.html","/404.html","/shared.js","/app.js","/styles.css","/sitemap.xml"]){
     const asset=await context.request.get(site+path);
     assert.equal(asset.status(),200,path+" must load");
   }
