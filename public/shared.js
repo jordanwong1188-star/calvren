@@ -108,7 +108,7 @@ const workflows={
   "real-estate":{industry:"Real estate",message:"I’d like help organising property enquiries and preparing replies for review."},
   "local-services":{industry:"Local services",message:"I’d like help organising quote requests and collecting the details needed before quoting."},
   professional:{industry:"Professional services",message:"I’d like help preparing client intake summaries and initial reply drafts."},
-  "ai-receptionist":{industry:"",message:"I’m interested in Calvren’s AI receptionist at CA$425/month plus CA$515 setup. Please confirm phone-provider compatibility and how it could work for my business."}
+  "ai-receptionist":{industry:"",message:"I would like a custom quote for Calvren’s AI receptionist. Please advise on monthly pricing, setup, included call usage, phone-provider compatibility and booking options for my business."}
 };
 if(enquiry&&Object.hasOwn(workflows,workflow)){
   enquiry.querySelector('[name="workflow"]').value=workflow;
