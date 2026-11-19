@@ -100,6 +100,8 @@ const secured=[
  {path:"/api/onboarding",method:"POST",body:'{"form":{}}'},
  {path:"/api/onboarding/approve",method:"POST",body:'{"approved":true}'},
  {path:"/api/onboarding/admin",method:"GET"},
+ {path:"/api/ops/summary",method:"GET"},
+ {path:"/api/internal/ops-health",method:"GET"},
  {path:"/api/internal/follow-ups",method:"POST"},
  {path:"/api/internal/hub-scheduler",method:"POST"},
  {path:"/api/internal/hub/integration",method:"POST",body:'{"enabled":true}'}
