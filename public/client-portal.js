@@ -66,10 +66,11 @@ function selectBillingPlan(plan){
     button.setAttribute("aria-pressed",String(button.dataset.selectPlan===plan));
   if($("billing-selected-tier"))$("billing-selected-tier").textContent=planLabels[plan]+" automation";
   if($("billing-price"))$("billing-price").textContent=money(planAmounts[plan],"cad")+" / month";
-  if($("billing-first-payment"))$("billing-first-payment").textContent=money(planAmounts[plan]+planSetupAmounts[plan],"cad")+" due initially";
+  if($("billing-setup-fee"))$("billing-setup-fee").textContent="One-time setup: "+money(planSetupAmounts[plan],"cad");
+  if($("billing-first-payment"))$("billing-first-payment").textContent=money(planAmounts[plan]+planSetupAmounts[plan],"cad")+" due initially (first month + setup)";
   if($("billing-price-note"))$("billing-price-note").textContent=planAvailability[plan]?
     "First payment includes "+money(planSetupAmounts[plan],"cad")+" one-time setup. Renewals charge the monthly plan only, before applicable taxes. Setup and activation require your approved onboarding scope.":
-    "Secure online checkout for this plan is temporarily unavailable. Please contact Calvren for assistance.";
+    "Checkout cannot be confirmed right now. The prices above are unchanged. Please contact Calvren before making a payment.";
   if($("billing-checkout"))$("billing-checkout").textContent="Continue with "+planLabels[plan]+" on Stripe ↗";
 }
 document.querySelectorAll("[data-select-plan]").forEach(button=>
