@@ -29,7 +29,7 @@ function renderStatus(data){
     card.append(textNode("span",label),textNode("strong",ready?yes:no));$("service-state").append(card);
   }
   $("setup-status").textContent=!data.persistentStorage
-    ?"Complete production storage setup before using the AI inbox for real client data. Older Netlify enquiries remain in Netlify; new website enquiries appear here after the hosting migration."
+    ?"Complete production storage setup before using the AI inbox for real client data. Earlier submissions may remain in legacy storage; current website enquiries are saved here first, with Formspree as a fallback."
     :!data.providerConfigured
     ?"Enquiries can be retained for review. Add the OpenAI API key and redeploy to enable draft preparation."
     :"Configuration is present. Verify a synthetic enquiry before processing real client data; provider billing and permissions still need to work.";
@@ -170,8 +170,8 @@ function renderLeads(){
     });
     action("Export record",async()=>{download("calvren-enquiry-"+lead.id+".json",lead);$("inbox-status").textContent="Record exported to this device.";});
     action("Delete permanently",async()=>{
-      if(!confirm("Permanently delete this enquiry from the AI inbox? Its original Netlify Forms submission is a separate copy and must be deleted there too when appropriate.")){$("inbox-status").textContent="Deletion cancelled.";return;}
-      await api("/api/leads/"+encodeURIComponent(lead.id),"DELETE");await loadLeads();$("inbox-status").textContent="Inbox record permanently deleted. Check Netlify Forms for any original submission.";
+      if(!confirm("Permanently delete this enquiry from the AI inbox? Check for a separate Formspree backup or legacy Netlify copy and delete it there too when appropriate.")){$("inbox-status").textContent="Deletion cancelled.";return;}
+      await api("/api/leads/"+encodeURIComponent(lead.id),"DELETE");await loadLeads();$("inbox-status").textContent="Inbox record permanently deleted. Check for any separate Formspree backup or legacy submission.";
     },"danger-button");
     card.append(actions);$("lead-list").append(card);
   }
@@ -211,6 +211,6 @@ $("lead-filter").addEventListener("change",renderLeads);
 $("sales-filter").addEventListener("change",renderLeads);
 $("export-leads").addEventListener("click",()=>{
   if(busy||!leads.length)return;download("calvren-enquiries-"+new Date().toISOString().slice(0,10)+".json",leads);
-  $("inbox-status").textContent=leads.length+" loaded records exported. This export does not include separate Netlify Forms submissions.";
+  $("inbox-status").textContent=leads.length+" loaded records exported. This export does not include Formspree backup or legacy Netlify submissions.";
 });
 window.addEventListener("pagehide",clearWorkspace);
