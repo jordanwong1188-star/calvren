@@ -288,7 +288,7 @@
     clock=new Date();lead=null;
     $("demo-config").value=JSON.stringify(client,null,2);
     $("demo-name").value=demoPresets[selectedPreset]?.name||"Alex Taylor";
-    $("demo-message").value=demoPresets[selectedPreset]?.message||"Hi, I would like to request an appointment.";
+    $("demo-message").value=demoPresets[selectedPreset]?.message||"Hi, my kitchen sink is leaking and I need someone to look at it.";
     $("demo-guide-text").textContent=demoPresets[selectedPreset]?.guide||"Answer each question in the simulated conversation.";
     document.querySelectorAll("[data-demo-preset]").forEach(button=>
       button.setAttribute("aria-pressed",String(button.dataset.demoPreset===selectedPreset)));
