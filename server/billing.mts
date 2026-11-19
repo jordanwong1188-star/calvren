@@ -65,15 +65,26 @@ const planForPrice=(env:Env,value:unknown):CalvrenPlan|null=>{
   return null;
 };
 const receptionistSetupId=(env:Env)=>liveMode(env)?"price_1UcywyQ9mewkKyl5btYpSECu":env("STRIPE_RECEPTIONIST_SETUP_PRICE_ID")?.trim()||"";
-const planSetupId=(env:Env,plan:CalvrenPlan)=>plan==="receptionist"?receptionistSetupId(env):setupPriceId(env);
-const planSetupAmount=(plan:CalvrenPlan)=>plan==="receptionist"?51500:34900;
+const LIVE_SETUP_PRICE_IDS={
+  starter:"price_1UdQNVQ9mewkKyl5QjHsrRmy",
+  growth:"price_1UdQNXQ9mewkKyl5kPyVsg0a",
+  pro:"price_1UdQNYQ9mewkKyl5nvhwA3D1"
+} as const;
+const planSetupId=(env:Env,plan:CalvrenPlan)=>{
+  if(plan==="receptionist")return receptionistSetupId(env);
+  if(liveMode(env))return LIVE_SETUP_PRICE_IDS[plan];
+  if(plan==="starter")return setupPriceId(env);
+  return env(plan==="growth"?"STRIPE_GROWTH_SETUP_PRICE_ID":"STRIPE_PRO_SETUP_PRICE_ID")?.trim()||"";
+};
+const planSetupAmount=(plan:CalvrenPlan)=>plan==="starter"?15000:plan==="growth"?20000:plan==="pro"?30000:51500;
 const validSetup=(price:ObjectRow,id:string,amount:number)=>price?.id===id&&price.active===true&&!price.recurring&&price.currency==="cad"&&price.unit_amount===amount;
 const validPrice=(price:ObjectRow,id:string,amount:number)=>price?.id===id&&price.active===true
   &&price.currency==="cad"&&price.unit_amount===amount
   &&price.recurring?.interval==="month"&&(price.recurring?.interval_count||1)===1;
 
 const webhookReady=(env:Env)=>/^whsec_[a-zA-Z0-9]+$/.test(env("STRIPE_WEBHOOK_SECRET")||"");
-const billingReady=(env:Env)=>validKey(stripeKey(env))&&(liveMode(env)||stripeId(priceId(env),"price"))&&stripeId(setupPriceId(env),"price")&&webhookReady(env);
+const billingReady=(env:Env)=>validKey(stripeKey(env))&&webhookReady(env)&&
+  (liveMode(env)||(stripeId(priceId(env),"price")&&stripeId(setupPriceId(env),"price")));
 const dbConfig=(env:Env)=>{
   const url=env("SUPABASE_URL"),key=env("SUPABASE_SECRET_KEY")||env("SUPABASE_SERVICE_ROLE_KEY");
   if(!url||!key||!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url))throw Error("Billing database unavailable.");
@@ -143,31 +154,35 @@ const paid=(m:ObjectRow|null)=>!!m&&["active","trialing"].includes(m.subscriptio
   &&(!m.current_period_end||new Date(m.current_period_end).getTime()>Date.now());
 async function publicConfig(deps:BillingDependencies){
   const visible={
-    starter:{label:"Starter",amount:27500,ready:false,checkout:"subscription"},
-    growth:{label:"Growth",amount:49900,ready:false,checkout:"subscription"},
-    pro:{label:"Pro",amount:77500,ready:false,checkout:"subscription"},
+    starter:{label:"Starter",amount:27500,setup_amount:15000,first_payment:42500,ready:false,checkout:"subscription"},
+    growth:{label:"Growth",amount:49900,setup_amount:20000,first_payment:69900,ready:false,checkout:"subscription"},
+    pro:{label:"Pro",amount:77500,setup_amount:30000,first_payment:107500,ready:false,checkout:"subscription"},
     receptionist:{label:"AI Receptionist",ready:false,checkout:"quote",quote_url:"/contact.html?workflow=ai-receptionist#project-form"}
   };
   if(!billingReady(deps.env))return json({ready:false,plans:visible,message:"Subscription checkout is being configured."});
   try{
-    const setup=await stripe(deps,"prices/"+encodeURIComponent(setupPriceId(deps.env)));
-    if(setup.id!==setupPriceId(deps.env)||!setup.active||setup.recurring||setup.unit_amount!==34900||setup.currency!=="cad")
-      return json({ready:false,plans:visible,message:"Setup price requires configuration."});
     const starterId=configuredPrice(deps.env,"starter");
-    const starter=await stripe(deps,"prices/"+encodeURIComponent(starterId));
-    if(!validPrice(starter,starterId,27500))
-      return json({ready:false,plans:visible,message:"Starter price requires configuration."});
+    const starterSetupId=planSetupId(deps.env,"starter");
+    const [starter,starterSetup]=await Promise.all([
+      stripe(deps,"prices/"+encodeURIComponent(starterId)),
+      stripe(deps,"prices/"+encodeURIComponent(starterSetupId))
+    ]);
+    if(!validPrice(starter,starterId,27500)||!validSetup(starterSetup,starterSetupId,15000))
+      return json({ready:false,plans:visible,message:"Starter pricing requires configuration."});
     visible.starter.ready=true;
     for(const plan of ["growth","pro"] as const){
-      const id=configuredPrice(deps.env,plan);
-      if(!stripeId(id,"price")||id===starterId)continue;
+      const id=configuredPrice(deps.env,plan),setupId=planSetupId(deps.env,plan);
+      if(!stripeId(id,"price")||id===starterId||!stripeId(setupId,"price"))continue;
       try{
-        const price=await stripe(deps,"prices/"+encodeURIComponent(id));
-        visible[plan].ready=validPrice(price,id,plans[plan].monthly);
+        const [price,setup]=await Promise.all([
+          stripe(deps,"prices/"+encodeURIComponent(id)),
+          stripe(deps,"prices/"+encodeURIComponent(setupId))
+        ]);
+        visible[plan].ready=validPrice(price,id,plans[plan].monthly)&&validSetup(setup,setupId,planSetupAmount(plan));
       }catch{visible[plan].ready=false;}
     }
-    return json({ready:true,amount:starter.unit_amount,setup_amount:setup.unit_amount,
-      first_payment:starter.unit_amount+setup.unit_amount,currency:"cad",
+    return json({ready:true,amount:starter.unit_amount,setup_amount:starterSetup.unit_amount,
+      first_payment:starter.unit_amount+starterSetup.unit_amount,currency:"cad",
       interval:"month",interval_count:1,test_mode:testMode(deps.env),plans:visible});
   }catch{return json({ready:false,plans:visible,message:"Subscription pricing is unavailable."});}
 }
