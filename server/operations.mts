@@ -21,6 +21,17 @@ export async function readOperations(env:Env,fetcher:typeof fetch=fetch){
  }
  result.checked_at=typeof parsed.checked_at==="string"&&Number.isFinite(Date.parse(parsed.checked_at))?parsed.checked_at:new Date().toISOString();
  result.oldest_unresolved_delivery=typeof parsed.oldest_unresolved_delivery==="string"&&Number.isFinite(Date.parse(parsed.oldest_unresolved_delivery))?parsed.oldest_unresolved_delivery:null;
+ const dates=["followups_last_attempt_at","followups_last_success_at","hub_last_attempt_at","hub_last_success_at"] as const;
+ for(const key of dates)result[key]=typeof parsed[key]==="string"&&Number.isFinite(Date.parse(parsed[key] as string))?parsed[key]:null;
+ for(const key of ["followups_last_processed","hub_last_processed"] as const)
+   result[key]=typeof parsed[key]==="number"&&Number.isSafeInteger(parsed[key])?parsed[key]:null;
+ for(const key of ["followups_last_outcome","hub_last_outcome"] as const)
+   result[key]=parsed[key]==="succeeded"||parsed[key]==="failed"?parsed[key]:null;
+ const recent=(date:unknown,minutes:number)=>typeof date==="string"&&Date.now()-Date.parse(date)>=0&&Date.now()-Date.parse(date)<minutes*60000;
+ result.followups_health=parsed.followups_last_outcome==="failed"?"failed":
+   recent(result.followups_last_success_at,20)?"recent":"unverified_or_overdue";
+ result.hub_health=parsed.hub_last_outcome==="failed"?"failed":
+   recent(result.hub_last_success_at,30*60)?"recent":"unverified_or_overdue";
  result.delivery_alert=Number(result.failed_deliveries_7d)+Number(result.unknown_deliveries_7d)>0;
  return result;
 }

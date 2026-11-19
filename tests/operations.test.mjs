@@ -15,11 +15,14 @@ test("operational report returns only aggregate counts",async()=>{
     return Response.json({active_linked_clients:2,failed_deliveries_7d:1,unknown_deliveries_7d:0,
       human_handoffs_pending:3,onboarding_needs_details:1,onboarding_in_progress:4,
       checked_at:"2026-11-19T00:00:00Z",oldest_unresolved_delivery:"2026-11-18T14:00:00Z",
+    followups_last_success_at:new Date().toISOString(),followups_last_outcome:"succeeded",followups_last_processed:0,
+    hub_last_success_at:new Date().toISOString(),hub_last_outcome:"succeeded",hub_last_processed:0,
       customer_email:"private@example.com",message:"customer private message"});
   }});
   assert.equal(response.status,200);
   const report=await response.json();
   assert.equal(report.delivery_alert,true);assert.equal(report.human_handoffs_pending,3);
+  assert.equal(report.followups_health,"recent");assert.equal(report.hub_health,"recent");
   assert.equal(JSON.stringify(report).includes("private@example.com"),false);
   assert.equal(JSON.stringify(report).includes("customer private message"),false);
 });

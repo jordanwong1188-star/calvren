@@ -9,6 +9,7 @@ import { handleDemoSignup, handleDemoUnsubscribe } from "./demo-access.mjs";
 import { handleBilling } from "./billing.mjs";
 import { handleSiteMetrics } from "./site-metrics.mjs";
 import { handleOperations } from "./operations.mjs";
+import { runScheduled } from "./cron-heartbeat.mjs";
 import { handleOnboarding } from "./onboarding.mjs";
 import {processAutomationCron,unsubscribeReview,configureProIntegration,entitledGrowthClients,verifyNativeCron} from "./automation-hub.mjs";
 export interface ServerOptions { env(name:string):string|undefined; ip?:string; }
@@ -30,13 +31,15 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
     // Paths are fixed here; a visitor cannot supply an upstream destination.
     const routed=new Request(origin+path+original.search,request);
     const deps=createConversionDependencies({env,production:true,ip:options.ip});
-    if(path==="/health"&&request.method==="GET")return json({ok:true,service:"calvren",hosting:"supabase"});
+    if((path==="/health"||path==="/api/health")&&request.method==="GET")return json({ok:true,service:"calvren",hosting:"supabase"});
     if(path==="/api/internal/follow-ups"){
       if(request.method!=="POST")return json({error:"Use POST."},405);
       if(!await cronAuthorized(request,env,"follow-ups"))return json({error:"Scheduler authentication required."},401);
       if(!deps.repository||!deps.readiness().admin)return json({error:"Operator setup is incomplete."},503);
-      const eligibleClients=await entitledGrowthClients(env);
-      return json({ok:true,...await deps.engine().followUps(1,eligibleClients)});
+      return runScheduled("follow-ups",env,async()=>{
+        const eligibleClients=await entitledGrowthClients(env);
+        return await deps.engine().followUps(1,eligibleClients);
+      });
     }
     if(path==="/api/billing/hub/unsubscribe")return unsubscribeReview(routed,env);
     if(path==="/api/internal/hub/integration")return configureProIntegration(routed,env);
@@ -44,7 +47,7 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
       if(request.method!=="POST")return json({error:"Use POST."},405);
       if(!await cronAuthorized(request,env,"hub-scheduler"))
         return json({error:"Scheduler authentication required."},401);
-      return json({ok:true,...await processAutomationCron(env)});
+      return runScheduled("hub-scheduler",env,async()=>await processAutomationCron(env));
     }
     if(path==="/api/internal/ops-health"){
       if(!await cronAuthorized(request,env,"hub-scheduler"))

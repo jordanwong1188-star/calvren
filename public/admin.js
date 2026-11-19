@@ -66,6 +66,20 @@ async function loadOperations(){
    item.append(textNode("strong",Number(summary[key]||0).toLocaleString()),textNode("span",label));
    target.append(item);
  }
+ const schedulerText=(label,health,last,frequency,done)=>{
+   if(health==="failed")return label+": last execution failed; check Supabase jobs.";
+   if(health==="recent")return label+": last successful backend run "+new Date(last).toLocaleString()+
+     " (processed "+Number(done||0)+").";
+   return label+": no recent successful backend execution has been verified ("+frequency+").";
+ };
+ const runs=[
+   schedulerText("Lead follow-ups",summary.followups_health,summary.followups_last_success_at,
+      "expected every 5 min",summary.followups_last_processed),
+   schedulerText("Growth / Pro jobs",summary.hub_health,summary.hub_last_success_at,
+      "expected daily",summary.hub_last_processed)
+ ];
+ const existing=$("operations-scheduler");
+ if(existing){existing.replaceChildren(...runs.map(line=>textNode("p",line,"admin-note")));}
  $("operations-status").textContent=summary.delivery_alert
    ?"Delivery warning: at least one failed or uncertain send needs manual investigation. Open the operator workspace; do not resend blindly."
    :"No failed or uncertain sends recorded in the last seven days. This does not verify every third-party provider.";

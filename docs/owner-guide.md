@@ -12,14 +12,16 @@ GitHub repository: jordanwong1188-star/calvren
 - Stripe: Starter C$275, Growth C$499, Pro C$775 per month, with C$349 one-time setup (before applicable tax).
 - Formspree: backup receipt path when Calvren intake is unavailable, and browser no-JavaScript fallback.
 - Resend: acknowledgement and owner notification only when verified sender credentials are configured.
-- GitHub Actions: code checks, deployment, scheduled follow-ups and operational alerts.
+- Supabase pg_cron + signed Edge Function dispatch: automatic five-minute follow-ups and daily Growth/Pro work. Actual backend runs are recorded privately.
+- GitHub Actions: code checks, deployment, public backend availability monitoring, and optional manual fallback runs. Duplicate scheduled customer-sending jobs were disabled.
 
 ## Daily owner routine
 1. Use /admin.html with the separate CALVREN_ADMIN_TOKEN. Review new enquiries and callbacks due.
 2. Review the service operations counts. A failed/unknown send is not safe to retry automatically. Investigate in /operator.html and the provider.
 3. Check Formspree backup receipts after backend outages and reconcile genuine submissions into the private inbox with permission.
-4. Check failed GitHub Actions deployment and operations-health workflows. Configure GitHub Actions notifications if desired, and verify the CALVREN_CRON_TOKEN secret exists in GitHub and Supabase.
-5. Check Stripe exceptions and provider usage privately. Avoid publishing payment data, API keys or client records in code and logs.
+4. Open the owner operations panel to see the last *actual* follow-up and Growth/Pro runs. Supabase's native scheduler is the source of truth. GitHub's two customer-sending workflows are manual fallbacks; they require CALVREN_CRON_TOKEN to be configured before manual use.
+5. Check scheduled GitHub public API monitoring and make sure Actions failure notifications are enabled. Private delivery checks in GitHub require the optional secret; without it, the job reports only public reachability.
+6. Check Stripe exceptions and provider usage privately. Avoid publishing payment data, API keys or client records in code and logs.
 
 ## Customer activation
 1. Customer creates an account and pays securely using Stripe. A success redirect alone is not payment proof.

@@ -89,6 +89,9 @@ assert.equal(config.plans.receptionist.ready,false,"Receptionist cannot offer fi
 for(const key of ["amount","setup_amount","first_payment"])
   assert.equal(Object.hasOwn(config.plans.receptionist,key),false,"Do not expose fixed receptionist "+key);
 console.log("LIVE_STRIPE_PRICES_CORRECT",origin.hostname,JSON.stringify(Object.fromEntries(["starter","growth","pro"].map(p=>[p,config.plans[p].amount]))));
+const health=await request("/api/health");
+assert.equal(health.status,200,"Background API health should be reachable without credentials");
+assert.equal((await health.json()).ok,true);
 const secured=[
  {path:"/api/billing/me",method:"GET"},
  {path:"/api/billing/checkout",method:"POST",body:'{"plan":"pro"}'},
