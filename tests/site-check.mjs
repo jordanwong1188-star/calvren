@@ -252,11 +252,12 @@ try{
   assert.equal(checkoutRequests,1,"The dashboard must open Stripe Checkout without a payment/dashboard loop");
   // All three verified plans must be selectable, display the correct first payment
   // (including the plan-specific one-time setup), and send the selected plan to the server.
-  for(const [plan,monthly,initial] of [["growth","499","699"],["pro","775","1075"],["starter","275","425"]]){
+  for(const [plan,monthly,setup,initial] of [["growth","499","200","699"],["pro","775","300","1075"],["starter","275","150","425"]]){
     await unpaidPage.goto(site+"/payment.html?plan="+plan,{waitUntil:"domcontentloaded"});
     await unpaidPage.locator("#billing-checkout").waitFor({state:"visible"});
     assert.equal(await unpaidPage.locator('[data-select-plan="'+plan+'"]').getAttribute("aria-pressed"),"true");
     assert.match(await unpaidPage.locator("#billing-price").textContent(),new RegExp(monthly));
+    assert.match(await unpaidPage.locator("#billing-setup-fee").textContent(),new RegExp(setup));
     assert.match((await unpaidPage.locator("#billing-first-payment").textContent()).replaceAll(",",""),new RegExp(initial));
     assert.equal(await unpaidPage.locator("#billing-checkout").isEnabled(),true,plan+" checkout should be enabled");
     await unpaidPage.locator("#billing-checkout").click();
@@ -271,8 +272,8 @@ try{
   }));
   await unpaidPage.goto(site+"/payment.html",{waitUntil:"domcontentloaded"});
   await unpaidPage.waitForFunction(()=>
-    document.getElementById("billing-price-note")?.textContent.includes("temporarily unavailable"));
-  assert.match(await unpaidPage.locator("#billing-price-note").textContent(),/temporarily unavailable/);
+    document.getElementById("billing-price-note")?.textContent.includes("cannot be confirmed"));
+  assert.match(await unpaidPage.locator("#billing-price-note").textContent(),/cannot be confirmed/);
   assert.doesNotMatch(await unpaidPage.locator("#billing-first-payment").textContent(),/not yet active/i);
   assert.equal(await unpaidPage.locator("#billing-checkout").isDisabled(),true);
   await unpaidContext.close();
