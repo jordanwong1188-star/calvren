@@ -54,7 +54,8 @@ if(new URLSearchParams(location.search).get("plan")==="receptionist")location.re
 let selectedPlan=["starter","growth","pro"].includes(chosen)?chosen:"starter";
 let planAvailability={starter:false,growth:false,pro:false};
 const planLabels={starter:"Starter",growth:"Growth",pro:"Pro"};
-const planAmounts={starter:27500,growth:49900,pro:77500};
+let planAmounts={starter:27500,growth:49900,pro:77500};
+let planSetupAmounts={starter:15000,growth:20000,pro:30000};
 function selectBillingPlan(plan){
   if(!Object.hasOwn(planLabels,plan))return;
   selectedPlan=plan;
@@ -65,9 +66,9 @@ function selectBillingPlan(plan){
     button.setAttribute("aria-pressed",String(button.dataset.selectPlan===plan));
   if($("billing-selected-tier"))$("billing-selected-tier").textContent=planLabels[plan]+" automation";
   if($("billing-price"))$("billing-price").textContent=money(planAmounts[plan],"cad")+" / month";
-  if($("billing-first-payment"))$("billing-first-payment").textContent=money(planAmounts[plan]+34900,"cad")+" due initially";
+  if($("billing-first-payment"))$("billing-first-payment").textContent=money(planAmounts[plan]+planSetupAmounts[plan],"cad")+" due initially";
   if($("billing-price-note"))$("billing-price-note").textContent=planAvailability[plan]?
-    "First payment includes CA$349 one-time setup. Renewals charge the monthly plan only, before applicable taxes. Setup and activation require your approved onboarding scope.":
+    "First payment includes "+money(planSetupAmounts[plan],"cad")+" one-time setup. Renewals charge the monthly plan only, before applicable taxes. Setup and activation require your approved onboarding scope.":
     "Secure online checkout for this plan is temporarily unavailable. Please contact Calvren for assistance.";
   if($("billing-checkout"))$("billing-checkout").textContent="Continue with "+planLabels[plan]+" on Stripe ↗";
 }
@@ -447,6 +448,11 @@ async function init(){
     try{
       const response=await fetch("/api/billing/public",{headers:{"Accept":"application/json"}});
       const data=await response.json();
+      for(const plan of Object.keys(planLabels)){
+        const serverPlan=data.plans?.[plan];
+        if(Number.isInteger(serverPlan?.amount)&&serverPlan.amount>0)planAmounts[plan]=serverPlan.amount;
+        if(Number.isInteger(serverPlan?.setup_amount)&&serverPlan.setup_amount>=0)planSetupAmounts[plan]=serverPlan.setup_amount;
+      }
       ready=response.ok&&!!data.ready;
       planAvailability={
         starter:ready&&!!data.plans?.starter?.ready,
