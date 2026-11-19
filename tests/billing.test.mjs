@@ -22,7 +22,9 @@ const userId="5aafe427-dffc-429c-8a9b-1347f6b2ee4e";
 const secret="whsec_webhooktest1234",priceId="price_123abc",subId="sub_123abc",customerId="cus_123abc";
 const env=name=>({
   STRIPE_SECRET_KEY:"sk_test_fixture1234",STRIPE_WEBHOOK_SECRET:secret,
-  STRIPE_PRICE_ID:priceId,STRIPE_SETUP_PRICE_ID:"price_setup123",SUPABASE_URL:"https://fixture.supabase.co",
+  STRIPE_PRICE_ID:priceId,STRIPE_SETUP_PRICE_ID:"price_setup123",
+  STRIPE_GROWTH_SETUP_PRICE_ID:"price_growth_setup123",STRIPE_PRO_SETUP_PRICE_ID:"price_pro_setup123",
+  SUPABASE_URL:"https://fixture.supabase.co",
   SUPABASE_SECRET_KEY:"sb_secret_example",CALVREN_PUBLIC_URL:"https://calvren.pages.dev"
 }[name]);
 function fixture({member=null,clientId=null,subscriptionPrice=priceId}={}){
@@ -37,7 +39,12 @@ function fixture({member=null,clientId=null,subscriptionPrice=priceId}={}){
     }
     if(url.includes("/rest/v1/calvren_leads"))return Response.json([
       {data:{id:"1",status:"qualified",created_at:"2026-10-13T00:00:00Z"}}]);
-    if(url.endsWith("/v1/prices/price_setup123"))return Response.json({id:"price_setup123",active:true,unit_amount:34900,currency:"cad",recurring:null});
+    if(url.endsWith("/v1/prices/price_setup123"))return Response.json({id:"price_setup123",active:true,unit_amount:15000,currency:"cad",recurring:null});
+    if(url.endsWith("/v1/prices/price_growth_setup123"))return Response.json({id:"price_growth_setup123",active:true,unit_amount:20000,currency:"cad",recurring:null});
+    if(url.endsWith("/v1/prices/price_pro_setup123"))return Response.json({id:"price_pro_setup123",active:true,unit_amount:30000,currency:"cad",recurring:null});
+    if(url.endsWith("/v1/prices/price_1UdQNVQ9mewkKyl5QjHsrRmy"))return Response.json({id:"price_1UdQNVQ9mewkKyl5QjHsrRmy",active:true,unit_amount:15000,currency:"cad",recurring:null});
+    if(url.endsWith("/v1/prices/price_1UdQNXQ9mewkKyl5kPyVsg0a"))return Response.json({id:"price_1UdQNXQ9mewkKyl5kPyVsg0a",active:true,unit_amount:20000,currency:"cad",recurring:null});
+    if(url.endsWith("/v1/prices/price_1UdQNYQ9mewkKyl5nvhwA3D1"))return Response.json({id:"price_1UdQNYQ9mewkKyl5nvhwA3D1",active:true,unit_amount:30000,currency:"cad",recurring:null});
     if(url.endsWith("/v1/prices/"+priceId))return Response.json({id:priceId,active:true,unit_amount:27500,
       currency:"cad",recurring:{interval:"month",interval_count:1}});
     if(url.endsWith("/v1/prices/price_growth123"))return Response.json({id:"price_growth123",active:true,unit_amount:49900,
@@ -80,7 +87,7 @@ test("billing public price only comes from configured Stripe price",async()=>{
   const value=await response.json();
   assert.equal(value.ready,true);
   assert.equal(value.amount,27500);
-  assert.equal(value.first_payment,62400);
+  assert.equal(value.first_payment,42500);
   assert.equal(value.plans.starter.ready,true);
   assert.equal(value.plans.growth.ready,false);
   assert.equal(value.plans.pro.checkout,"subscription");
@@ -294,15 +301,20 @@ test("monthly reporting is paywalled, plan-gated and scoped to the linked busine
 test("configured Growth and Pro both create secure, correctly priced Stripe Checkout Sessions",async()=>{
   const f=fixture();
   f.deps.env=name=>({
-    STRIPE_GROWTH_PRICE_ID:"price_growth123",STRIPE_PRO_PRICE_ID:"price_pro123"
+    STRIPE_GROWTH_PRICE_ID:"price_growth123",STRIPE_PRO_PRICE_ID:"price_pro123",
+      STRIPE_GROWTH_SETUP_PRICE_ID:"price_growth_setup123",STRIPE_PRO_SETUP_PRICE_ID:"price_pro_setup123"
   }[name]||env(name));
   const pub=await (await handleBilling(f.req("public"),f.deps)).json();
   assert.equal(pub.plans.starter.ready,true);
   assert.equal(pub.plans.growth.ready,true);
   assert.equal(pub.plans.pro.ready,true);
   assert.equal(pub.plans.growth.amount,49900);
+  assert.equal(pub.plans.growth.setup_amount,20000);
+  assert.equal(pub.plans.growth.first_payment,69900);
   assert.equal(pub.plans.pro.amount,77500);
-  for(const [plan,expectedPrice] of [["growth","price_growth123"],["pro","price_pro123"]]){
+  assert.equal(pub.plans.pro.setup_amount,30000);
+  assert.equal(pub.plans.pro.first_payment,107500);
+  for(const [plan,expectedPrice,expectedSetup] of [["growth","price_growth123","price_growth_setup123"],["pro","price_pro123","price_pro_setup123"]]){
     const response=await handleBilling(f.req("checkout","POST",true,{
       body:JSON.stringify({plan}),headers:{"Content-Type":"application/json"}
     }),f.deps);
@@ -310,7 +322,7 @@ test("configured Growth and Pro both create secure, correctly priced Stripe Chec
     const sent=f.calls.filter(call=>call.url.endsWith("/v1/checkout/sessions")).at(-1);
     const params=new URLSearchParams(sent.init.body);
     assert.equal(params.get("line_items[0][price]"),expectedPrice);
-    assert.equal(params.get("line_items[1][price]"),"price_setup123");
+    assert.equal(params.get("line_items[1][price]"),expectedSetup);
     assert.equal(params.get("subscription_data[metadata][requested_plan]"),plan);
     assert.equal(params.get("cancel_url"),"https://calvren.ca/payment?plan="+plan+"&checkout=canceled");
   }
@@ -319,7 +331,8 @@ test("signed subscription webhooks recognize Growth and Pro from the actual Stri
   for(const [plan,matchedPrice] of [["growth","price_growth123"],["pro","price_pro123"]]){
     const f=fixture({subscriptionPrice:matchedPrice});
     f.deps.env=name=>({
-      STRIPE_GROWTH_PRICE_ID:"price_growth123",STRIPE_PRO_PRICE_ID:"price_pro123"
+      STRIPE_GROWTH_PRICE_ID:"price_growth123",STRIPE_PRO_PRICE_ID:"price_pro123",
+      STRIPE_GROWTH_SETUP_PRICE_ID:"price_growth_setup123",STRIPE_PRO_SETUP_PRICE_ID:"price_pro_setup123"
     }[name]||env(name));
     const event={id:"evt_"+plan,livemode:false,type:"checkout.session.completed",
       data:{object:{mode:"subscription",payment_status:"paid",subscription:subId,client_reference_id:userId}}};
