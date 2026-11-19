@@ -19,7 +19,8 @@ test("calvren.ca is the canonical public domain throughout public SEO pages", as
 test("Public demo and operator workspace stay separate, and demo JS revalidates on new deploys", async () => {
   const homepage = await read("public/index.html");
   assert.ok(!homepage.includes("/operator.html"), "Never link the private operator workspace on the public homepage.");
-  assert.match(homepage, /data-demo-access href="\/try-demo\.html"/);
+  assert.match(homepage, /href="\/lead-demo\.html"/);
+  assert.ok(!homepage.includes("data-demo-access"), "Demo should open directly without an email gate.");
   const headers = await read("public/_headers");
   for (const rule of ["/conversion/*", "/lead-demo.js", "/demo-access.js"]) {
     assert.ok(headers.includes(rule + "\n  Cache-Control: no-cache, must-revalidate"), "Missing fresh asset policy for " + rule);

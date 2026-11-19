@@ -26,7 +26,7 @@ test("solutions provide a clear next action with consent-friendly audit link and
   const section=homepage.match(/<section[^>]*id="solutions"[\s\S]*?<\/section>/)?.[0]||"";
   assert.ok(section.includes('href="/contact.html?cta=solutions#project-form"'),"Audit should go to existing real contact form");
   assert.ok(section.includes('data-cta="audit-solutions"'));
-  assert.ok(section.includes('href="/try-demo.html"'));
+  assert.ok(section.includes('href="/lead-demo.html"'), "Demo link should open the example directly.");
   assert.ok(section.includes("No payment or obligation."));
   const shared=read("public/shared.js");
   assert.ok(shared.includes('"solutions"'),"New CTA source must be kept in allowed attribution values");
