@@ -24,13 +24,14 @@ test("AI receptionist is quote-only and never advertises the retired checkout",(
     assert.ok((page+" "+home).toLowerCase().includes(marker.toLowerCase()),"Missing "+marker);
   }
   for(const content of [page,home,billing,portal]){
-    for(const hidden of ["CA$425","CA$515","CA$940","/payment?plan=receptionist"]){
+    for(const hidden of ["CA$515","CA$940","/payment?plan=receptionist"]){
       assert.ok(!content.includes(hidden),"Old public price or checkout remains: "+hidden);
     }
   }
+  assert.ok(!page.includes("CA$425/month"),"Receptionist must be custom-quoted");
   assert.ok(!billing.includes('data-select-plan="receptionist"'));
   assert.ok(billing.includes("Get a custom AI Receptionist quote"));
-  for(const existing of ["CA$275","CA$499","CA$775","CA$349"])
+  for(const existing of ["CA$275","CA$499","CA$775","CA$150","CA$200","CA$300"])
     assert.ok(home.includes(existing),"Preserve existing pricing "+existing);
   assert.equal((home.match(/class="calvren-tier(?: |")/g)||[]).length,3,"Keep exactly three standard subscriptions");
 });
