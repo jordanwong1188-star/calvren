@@ -50,3 +50,15 @@
   Cache-Control: no-cache, must-revalidate
 /motion.js
   Cache-Control: no-cache, must-revalidate
+
+# Revalidate pricing and auth views on every visit to prevent obsolete fees.
+/
+  Cache-Control: no-cache, must-revalidate
+/payment
+  Cache-Control: no-store
+/payment.html
+  Cache-Control: no-store
+/client
+  Cache-Control: no-store
+/client.html
+  Cache-Control: no-store
