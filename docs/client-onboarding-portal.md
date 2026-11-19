@@ -1,3 +1,5 @@
+> **Current production information (November 2026):** Calvren runs at https://calvren.ca on Cloudflare Pages with Supabase Edge Functions. Standard monthly prices are Starter C$275, Growth C$499 and Pro C$775, plus C$349 one-time setup. Old figures and Netlify instructions below are historical; see [reliability guide](operational-reliability.md) for current setup.
+
 # Calvren — Managed client onboarding
 
 **Implementation status:** feature branch only. Do not merge/deploy before database migration, billing validation and browser tests.

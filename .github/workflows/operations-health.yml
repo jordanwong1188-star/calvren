@@ -1,0 +1,36 @@
+name: Monitor Calvren automation deliveries
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "13 */2 * * *"
+permissions:
+  contents: read
+concurrency:
+  group: calvren-ops-monitor
+  cancel-in-progress: false
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect aggregate delivery failures without touching customer records
+        env:
+          CALVREN_CRON_TOKEN: ${{ secrets.CALVREN_CRON_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          const secret=process.env.CALVREN_CRON_TOKEN;
+          if(!secret){console.log("Operations monitor is not configured: missing CALVREN_CRON_TOKEN.");process.exit(0);}
+          const response=await fetch("https://calvren.ca/api/internal/ops-health",{
+            method:"GET",headers:{Authorization:"Bearer "+secret,Accept:"application/json"},
+            signal:AbortSignal.timeout(25000),redirect:"error",cache:"no-store"
+          });
+          if(!response.ok)throw Error("Calvren operations endpoint unavailable ("+response.status+").");
+          const data=await response.json();
+          if(data.ok!==true)throw Error("Incomplete operations report.");
+          console.log("Calvren operations:",JSON.stringify({
+            active_clients:data.active_linked_clients,failed_7d:data.failed_deliveries_7d,
+            unknown_7d:data.unknown_deliveries_7d,handoffs_waiting:data.human_handoffs_pending,
+            onboarding_in_progress:data.onboarding_in_progress
+          }));
+          if(data.delivery_alert)throw Error("Unresolved failed/unknown sends detected. Review the private Calvren workspace before any retry.");
+          NODE

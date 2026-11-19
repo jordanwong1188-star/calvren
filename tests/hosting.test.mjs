@@ -10,7 +10,7 @@ after(()=>rm(directory,{recursive:true,force:true}));
 const modules=[
   ...["contracts","demo-config","validation","time","memory-repository","mock-services","engine"].map(name=>"src/conversion/"+name+".mts"),
   ...["conversion-api","conversion-providers","conversion-repository","workflow-core"].map(name=>"netlify/lib/"+name+".mts"),
-  ...["conversion-runtime","private-storage","forms","demo-access","customer-email","billing","site-metrics","automation-hub","onboarding","router"].map(name=>"server/"+name+".mts"),
+  ...["conversion-runtime","private-storage","forms","demo-access","customer-email","billing","site-metrics","operations","automation-hub","onboarding","router"].map(name=>"server/"+name+".mts"),
   "functions/_middleware.ts"
 ];
 for(const path of modules){
@@ -29,12 +29,13 @@ const env=name=>({CALVREN_ADMIN_TOKEN:token,SUPABASE_URL:"https://fixture.supaba
 test("audit call-to-action on both marketing pages includes explicit contact permission and channel details",async()=>{
   for(const path of ["index.html","contact.html"]){
     const html=await readFile(new URL("../public/"+path,import.meta.url),"utf8");
-    for(const field of ["phone","business","challenge","callback_consent","consent","utm_source","utm_medium","utm_campaign"])
+    for(const field of ["phone","business","challenge","consent","utm_source","utm_medium","utm_campaign"])
       assert.match(html,new RegExp('name="'+field+'"'),path+": "+field);
     assert.match(html,/FREE 10-MINUTE LEAD RESPONSE AUDIT/);
     assert.match(html,/Request my free 10-minute audit/);
-    assert.match(html,/name="phone"[^>]*required/);
-    assert.match(html,/name="callback_consent"[^>]*required/);
+    assert.match(html,/name="phone"[^>]*placeholder/);
+    assert.doesNotMatch(html,/name="phone"[^>]*required/);
+    assert.doesNotMatch(html,/name="industry"[^>]*required/);
     assert.match(html,/name="preferred_call_time" type="text" maxlength="160"/);
   }
 });
@@ -147,7 +148,7 @@ test("feedback notifications are separate from promotional consent and never imp
 test("public forms enforce consent, honeypot, field bounds and rate limits",async()=>{
   const f=formFixture();
   assert.equal((await handlePublicForm(f.request({consent:""}),f.deps)).status,400);
-  assert.equal((await handlePublicForm(f.request({callback_consent:""}),f.deps)).status,400);
+  assert.equal((await handlePublicForm(f.request({callback_consent:"",phone:""}),f.deps)).status,201);
   assert.equal((await handlePublicForm(f.request({phone:"123"}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({phone:"604-555-XXXX"}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({business:""}),f.deps)).status,400);

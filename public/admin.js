@@ -15,6 +15,7 @@ function clearWorkspace(){
   token="";leads=[];readiness=null;$("admin-token").value="";$("lead-list").replaceChildren();$("service-state").replaceChildren();
   $("workspace").hidden=true;$("disconnect").hidden=true;$("auth-status").textContent="Not connected.";
   $("analytics-summary").replaceChildren();$("analytics-extra").replaceChildren();$("analytics-trend").replaceChildren();
+  $("operations-counts").replaceChildren();$("operations-status").textContent="Connect to see operational activity.";
   $("workflow-form").reset();$("workflow-status").textContent="";$("inbox-status").textContent="";$("lead-search").value="";$("lead-filter").value="all";$("sales-filter").value="all";
 }
 function renderStatus(data){
@@ -54,6 +55,20 @@ async function loadAnalytics(){
   }
   if(!daily.length)trend.append(textNode("p","No tracked activity yet. New counts will appear here.","admin-note"));
   $("analytics-status").textContent="These are anonymous event counts, not unique visitors. Reloads and bots may inflate totals. Only successful form receipts are counted as audit requests.";
+}
+async function loadOperations(){
+ const summary=await api("/api/ops/summary"),target=$("operations-counts");
+ target.replaceChildren();
+ for(const [key,label] of [["active_linked_clients","Paid clients linked"],["failed_deliveries_7d","Failed sends · 7 days"],
+    ["unknown_deliveries_7d","Delivery uncertain · 7 days"],["human_handoffs_pending","Human handoffs pending"],
+    ["onboarding_in_progress","Onboarding in progress"],["onboarding_needs_details","Needs client details"]]){
+   const item=textNode("div","","admin-metric");
+   item.append(textNode("strong",Number(summary[key]||0).toLocaleString()),textNode("span",label));
+   target.append(item);
+ }
+ $("operations-status").textContent=summary.delivery_alert
+   ?"Delivery warning: at least one failed or uncertain send needs manual investigation. Open the operator workspace; do not resend blindly."
+   :"No failed or uncertain sends recorded in the last seven days. This does not verify every third-party provider.";
 }
 async function loadStatus(){renderStatus(await api("/api/status"));}
 async function loadLeads(){const data=await api("/api/leads");if(!Array.isArray(data.leads))throw new Error("Unexpected inbox response.");leads=data.leads;renderLeads();}
@@ -166,7 +181,7 @@ $("auth-form").addEventListener("submit",async event=>{
   event.preventDefault();if(busy)return;busy=true;const button=event.currentTarget.querySelector("button[type=submit]");button.disabled=true;
   token=$("admin-token").value.trim();$("auth-status").textContent="Connecting…";
   try{
-    await loadStatus();await loadLeads();await loadAnalytics().catch(error=>{$("analytics-status").textContent=error.message;});$("admin-token").value="";$("workspace").hidden=false;$("disconnect").hidden=false;
+    await loadStatus();await loadLeads();await loadAnalytics().catch(error=>{$("analytics-status").textContent=error.message;});await loadOperations().catch(error=>{$("operations-status").textContent=error.message;});$("admin-token").value="";$("workspace").hidden=false;$("disconnect").hidden=false;
     $("auth-status").textContent="Connected. Your enquiries remain private; drafts need your review.";
   }catch(error){clearWorkspace();$("auth-status").textContent=error.message;}
   finally{busy=false;button.disabled=false;}
@@ -190,6 +205,7 @@ async function refresh(task,element,success){
 $("refresh-leads").addEventListener("click",()=>refresh(loadLeads,"inbox-status","Inbox refreshed."));
 $("refresh-status").addEventListener("click",()=>refresh(loadStatus,"auth-status","Service configuration checked."));
 $("refresh-analytics").addEventListener("click",()=>refresh(loadAnalytics,"analytics-status","Website activity refreshed."));
+$("refresh-operations").addEventListener("click",()=>refresh(loadOperations,"operations-status","Service counts refreshed."));
 $("lead-search").addEventListener("input",renderLeads);
 $("lead-filter").addEventListener("change",renderLeads);
 $("sales-filter").addEventListener("change",renderLeads);

@@ -93,6 +93,50 @@ async function api(path,options={}){
   if(!response.ok)throw Error(dataJson.error||"This request could not complete.");
   return dataJson;
 }
+async function loadOnboardingProgress(info){
+ const summary=$("client-setup-summary"),stage=$("client-setup-status"),steps=$("client-setup-steps");
+ if(!summary||!stage||!steps)return false;
+ summary.hidden=!info.paid;
+ if(!info.paid){steps.replaceChildren();return false;}
+ let record=null,available=false;
+ try{
+   const access=session?.access_token;
+   if(!access)throw Error("Sign in required");
+   const response=await fetch("/api/onboarding",{method:"GET",credentials:"omit",cache:"no-store",
+      headers:{Authorization:"Bearer "+access,Accept:"application/json"}});
+   if(!response.ok)throw Error("Onboarding status unavailable");
+   const data=await response.json();record=data.record||null;available=true;
+ }catch{stage.textContent="We could not confirm your onboarding status. Please check your onboarding page or contact Calvren.";}
+ const status=record?.status||"not_started";
+ const live=available&&status==="live"&&info.activation==="connected";
+ const labels={
+   not_started:"Start your onboarding questionnaire",draft:"Finish your onboarding details",
+   submitted:"Your questionnaire was received",reviewing:"Calvren is reviewing your setup",
+   needs_details:"Calvren needs more information from you",building:"Your workflow is being configured",
+   testing:"Testing and integration checks",awaiting_approval:"Your workflow is ready for your approval",
+   approved:"Approval recorded; awaiting activation",live:"Your workflow is marked live"
+ };
+ if(available){
+   stage.textContent=labels[status]||"Your setup is in progress";
+   if(status==="live"&&!live)stage.textContent="Launch status needs verification. Contact Calvren if you expected your automation to be active.";
+ }
+ const tasks=[
+   ["Subscription",true],
+   ["Business questionnaire",["submitted","reviewing","building","testing","awaiting_approval","approved","live"].includes(status)],
+   ["Build, test & approve",["approved","live"].includes(status)],
+   ["Automation live",live]
+ ];
+ steps.replaceChildren(...tasks.map(([name,done])=>{
+   const item=document.createElement("li");item.textContent=(done?"✓ ":"○ ")+name;return item;
+ }));
+ const pill=$("client-dashboard-status");
+ if(pill){pill.dataset.status=live?"connected":"pending";pill.textContent=live?"Automation live":"Subscription active · Setup in progress";}
+ const link=$("client-onboarding-link");
+ if(link)link.textContent=status==="needs_details"?"Update requested details →":
+     status==="awaiting_approval"?"Review and approve workflow →":
+     live?"View onboarding record →":"Continue setup →";
+ return live;
+}
 async function check(){
   const state=await supabase.auth.getSession();
   session=state.data.session||null;
@@ -165,12 +209,12 @@ async function check(){
       const dashboardStatus=$("client-dashboard-status");
       if(dashboardStatus){
         const connected=info.paid&&info.activation==="connected";
-        dashboardStatus.dataset.status=info.paid?"connected":"inactive";
-        dashboardStatus.textContent=info.paid?"Subscription active":"Subscription not active";
+        dashboardStatus.dataset.status=info.paid?"pending":"inactive";
+        dashboardStatus.textContent=info.paid?"Subscription active · Setup pending":"Subscription inactive";
       }
       renderModuleEntitlements(info);
-      $("client-activation").textContent=info.paid?(info.activation==="connected"?
-        "Your automation workspace is connected.":"Payment confirmed. Calvren will connect your business's tools before live automation starts.")
+      $("client-activation").textContent=info.paid?
+        "Subscription confirmed. Live messaging and booking require your approved setup and launch."
         :checkoutVerificationPending?"Your payment confirmation is processing. Please do not submit another payment.":
           "Choose a subscription to activate a client workspace.";
       const startArea=$("client-start-area"),startButton=$("client-checkout"),startNote=$("client-checkout-note");
@@ -189,14 +233,17 @@ async function check(){
       if($("client-monthly-report"))$("client-monthly-report").hidden=!(
         info.paid&&Array.isArray(info.included_features)&&info.included_features.includes("monthly_reports"));
       if(info.paid){
+        const automationLive=await loadOnboardingProgress(info);
         // Explicit return-to-onboarding links still work for an authenticated
         // subscriber, but payment returns show a confirmation and a clear CTA.
         if(new URLSearchParams(location.search).get("next")==="onboarding"){
           location.assign("/onboarding.html");return;
         }
-        await loadAutomation();
-        if(info.included_features?.includes("monthly_reports"))await loadMonthlyReport();
-        if(["growth","pro"].includes(info.plan)){
+        if(automationLive)await loadAutomation();
+        else if($("client-leads"))$("client-leads").textContent="Live automation activity will appear here after Calvren completes testing and activates your approved workflow.";
+        if(automationLive&&info.included_features?.includes("monthly_reports"))await loadMonthlyReport();
+        else if($("client-monthly-report-results"))$("client-monthly-report-results").textContent="Your report will appear after the service is live.";
+        if(automationLive&&["growth","pro"].includes(info.plan)){
           try{const hub=await import("/automation-hub.js?v=hub-20261110");await hub.renderHub(info,api);}
           catch(error){console.warn("Calvren hub unavailable.");}
         }

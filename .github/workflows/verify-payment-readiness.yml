@@ -35,12 +35,12 @@ jobs:
                 growth:data.plans?.growth?.ready===true,pro:data.plans?.pro?.ready===true,
                 receptionist_quote:data.plans?.receptionist?.checkout==="quote"};
               console.log("BILLING_READINESS",JSON.stringify(safe));
-              if(page.ok&&html.includes("CA$249")&&html.includes("CA$499")&&
+              if(page.ok&&html.includes("CA$275")&&html.includes("CA$499")&&
                 html.includes('data-select-plan="pro"')&&!html.includes('data-select-plan="receptionist"')&&
                 html.includes("Get a custom AI Receptionist quote")&&!html.includes("CA$425")&&
                 config.ok&&data.ready===true&&data.test_mode===false&&
                 data.setup_amount===34900&&
-                data.plans?.starter?.ready===true&&data.plans.starter.amount===24900&&
+                data.plans?.starter?.ready===true&&data.plans.starter.amount===27500&&
                 data.plans?.growth?.ready===true&&data.plans.growth.amount===49900&&
                 data.plans?.pro?.ready===true&&data.plans.pro.amount===77500&&
                 data.plans?.receptionist?.checkout==="quote"&&

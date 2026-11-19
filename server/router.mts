@@ -8,6 +8,7 @@ import { handlePublicForm } from "./forms.mjs";
 import { handleDemoSignup, handleDemoUnsubscribe } from "./demo-access.mjs";
 import { handleBilling } from "./billing.mjs";
 import { handleSiteMetrics } from "./site-metrics.mjs";
+import { handleOperations } from "./operations.mjs";
 import { handleOnboarding } from "./onboarding.mjs";
 import {processAutomationCron,unsubscribeReview,configureProIntegration,entitledGrowthClients,verifyNativeCron} from "./automation-hub.mjs";
 export interface ServerOptions { env(name:string):string|undefined; ip?:string; }
@@ -45,6 +46,13 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
         return json({error:"Scheduler authentication required."},401);
       return json({ok:true,...await processAutomationCron(env)});
     }
+    if(path==="/api/internal/ops-health"){
+      if(!await cronAuthorized(request,env,"hub-scheduler"))
+        return json({error:"Scheduler authentication required."},401);
+      return handleOperations(routed,{env,authorized:true});
+    }
+    if(path==="/api/ops/summary")
+      return handleOperations(routed,{env,authorized:adminAuthorized(routed,env("CALVREN_ADMIN_TOKEN"))});
     if(path==="/api/metrics/event"||path==="/api/metrics/summary")
       return handleSiteMetrics(routed,{env,authorized:path==="/api/metrics/summary"&&adminAuthorized(routed,env("CALVREN_ADMIN_TOKEN"))});
     if(path.startsWith("/api/billing/"))return handleBilling(routed,{env,repository:deps.repository});

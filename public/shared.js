@@ -76,30 +76,36 @@ document.querySelectorAll("[data-lead-form]").forEach(form=>{
     form.dataset.submissionKey ||= crypto.randomUUID();
     const body=new URLSearchParams();
     body.set("submission-key",form.dataset.submissionKey);
-    body.set("formspree-archived","yes");
-    for(const [key,value]of new FormData(form))body.append(key,String(value));
+    for(const [key,value] of new FormData(form))body.append(key,String(value));
     button.disabled=true;button.setAttribute("aria-busy","true");button.textContent="Sending…";
     error.hidden=true;
     try{
-      // Formspree is the notification source of truth for public website forms.
-      // A 2xx response confirms receipt by Formspree, not delivery to an inbox.
-      const response=await fetch(form.action,{
-        method:"POST",body:new FormData(form),headers:{"Accept":"application/json"}
-      });
-      if(!response.ok)throw new Error("Formspree did not accept the submission");
-      // Retain the existing protected Calvren lead/feedback inbox as a secondary
-      // copy. Its availability must not block a successfully notified visitor.
+      // Save first to Calvren's protected inbox and request a single owner notification.
+      // Fall back to Formspree only if the backend is unavailable, never to bypass
+      // a client/input validation failure or a rate limit.
+      let primary=null;
       try{
-        const archive=await fetch("/",{method:"POST",
-          headers:{"Content-Type":"application/x-www-form-urlencoded"},body,
-          signal:AbortSignal.timeout(5000)});
-        if(!archive.ok)console.warn("Calvren private copy could not be saved.");
-      }catch{console.warn("Calvren private copy is temporarily unavailable.");}
+        primary=await fetch("/",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded","Accept":"application/json"},
+          body,signal:AbortSignal.timeout(9000),redirect:"error"});
+      }catch{primary=null;}
+      if(primary?.ok){
+        const saved=await primary.json();
+        if(saved?.ok!==true)throw Error("We couldn't confirm your enquiry was saved. Please try again.");
+      }else if(primary&&primary.status>=400&&primary.status<500){
+        const problem=await primary.json().catch(()=>({}));
+        throw Error(typeof problem.error==="string"?problem.error:"Please check your details and try again.");
+      }else{
+        // Formspree is the backup delivery route and retains the original submission.
+        const backup=await fetch(form.action,{method:"POST",body:new FormData(form),
+          headers:{"Accept":"application/json"},signal:AbortSignal.timeout(12000)});
+        if(!backup.ok)throw Error("Neither enquiry channel confirmed receipt.");
+      }
       if(["project-enquiry","workflow-enquiry"].includes(form.getAttribute("name")||""))
         window.calvrenTrackEvent?.("audit_submitted");
       location.assign(form.dataset.successUrl||"/thanks.html");
-    }catch{
-      error.textContent="We couldn’t submit this right now. Please try again, or email calvrenautomation@gmail.com.";
+    }catch(problem){
+      error.textContent=problem?.message&&/^(Check |Please |Too many|We couldn|Neither |Use |Choose )/.test(problem.message)?
+        problem.message:"We couldn't submit this right now. Please try again, or email calvrenautomation@gmail.com.";
       error.hidden=false;button.disabled=false;button.removeAttribute("aria-busy");button.innerHTML=original;
     }
   });

@@ -129,8 +129,9 @@ try{
   for(const section of ["#solutions","#demo","#pricing"])
     assert.equal(await page.locator(section).count(),1,"Preserve useful marketing section "+section);
 
-  // Intercept both providers: browser checks must never send test notifications.
-  let notificationCount=0,archiveCount=0,providerStatus=503,lastProviderBody="",lastArchiveBody="";
+  // Verify server-first receipt and Formspree outage fallback with synthetic browser fixtures.
+  // Never send live notifications or real customer records.
+  let notificationCount=0,archiveCount=0,providerStatus=503,primaryStatus=503,lastProviderBody="",lastArchiveBody="";
   const endpoint="https://formspree.io/f/xrperqkk";
   const intercept=route=>{
     const request=route.request();
@@ -142,16 +143,16 @@ try{
     }
     if(request.method()==="POST"&&request.url()===site+"/"){
       archiveCount++;lastArchiveBody=request.postData()||"";
-      return route.fulfill({status:201,contentType:"application/json",body:'{"ok":true}'});
+      return route.fulfill({status:primaryStatus,contentType:"application/json",body:JSON.stringify(primaryStatus===201?{ok:true,id:"00000000-0000-4000-8000-000000000099"}:{error:"Synthetic backend outage"})});
     }
     return route.continue();
   };
   await page.route("**/*",intercept);
-  for(const config of [
-    {path:"/",form:"#contact-form",name:"#contact-name",email:"#contact-email",message:"#contact-message",consent:'[name="consent"]',action:"/thanks.html",formName:"workflow-enquiry"},
-    {path:"/contact.html",form:"#project-form",name:"#project-name",email:"#project-email",message:"#project-message",consent:'[name="consent"]',action:"/thanks.html",formName:"project-enquiry"}
-  ]){
-    providerStatus=503;notificationCount=0;archiveCount=0;
+  for(const [i,config] of [
+    {path:"/",form:"#contact-form",name:"#contact-name",email:"#contact-email",message:"#contact-message",action:"/thanks.html",formName:"workflow-enquiry"},
+    {path:"/contact.html",form:"#project-form",name:"#project-name",email:"#project-email",message:"#project-message",action:"/thanks.html",formName:"project-enquiry"}
+  ].entries()){
+    providerStatus=503;primaryStatus=503;notificationCount=0;archiveCount=0;
     await visit(config.path);
     if(config.form==="#contact-form")await page.locator(".audit-details > summary").click();
     const form=page.locator(config.form);
@@ -161,39 +162,32 @@ try{
     await page.locator(config.email).fill("qa@example.com");
     await page.locator(config.message).fill("Synthetic browser test for preserving feedback and enquiry fields.");
     await form.locator('[name="business"]').fill("Calvren QA Services");
-    await form.locator('[name="phone"]').fill("+1 604 555 0123");
-    await form.locator('[name="industry"]').selectOption({label:"Plumbing"});
     await form.locator('[name="challenge"]').selectOption({label:"Slow responses to customer enquiries"});
-    await form.locator('[name="preferred_call_time"]').fill("Weekdays after 5:30 PM, or Sunday at noon");
-    await form.locator('[name="callback_consent"]').check();
-    await form.locator(config.consent).check();
+    await form.locator('[name="consent"]').check();
+    // Phone and industry are intentionally blank. The form should remain valid.
+    assert.equal(await form.locator('[name="phone"]').inputValue(),"");
+    assert.equal(await form.locator('[name="industry"]').inputValue(),"");
     await form.locator('button[type="submit"]').click();
     await form.locator("[data-form-error]").waitFor({state:"visible"});
-    assert.equal(notificationCount,1,config.formName+" must submit once");
-    assert.equal(archiveCount,0,"Failed Formspree delivery must not be acknowledged as saved.");
-    assert.equal(await page.locator(config.name).inputValue(),"Calvren QA");
+    assert.equal(archiveCount,1,"Calvren is the first attempt.");
+    assert.equal(notificationCount,1,"Formspree is attempted once after a 503 backend response.");
     assert.equal(await form.locator('button[type="submit"]').isEnabled(),true);
-    assert.match(await form.locator("[data-form-error]").textContent(),/calvrenautomation@gmail.com/);
-    providerStatus=200;
+    assert.match(await form.locator("[data-form-error]").textContent(),/Neither enquiry|couldn.t/);
+    if(i===0)providerStatus=200;else primaryStatus=201;
     await form.locator('button[type="submit"]').click();
     await page.waitForURL(url=>normalisePath(url.pathname)===normalisePath(config.action));
-    assert.equal(notificationCount,2);
-    assert.equal(archiveCount,1,"The private Calvren archive should receive a backup copy.");
-    assert.ok(lastProviderBody.includes('name="form-name"')&&lastProviderBody.includes(config.formName),
-      "Formspree must receive form source metadata.");
-    assert.ok(lastProviderBody.includes('name="email"')&&lastProviderBody.includes("qa@example.com"),
-      "Formspree must receive a reply-to address.");
-    assert.ok(lastProviderBody.includes('name="subject"'),"Notifications must identify their form.");
+    assert.equal(archiveCount,2);
+    assert.equal(notificationCount,i===0?2:1,"The Formspree backup is unnecessary when Calvren accepts the enquiry.");
     const values=new URLSearchParams(lastArchiveBody);
     assert.equal(values.get("form-name"),config.formName);
-    assert.equal(values.get("formspree-archived"),"yes");
+    assert.equal(values.get("submission-key")?.length,36);
     assert.equal(values.get("website"),"");
     assert.equal(values.get("_gotcha"),"");
-    assert.equal(values.get("phone"),"+1 604 555 0123");
+    assert.equal(values.get("phone"),"");
     assert.equal(values.get("business"),"Calvren QA Services");
-    assert.equal(values.get("callback_consent"),"yes");
+    assert.equal(values.get("callback_consent"),null);
     assert.equal(values.get("challenge"),"Slow responses to customer enquiries");
-    assert.equal(values.get("preferred_call_time"),"Weekdays after 5:30 PM, or Sunday at noon");
+    if(i===0)assert.ok(lastProviderBody.includes('name="form-name"')&&lastProviderBody.includes(config.formName));
   }
   await page.unroute("**/*",intercept);
 

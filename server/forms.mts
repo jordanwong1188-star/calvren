@@ -107,10 +107,12 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
       prefix="feedback/";
     }else{
       if(form.get("consent")!=="yes")throw new FormError(400,"Consent to process your enquiry is required.");
-      if(form.get("callback_consent")!=="yes")throw new FormError(400,"Consent to a requested callback is required.");
-      const phone=field("phone",7,40);
-      if(!/^[+\d\s().-]+$/.test(phone)||phone.replace(/\D/g,"").length<7)
+
+      const phone=field("phone",0,40);
+      if(phone&&(!/^[+\d\s().-]+$/.test(phone)||phone.replace(/\D/g,"").length<7))
         throw new FormError(400,"Use a valid callback phone number.");
+      // The main consent covers contact about the requested audit; a phone is optional.
+      const callbackConsent=phone.length>0;
       const business=field("business",1,160);
       const challenge=field("challenge",1,100);
       const knownChallenges=[
@@ -123,11 +125,11 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
       if(!knownChallenges.includes(challenge))throw new FormError(400,"Choose a main challenge.");
       const preferredCallTime=field("preferred_call_time",0,160);
       const utm=(key:string)=>{const value=field(key,0,80);return /^[a-zA-Z0-9 _.-]{0,80}$/.test(value)?value:"";};
-      const industry=field("industry",1,80), workflow=field("workflow",0,80);
+      const industry=field("industry",0,80), workflow=field("workflow",0,80);
       const businessType=workflow==="real-estate"||industry==="Real estate"?"real-estate":
         workflow==="local-services"||industry==="Local services"?"local-services":
         workflow==="professional"||industry==="Professional services"?"professional":"general-business";
-      data={...common,business,phone,challenge,preferredCallTime,callbackConsent:true,
+      data={...common,business,phone,challenge,preferredCallTime,callbackConsent,
         utmSource:utm("utm_source"),utmMedium:utm("utm_medium"),utmCampaign:utm("utm_campaign"),
         businessType,enquiry:field("message",15,3000),
         status:"new",source:"website",createdAt:stamp,updatedAt:stamp,automation:null,processingError:null};
