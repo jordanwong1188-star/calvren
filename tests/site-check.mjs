@@ -361,7 +361,7 @@ try{
       }};}`
   }));
   await signedInContext.route("**/api/billing/public",route=>route.fulfill({
-    status:200,contentType:"application/json",body:'{"ready":true,"amount":27500,"setup_amount":34900,"first_payment":62400,"currency":"cad","interval":"month","test_mode":false}'
+    status:200,contentType:"application/json",body:'{"ready":true,"amount":27500,"setup_amount":15000,"first_payment":42500,"currency":"cad","interval":"month","test_mode":false}'
   }));
   await signedInContext.route("**/api/billing/me",route=>route.fulfill({
     status:200,contentType:"application/json",body:'{"paid":false,"status":"none","activation":"pending"}'
