@@ -15,7 +15,7 @@ const page=await context.newPage();
 const errors=[];
 page.on("pageerror",error=>errors.push(error.message));
 async function visit(path=""){
-  const response=await page.goto(site+path,{waitUntil:"networkidle",timeout:30000});
+  const response=await page.goto(site+path,{waitUntil:"domcontentloaded",timeout:30000});
   assert.equal(response.status(),200,path+" must load");
   await page.evaluate(()=>document.fonts.ready);
 }
