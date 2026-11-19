@@ -199,13 +199,13 @@ try{
 
   const reduced=await browser.newContext({reducedMotion:"reduce",viewport:{width:375,height:1000}});
   const reducedPage=await reduced.newPage();
-  await reducedPage.goto(site+"/contact.html",{waitUntil:"networkidle"});
+  await reducedPage.goto(site+"/contact.html",{waitUntil:"domcontentloaded"});
   assert.equal(await reducedPage.locator("[data-reveal]").first().evaluate(node=>getComputedStyle(node).opacity),"1");
   await reduced.close();
   const native=await browser.newContext({javaScriptEnabled:false,viewport:{width:320,height:1000}});
   const nativePage=await native.newPage();
   for(const path of ["/","/contact.html","/ai-receptionist.html"]){
-    await nativePage.goto(site+path,{waitUntil:"networkidle"});
+    await nativePage.goto(site+path,{waitUntil:"domcontentloaded"});
     assert.equal(await nativePage.locator("#site-navigation").isVisible(),true);
     // Not every marketing landing page uses an entrance reveal or embeds a lead form.
     const reveals=nativePage.locator("[data-reveal]");

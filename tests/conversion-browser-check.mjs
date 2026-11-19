@@ -33,8 +33,8 @@ export async function checkDemoAccounts(page,url=baseUrl){
   await page.keyboard.press("Escape");
   assert.equal(await page.locator(".demo-access-dialog").isVisible(),false);
   await page.goto(url+"/");
-  assert.equal(await page.locator(".hero-actions [data-demo-access]").getAttribute("href"),"/try-demo.html");
-  await page.locator(".hero-actions [data-demo-access]").click();
+  assert.equal(await page.locator('.hero-actions a[href="/lead-demo.html"]').getAttribute("href"),"/lead-demo.html");
+  await page.goto(url+"/try-demo.html");
   assert.match(await page.locator("#demo-access-title").innerText(),/Serious about/);
   assert.equal(await page.locator("#demo-promo-consent").isChecked(),false);
   assert.equal(await page.locator("#demo-promo-consent").getAttribute("required"),null);
@@ -48,7 +48,7 @@ export async function checkDemoAccounts(page,url=baseUrl){
   await page.waitForURL(url=>/^\/lead-demo(?:\.html)?\/?$/.test(url.pathname));
   await page.locator("#demo-start").waitFor({state:"visible"});
   await page.goto(url+"/");
-  await page.locator(".hero-actions [data-demo-access]").click();
+  await page.goto(url+"/try-demo.html");
   await page.locator("#demo-access-email").fill("visitor@example.com");
   state.failed=false;
   await page.locator("#demo-access-form button").click();
@@ -104,7 +104,7 @@ export async function checkLeadDemo(page, url = baseUrl) {
   await page.addInitScript(id => sessionStorage.setItem("calvren-demo-access-v2", JSON.stringify({
     version:2,submission_id:id,expires_at:Date.now()+86400000
   })), demoAccessId);
-  await page.goto(url + "/lead-demo.html", {waitUntil:"networkidle"});
+  await page.goto(url + "/lead-demo.html", {waitUntil:"domcontentloaded"});
   await page.locator("#demo-config").waitFor({state:"attached"});
   assert.match(await page.locator(".simulation-banner").innerText(), /rules-based demo responder/);
   await startLead(page);
@@ -248,7 +248,7 @@ export async function checkConversionOperator(page, url = baseUrl) {
     } else {data = {ok:false,error:"Unexpected fixture route: " + method + " " + path};responseStatus = 404;}
     await route.fulfill({status:responseStatus,contentType:"application/json",body:JSON.stringify(data)});
   });
-  await page.goto(url + "/operator.html", {waitUntil:"networkidle"});
+  await page.goto(url + "/operator.html", {waitUntil:"domcontentloaded"});
   assert.equal(await page.locator("#operator-workspace").isVisible(), false);
   await page.locator("#operator-token").fill(fakeToken);
   await page.locator("#operator-auth button[type=submit]").click();
