@@ -139,6 +139,8 @@ test("daily review job respects consent and sends at most one idempotent review 
   const sent=JSON.parse(mail.init.body);
   assert.match(sent.text,/honest review/i);
   assert.match(sent.text,/unsubscribe-review/);
+  assert.match(sent.text,/https:\/\/calvren\.ca\/unsubscribe-review\.html/);
+  assert.doesNotMatch(sent.text,/calvren\.pages\.dev/);
   assert.equal(f.events.filter(x=>x.url==="https://api.resend.com/emails").length,1);
 });
 test("daily review scheduler sends no unconsented customer email",async()=>{

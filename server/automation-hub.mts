@@ -243,7 +243,7 @@ export async function handleAutomationHub(request:Request,deps:HubDependencies):
             from=client?.phone_number||deps.env("TWILIO_PHONE_NUMBER")||"";
           if(!/^AC[0-9a-f]{32}$/i.test(account)||!pass||!/^\+[1-9]\d{7,14}$/.test(from))
             throw Error("Provider not configured.");
-          const origin=new URL(deps.env("CALVREN_PUBLIC_URL")||"https://calvren.pages.dev").origin;
+          const origin=new URL(deps.env("CALVREN_PUBLIC_URL")||"https://calvren.ca").origin;
           const send=await (deps.fetch||fetch)("https://api.twilio.com/2010-04-01/Accounts/"+account+"/Messages.json",{
             method:"POST",headers:{Authorization:"Basic "+Buffer.from(account+":"+pass).toString("base64"),
               "Content-Type":"application/x-www-form-urlencoded"},
@@ -417,7 +417,7 @@ export async function processAutomationCron(env:Env,fetcher?:typeof fetch):Promi
               const msg="Your Calvren activity summary for "+lastMonth+
                 "\n\nNew leads: "+stats.leads+"\nQualified leads: "+stats.qualified+
                 "\nBooked appointments: "+stats.bookings+
-                "\n\nSee your secure dashboard: https://calvren.pages.dev/client.html"+
+                "\n\nSee your secure dashboard: https://calvren.ca/client.html"+
                 "\n\nThis is a subscription service report. Contact Calvren if the totals need review.";
               const sent=await sendMail(env,recipient,"Calvren monthly performance — "+lastMonth,msg,
                 "calvren-monthly-"+m.client_id+"-"+lastMonth,fetcher);
@@ -451,7 +451,7 @@ export async function processAutomationCron(env:Env,fetcher?:typeof fetch):Promi
             const link=token(env,m.client_id,hash,Date.now()+30*86400000);
             const note="Thank you for choosing our business. If you would like to share an honest review of your experience, you can do so here:\n"+
               cfg.review_url+"\n\nNo review is required, and positive and negative feedback are equally welcome."+
-              "\n\nTo stop future review requests: https://calvren.pages.dev/unsubscribe-review.html?token="+encodeURIComponent(link);
+              "\n\nTo stop future review requests: https://calvren.ca/unsubscribe-review.html?token="+encodeURIComponent(link);
             const sent=await sendMail(env,lead.email,"A quick request for your feedback",note,
               "calvren-review-"+m.client_id+"-"+completion.appointment_id,fetcher);
             await closeDelivery(env,delivery.id,sent.ok?"sent":"failed",sent.id,sent.reason,fetcher);
@@ -507,7 +507,7 @@ export async function processAutomationCron(env:Env,fetcher?:typeof fetch):Promi
           outboundCount++;
           try{
             const sent=await sendMail(env,destination,"Calvren: human handoff needed",
-              "A lead requires your attention. Open your secure Pro inbox to review it: https://calvren.pages.dev/client.html",
+              "A lead requires your attention. Open your secure Pro inbox to review it: https://calvren.ca/client.html",
               "calvren-handoff-"+m.client_id+"-"+row.id,fetcher);
             await closeDelivery(env,delivery.id,sent.ok?"sent":"failed",sent.id,sent.reason,fetcher);
             sent.ok?totals.alerts++:totals.failed++;
