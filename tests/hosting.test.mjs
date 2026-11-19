@@ -148,7 +148,9 @@ test("feedback notifications are separate from promotional consent and never imp
 test("public forms enforce consent, honeypot, field bounds and rate limits",async()=>{
   const f=formFixture();
   assert.equal((await handlePublicForm(f.request({consent:""}),f.deps)).status,400);
-  assert.equal((await handlePublicForm(f.request({callback_consent:"",phone:""}),f.deps)).status,201);
+  const optionalPhone=formFixture();
+  assert.equal((await handlePublicForm(optionalPhone.request({callback_consent:"",phone:"",industry:""}),optionalPhone.deps)).status,201);
+  assert.equal(optionalPhone.writes[0].data.callbackConsent,false);
   assert.equal((await handlePublicForm(f.request({phone:"123"}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({phone:"604-555-XXXX"}),f.deps)).status,400);
   assert.equal((await handlePublicForm(f.request({business:""}),f.deps)).status,400);
