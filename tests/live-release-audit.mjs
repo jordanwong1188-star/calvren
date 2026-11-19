@@ -48,11 +48,13 @@ for(const [path,marker] of pages){
       assert.ok(html.includes('data-select-plan="'+tier+'"'),"Missing "+tier+" option");
   }
   if(["/","/ai-receptionist.html","/payment.html"].includes(path)){
-    assert.ok(!html.includes("CA$425")&&!html.includes("CA$515")&&!html.includes("CA$940"),"Retired receptionist pricing must not be shown on "+path);
+    assert.ok(!html.includes("CA$515")&&!html.includes("CA$940"),"Retired receptionist pricing must not be shown on "+path);
     assert.ok(!html.includes("/payment?plan=receptionist"),"Retired checkout link must be removed on "+path);
   }
-  if(path==="/ai-receptionist.html")
+  if(path==="/ai-receptionist.html"){
+    assert.ok(!html.includes("CA$425"),"Receptionist must not display a fixed monthly price");
     assert.ok(html.includes("/contact.html?workflow=ai-receptionist#project-form"),"Receptionist should request a custom quote");
+  }
   if(path==="/payment.html")
     assert.ok(!html.includes('data-select-plan="receptionist"'),"Receptionist is not a fixed-price checkout tier");
   if(path==="/onboarding-preview.html")
@@ -79,10 +81,13 @@ assert.equal(publicBilling.status,200,"Stripe billing public endpoint failed");
 const config=await publicBilling.json();
 assert.equal(config.ready,true,"Stripe setup is not ready");
 assert.equal(config.test_mode,false,"Live checkout must not use Stripe test mode");
-assert.equal(config.setup_amount,34900,"Unexpected setup fee");
-for(const [tier,amount] of [["starter",27500],["growth",49900],["pro",77500]]){
+assert.equal(config.setup_amount,15000,"Unexpected default Starter setup fee");
+assert.equal(config.first_payment,42500,"Unexpected initial Starter payment");
+for(const [tier,amount,setup,first] of [["starter",27500,15000,42500],["growth",49900,20000,69900],["pro",77500,30000,107500]]){
   assert.equal(config.plans?.[tier]?.ready,true,tier+" live Stripe price unavailable");
   assert.equal(config.plans[tier].amount,amount,tier+" has the wrong price");
+  assert.equal(config.plans[tier].setup_amount,setup,tier+" has the wrong setup fee");
+  assert.equal(config.plans[tier].first_payment,first,tier+" has the wrong first payment");
 }
 assert.equal(config.plans.receptionist.checkout,"quote","Receptionist must require a custom quote");
 assert.equal(config.plans.receptionist.ready,false,"Receptionist cannot offer fixed-price checkout");
