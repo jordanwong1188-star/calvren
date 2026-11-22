@@ -117,11 +117,40 @@ async function eventWebhook(request:Request,env:Env):Promise<Response>{
   });
   return json({ok:true});
 }
+async function captureLead(request:Request,env:Env):Promise<Response>{
+  if(request.method!=="POST")return json({error:"POST required"},405);
+  const raw=await safeRaw(request);if(raw===null)return json({error:"Invalid payload"},415);
+  if(!verified(request,raw,env))return json({error:"Invalid Retell signature"},401);
+  let data:Row;try{data=JSON.parse(raw)}catch{return json({error:"Invalid JSON"},400)}
+  const args=data.args,call=data.call;
+  if(data.name!=="save_receptionist_lead"||!args||!call||typeof call.call_id!=="string"||
+    !agentId.test(call.call_id)||typeof call.agent_id!=="string"||
+    !agentId.test(call.agent_id)||typeof call.to_number!=="string"||!e164.test(call.to_number))
+    return json({saved:false,reason:"Unsupported or incomplete call context"},400);
+  if(args.callback_consent!==true)return json({saved:false,reason:"Explicit callback consent is required"});
+  const name=typeof args.caller_name==="string"?args.caller_name.trim():"";
+  const number=typeof args.callback_number==="string"?args.callback_number.trim():"";
+  const enquiry=typeof args.enquiry==="string"?args.enquiry.trim():"";
+  const preferred=typeof args.preferred_time==="string"?args.preferred_time.trim():"";
+  if(!name||name.length>120||!e164.test(number)||!enquiry||enquiry.length>700||preferred.length>160)
+    return json({saved:false,reason:"Confirm name, E.164 callback number, reason for call and permission"});
+  const config=await readConfig(env,{
+    retell_agent_id:"eq."+call.agent_id,retell_phone_number:"eq."+call.to_number,enabled:"eq.true"
+  });
+  if(!config||!await approvedPaidClient(env,config.client_id))return json({saved:false,reason:"Client receptionist is not active"},409);
+  await db(env,"rpc/calvren_receptionist_capture_lead","POST",{
+    p_client_id:config.client_id,p_call_id:call.call_id,p_agent_id:call.agent_id,
+    p_name:name,p_phone:number,p_enquiry:enquiry,p_preferred_time:preferred
+  });
+  return json({saved:true,kind:"callback_request",message:"Request recorded for a human. No appointment, SMS or callback has been scheduled."});
+}
+
 export async function handleReceptionist(request:Request,env:Env):Promise<Response>{
   const path=new URL(request.url).pathname;
   try{
     if(path==="/api/receptionist/inbound")return inbound(request,env);
     if(path==="/api/receptionist/webhook")return eventWebhook(request,env);
+    if(path==="/api/receptionist/tools/lead")return captureLead(request,env);
     if(!adminAuthorized(request,env("CALVREN_ADMIN_TOKEN")))return json({error:"Operator authentication required"},401);
     if(path==="/api/receptionist/configs"&&request.method==="GET"){
       const rows=await db(env,"calvren_receptionist_configs?select=client_id,retell_agent_id,retell_phone_number,enabled,updated_at&order=updated_at.desc&limit=100");
@@ -130,6 +159,13 @@ export async function handleReceptionist(request:Request,env:Env):Promise<Respon
     const m=/^\/api\/receptionist\/configs\/([A-Za-z0-9][A-Za-z0-9_-]{0,99})(?:\/(activate|deactivate|calls))?$/.exec(path);
     if(!m||!clientId.test(m[1]))return json({error:"Not found"},404);
     const id=m[1],action=m[2]||"";
+    if(action==="leads"&&request.method==="GET"){
+      const rows=await db(env,"calvren_receptionist_leads?"+new URLSearchParams({
+        client_id:"eq."+id,select:"call_id,caller_name,callback_number,enquiry,preferred_time,status,created_at",
+        order:"created_at.desc",limit:"100"
+      }));
+      return json({ok:true,leads:rows});
+    }
     if(action==="calls"&&request.method==="GET"){
       const rows=await db(env,"calvren_receptionist_calls?"+new URLSearchParams({
         client_id:"eq."+id,select:"call_id,agent_id,last_event,started_at,ended_at,updated_at",
