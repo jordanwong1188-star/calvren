@@ -4,6 +4,18 @@
 <section class="conversion-panel operator-auth"><h2>Connect to the operator workspace</h2><form id="operator-auth"><label for="operator-token">Private operator token</label><input id="operator-token" type="password" autocomplete="off" spellcheck="false" minlength="32" maxlength="1024" required><div class="admin-actions"><button class="button" type="submit">Connect <span aria-hidden="true">→</span></button><button id="operator-disconnect" class="button button-outline" type="button" hidden>Disconnect</button></div></form><p class="fine-print">Use CALVREN_ADMIN_TOKEN from your server environment. The token is held only in this page’s memory and cleared on disconnect or refresh.</p><p id="operator-auth-status" class="conversion-status" role="status">Not connected.</p></section>
 <div id="operator-workspace" class="operator-workspace" hidden>
 <section class="conversion-panel"><div class="operator-section-title"><h2>Integration status</h2><button id="operator-check" class="plain-button" type="button">Check setup ↺</button></div><div id="operator-readiness" class="operator-readiness"></div><p id="operator-setup" class="conversion-status" role="status"></p></section>
+<section class="conversion-panel" id="operator-voice">
+  <div class="operator-section-title"><h2>AI Receptionist (Retell)</h2><button type="button" id="operator-voice-refresh" class="plain-button">Refresh voice setup ↻</button></div>
+  <p class="fine-print">Prepare a separate Retell agent and phone number for each approved client. Saving a configuration keeps calls <strong>OFF</strong>. Activation requires verified payment, approved onboarding, a live client and secure Retell signing. Never enter API keys here.</p>
+  <form id="operator-voice-form">
+    <label for="operator-voice-client">Existing active live client</label><select id="operator-voice-client" required><option value="">Select a client</option></select>
+    <label for="operator-voice-agent">Retell agent ID</label><input id="operator-voice-agent" type="text" placeholder="Agent ID from Retell" maxlength="120" required autocomplete="off" spellcheck="false">
+    <label for="operator-voice-phone">Client's verified Retell phone number (E.164)</label><input id="operator-voice-phone" type="tel" placeholder="+16045550123" maxlength="16" required autocomplete="off">
+    <button class="button button-outline" type="submit">Save configuration (inactive)</button>
+  </form>
+  <p id="operator-voice-status" class="conversion-status" role="status">No live voice number or paid service is enabled by this form.</p>
+  <div id="operator-voice-list" class="ob-operator-list"><p>No voice configurations loaded.</p></div>
+</section>
 <section class="conversion-panel" id="operator-onboarding">
   <div class="operator-section-title"><h2>Client onboarding</h2><button id="operator-onboarding-refresh" class="plain-button" type="button">Refresh requests ↻</button></div>
   <p class="fine-print">Review paid client questionnaires, respond to optional kickoff-call requests, and prepare the exact tested workflow for the client’s final approval. After approval, link the correct business and launch. Never paste credentials into notes.</p>

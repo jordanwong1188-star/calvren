@@ -60,6 +60,8 @@ function disconnect(message = "Disconnected. Private data and the token were cle
     "operator-followup","operator-key-status","operator-action-status","operator-client-status","operator-leads-status",
     "operator-intake-status","operator-lead-count","operator-setup"]) $(id).textContent = "";
   clearKey();
+  $("operator-voice-list")?.replaceChildren();
+  if ($("operator-voice-status")) status("operator-voice-status", "Disconnected.");
   renderDetail();
   status("operator-auth-status", message);
 }
@@ -281,7 +283,7 @@ $("operator-auth").addEventListener("submit", async event => {
     $("operator-disconnect").hidden = false;
     status("operator-auth-status", "Connected. Your token is held only in this page's memory.");
     setEditor();
-    if (readiness.database) { await refresh(); await loadOnboardingQueue(); }
+    if (readiness.database) { await refresh(); await loadOnboardingQueue(); await loadVoiceConfigs(); }
     else status("operator-leads-status", "Set up the Calvren Supabase database to save clients and leads. The browser lead demo works now.");
   } catch (error) {
     if (startEpoch === epoch) {
@@ -468,3 +470,96 @@ async function loadOnboardingQueue(){
   }catch(error){status("operator-onboarding-status",error.message,true)}
 }
 $("operator-onboarding-refresh")?.addEventListener("click",loadOnboardingQueue);
+
+
+/** Private Retell receptionist management. This module stores no Retell provider keys,
+ * does not buy numbers and cannot bypass paid onboarding or client approval. */
+async function voiceRequest(path,options={}){
+  if(!token)throw new Error("Connect with your private operator token first.");
+  const response=await fetch("/api/receptionist"+path,{
+    method:options.method||"GET",
+    headers:{Authorization:"Bearer "+token,Accept:"application/json",
+      ...(options.body?{"Content-Type":"application/json"}:{})},
+    ...(options.body?{body:JSON.stringify(options.body)}:{}),
+    credentials:"omit",cache:"no-store"
+  });
+  const result=await response.json().catch(()=>({error:"Unable to read receptionist response."}));
+  if(!response.ok)throw new Error(result.error||"Receptionist request failed.");
+  return result;
+}
+function renderVoiceClients(){
+  const select=$("operator-voice-client");if(!select)return;
+  const previous=select.value;
+  select.replaceChildren(option("","Select an active live client"));
+  for(const client of clients)if(client.mode==="live"&&client.active)
+    select.append(option(client.id,client.business_name+" ("+client.id+")"));
+  if(clients.some(c=>c.id===previous&&c.active&&c.mode==="live"))select.value=previous;
+}
+async function loadVoiceConfigs(){
+  if(!token||!$("operator-voice-list"))return;
+  renderVoiceClients();
+  try{
+    const response=await voiceRequest("/configs");
+    const list=$("operator-voice-list");list.replaceChildren();
+    if(!response.configs.length)list.append(element("p","No configured voice clients. This does not allocate a number."));
+    for(const cfg of response.configs){
+      const wrap=element("div",undefined,"ob-operator-request");
+      const name=clients.find(c=>c.id===cfg.client_id)?.business_name||cfg.client_id;
+      const heading=element("p");
+      heading.append(element("strong",name+" · "+(cfg.enabled?"ACTIVE — calls may incur charges":"INACTIVE")));
+      const meta=element("p","Agent: "+cfg.retell_agent_id+" · Number: "+cfg.retell_phone_number,"fine-print");
+      const next=element("button",cfg.enabled?"Deactivate":"Activate after client approval","button button-outline");
+      next.type="button";
+      const confirm=element("label",undefined,"consent");
+      const checkbox=element("input");checkbox.type="checkbox";
+      const caption=element("span",cfg.enabled?"I understand this disables Calvren routing. Also disable routing inside Retell.":"I verified the client's consent, billing, launch approval, routing and usage costs.");
+      confirm.append(checkbox,caption);
+      next.disabled=true;
+      checkbox.addEventListener("change",()=>{next.disabled=!checkbox.checked});
+      next.addEventListener("click",()=>action("operator-voice-status",async()=>{
+        next.disabled=true;
+        const suffix=cfg.enabled?"deactivate":"activate";
+        const result=await voiceRequest("/configs/"+encodeURIComponent(cfg.client_id)+"/"+suffix,{method:"POST"});
+        status("operator-voice-status",result.config?.enabled?"Client is activated. Verify live call routing and usage limits.":"Client configuration is inactive.");
+        await loadVoiceConfigs();
+      }));
+      const callbacks=element("button","View callback requests","plain-button");
+      callbacks.type="button";
+      const callbackList=element("div",undefined,"ob-operator-details");
+      callbacks.addEventListener("click",()=>action("operator-voice-status",async()=>{
+        const result=await voiceRequest("/configs/"+encodeURIComponent(cfg.client_id)+"/leads");
+        callbackList.replaceChildren();
+        for(const lead of result.leads){
+          const p=element("p",undefined,"fine-print");
+          p.append(element("strong",(lead.caller_name||"Caller")+" · "+(lead.callback_number||"No number")));
+          p.append(element("span"," · "+(lead.enquiry||"")+" · "+(lead.preferred_time||"No preferred time")+" · "+lead.status));
+          callbackList.append(p);
+        }
+        if(!result.leads.length)callbackList.append(element("p","No callback requests yet."));
+        status("operator-voice-status",result.leads.length+" callback request(s) loaded.");
+      }));
+      wrap.append(heading,meta,confirm,next,callbacks,callbackList);
+      list.append(wrap);
+    }
+    status("operator-voice-status",response.retell_webhook_key_configured?
+      "Retell signing key detected (not validated). Configurations remain inactive until approved.":"Retell webhook signing key is not configured. Do not enable live calls.",!response.retell_webhook_key_configured);
+  }catch(error){
+    status("operator-voice-status",error?.message||"Voice setup is unavailable.",true);
+  }
+}
+$("operator-voice-refresh")?.addEventListener("click",loadVoiceConfigs);
+$("operator-voice-form")?.addEventListener("submit",event=>{
+  event.preventDefault();
+  action("operator-voice-status",async()=>{
+    const id=$("operator-voice-client").value;
+    if(!id)throw new Error("Choose an active live client.");
+    const data=await voiceRequest("/configs/"+encodeURIComponent(id),{method:"PUT",body:{
+      retell_agent_id:$("operator-voice-agent").value.trim(),
+      retell_phone_number:$("operator-voice-phone").value.trim()
+    }});
+    status("operator-voice-status","Saved for "+id+". Voice remains OFF until separately activated.");
+    $("operator-voice-agent").value="";
+    $("operator-voice-phone").value="";
+    await loadVoiceConfigs();
+  });
+});

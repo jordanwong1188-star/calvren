@@ -113,6 +113,10 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610150105_calvren_onboarding_approval.sql
       - name: Apply Growth and Pro automation hub migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202611100001_growth_pro_automation_hub.sql
+      - name: Apply private Retell receptionist migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/202611220001_calvren_retell_receptionist.sql
+      - name: Verify inactive receptionist and private callback storage
+        run: psql -v ON_ERROR_STOP=1 -f tests/receptionist-database.sql
       - name: Check portable hosting storage security
         run: psql -v ON_ERROR_STOP=1 -f tests/hosting-database.sql
       - name: Check transactional storage and security
