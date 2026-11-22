@@ -523,7 +523,22 @@ async function loadVoiceConfigs(){
         status("operator-voice-status",result.config?.enabled?"Client is activated. Verify live call routing and usage limits.":"Client configuration is inactive.");
         await loadVoiceConfigs();
       }));
-      wrap.append(heading,meta,confirm,next);
+      const callbacks=element("button","View callback requests","plain-button");
+      callbacks.type="button";
+      const callbackList=element("div",undefined,"ob-operator-details");
+      callbacks.addEventListener("click",()=>action("operator-voice-status",async()=>{
+        const result=await voiceRequest("/configs/"+encodeURIComponent(cfg.client_id)+"/leads");
+        callbackList.replaceChildren();
+        for(const lead of result.leads){
+          const p=element("p",undefined,"fine-print");
+          p.append(element("strong",(lead.caller_name||"Caller")+" · "+(lead.callback_number||"No number")));
+          p.append(element("span"," · "+(lead.enquiry||"")+" · "+(lead.preferred_time||"No preferred time")+" · "+lead.status));
+          callbackList.append(p);
+        }
+        if(!result.leads.length)callbackList.append(element("p","No callback requests yet."));
+        status("operator-voice-status",result.leads.length+" callback request(s) loaded.");
+      }));
+      wrap.append(heading,meta,confirm,next,callbacks,callbackList);
       list.append(wrap);
     }
     status("operator-voice-status",response.retell_webhook_key_configured?
