@@ -47,6 +47,9 @@ async function approvedPaidClient(env:Env,id:string):Promise<boolean>{
   if(!await activeClient(env,id))return false;
   const member=await selectOne(env,"calvren_billing_memberships",{client_id:"eq."+id,select:"auth_user_id,subscription_status,current_period_end,stripe_price_id"});
   if(!member||!["active","trialing"].includes(member.subscription_status)||!member.stripe_price_id)return false;
+  // Explicit receptionist price entitlement only; paying for another Calvren plan does not authorize voice charges.
+  const allowed=(env("RETELL_RECEPTIONIST_PRICE_IDS")||"").split(",").map(value=>value.trim()).filter(value=>/^price_[a-zA-Z0-9]+$/.test(value));
+  if(!allowed.includes(member.stripe_price_id))return false;
   if(member.current_period_end&&Date.parse(member.current_period_end)<=Date.now())return false;
   const onboard=await selectOne(env,"calvren_onboarding",{
     auth_user_id:"eq."+member.auth_user_id,select:"status,scope_approved_at,approved_scope"
