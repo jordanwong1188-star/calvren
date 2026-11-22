@@ -82,3 +82,57 @@ test("Webhook stores only authorized tenant's minimal call metadata",async()=>{
     assert.equal(JSON.stringify(body).includes("sensitive transcript"),false);
   }finally{globalThis.fetch=original}
 });
+
+test("Callback tool cannot store a lead without explicit permission",async()=>{
+  const original=globalThis.fetch;
+  let calls=0;
+  globalThis.fetch=async()=>{calls++;return Response.json([])};
+  try{
+    const res=await handleReceptionist(request("/api/receptionist/tools/lead",{
+      name:"save_receptionist_lead",
+      call:{call_id:"call_123456",agent_id:"agent_123456",to_number:"+16045550123"},
+      args:{caller_name:"Alex",callback_number:"+16045550124",enquiry:"Broken faucet",callback_consent:false}
+    }),env);
+    assert.equal(res.status,200);
+    assert.equal((await res.json()).saved,false);
+    assert.equal(calls,0);
+  }finally{globalThis.fetch=original}
+});
+test("Callback tool records an approved paid voice client and never sends communications",async()=>{
+  const original=globalThis.fetch,requests=[];
+  globalThis.fetch=async(url,init)=>{
+    const path=String(url);requests.push({path,init});
+    if(path.includes("calvren_receptionist_configs"))return Response.json([{
+      client_id:"plumbing-live",retell_agent_id:"agent_123456",retell_phone_number:"+16045550123",enabled:true
+    }]);
+    if(path.includes("calvren_clients"))return Response.json([{config:{mode:"live",active:true}}]);
+    if(path.includes("calvren_billing_memberships"))return Response.json([{
+      auth_user_id:"5aafe427-dffc-429c-8a9b-1347f6b2ee4e",subscription_status:"active",
+      current_period_end:"2030-01-01T00:00:00Z",stripe_price_id:"price_receptionist1"
+    }]);
+    if(path.includes("calvren_onboarding"))return Response.json([{
+      status:"approved",scope_approved_at:"2026-11-22T00:00:00Z",approved_scope:"Voice callback intake"
+    }]);
+    if(path.includes("rpc/calvren_receptionist_capture_lead"))return Response.json(null);
+    throw new Error("Unexpected URL "+path);
+  };
+  try{
+    const payload={name:"save_receptionist_lead",
+      call:{call_id:"call_123456",agent_id:"agent_123456",to_number:"+16045550123",
+        metadata:{calvren_client_id:"spoofed-client"}},
+      args:{caller_name:"Alex",callback_number:"+16045550124",enquiry:"Broken faucet",
+        preferred_time:"Tuesday morning",callback_consent:true}};
+    const denied=await handleReceptionist(request("/api/receptionist/tools/lead",payload),env);
+    assert.equal(denied.status,409,"Normal paid plans cannot unlock a voice add-on.");
+    const allowedEnv=key=>key==="RETELL_RECEPTIONIST_PRICE_IDS"?"price_receptionist1":env(key);
+    const allowed=await handleReceptionist(request("/api/receptionist/tools/lead",payload),allowedEnv);
+    assert.equal(allowed.status,200);
+    assert.equal((await allowed.json()).saved,true);
+    const writes=requests.filter(x=>x.path.includes("rpc/calvren_receptionist_capture_lead"));
+    assert.equal(writes.length,1);
+    const body=JSON.parse(writes[0].init.body);
+    assert.equal(body.p_client_id,"plumbing-live");
+    assert.equal(body.p_phone,"+16045550124");
+    assert.ok(requests.every(x=>!x.path.includes("resend")&&!x.path.includes("twilio")));
+  }finally{globalThis.fetch=original}
+});
