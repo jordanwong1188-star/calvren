@@ -3,7 +3,7 @@ begin;
 create table if not exists public.calvren_receptionist_configs (
   client_id text primary key references public.calvren_clients(id) on delete cascade,
   retell_agent_id text not null unique check (retell_agent_id ~ '^[a-zA-Z0-9_-]{5,120}$'),
-  retell_phone_number text not null unique check (retell_phone_number ~ '^[+][1-9][0-9]{7,14}),
+  retell_phone_number text not null unique check (retell_phone_number ~ '^[+][1-9][0-9]{7,14}$'),
   enabled boolean not null default false,
   updated_at timestamptz not null default now()
 );
