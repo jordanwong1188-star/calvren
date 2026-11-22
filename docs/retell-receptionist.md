@@ -28,10 +28,38 @@ Database: `supabase/migrations/202611220001_calvren_retell_receptionist.sql`. Bo
 9. Verify written client scope, signed consent/recording notices, call-routing expectations and actual tool behavior. Run controlled end-to-end tests using your own consenting number only after you are prepared for possible usage charges.
 10. Once the client approves, POST to `/api/receptionist/configs/:client_id/activate` with your owner token. For cancellation, incident response or provider issues, POST to `/deactivate` and remove live Retell routing too.
 
+## Configure the Retell callback-request custom function (per approved client)
+
+Create a Retell **Custom Function** for each client's agent after the backend is deployed and the client is approved:
+
+- Name: `save_receptionist_lead`
+- Method: `POST`
+- URL: `https://calvren.ca/api/receptionist/tools/lead`
+- **Payload: args only:** OFF (Retell must include the signed `name`, `call` and `args` wrapper).
+- Execution: Wait for completion; no automatic retry on ambiguous results.
+- Description: "Only after a caller explicitly agrees to a callback and confirms their name, E.164 telephone number and reason, save a callback request. This does NOT book an appointment, send a text or guarantee a callback time."
+- Request argument JSON schema:
+
+```json
+{
+  "type": "object",
+  "required": ["caller_name", "callback_number", "enquiry", "callback_consent"],
+  "properties": {
+    "caller_name": {"type":"string","description":"Caller-provided name, confirmed aloud"},
+    "callback_number": {"type":"string","description":"Explicitly provided and confirmed phone number in +16045550123 format"},
+    "enquiry": {"type":"string","description":"Brief non-sensitive reason for requesting a human callback"},
+    "preferred_time": {"type":"string","description":"Optional preferred callback day/time, not a promise"},
+    "callback_consent": {"type":"boolean","description":"True only after caller explicitly agrees to contact about this request"}
+  }
+}
+```
+
+If the tool returns `saved: true`, the callback is recorded for the private operator workspace under **AI Receptionist → View callback requests**. If not, the agent must not claim success. The tool uses Retell's signed call context, not client IDs invented by the model. No SMS, email, phone call or paid AI action is triggered by this API. Additional customer alerting can be scoped later only after a verified, approved sender is in place.
+
 ## Important functionality NOT automatically provisioned
 
 - A free Retell account/agent does **not** give Calvren a phone number without an explicit provider action. Retell call minutes and number rental are usage-priced; **none were purchased in this change**.
-- This foundation receives and records call events and gates activation, but **does not yet implement a live calendar booking custom function**, provider OAuth, actual call transfers, CRM writeback or a Retell dashboard billing limit. Those are per-client integrations that need authorized accounts, client-specific policies and tests.
+- This foundation receives and records call events, securely saves consented callback requests and gates activation, but **does not yet implement live calendar booking**, provider OAuth, actual call transfers, external CRM writeback or a Retell dashboard billing limit. Those are per-client integrations that need authorized accounts, client-specific policies and tests.
 - Retell's default fallback behaviour can connect an agent if an inbound webhook fails. Configure the number to fail closed and validate this with Retell; code alone cannot guarantee fallback behaviour.
 - A Retell agent prompt can *collect* appointment requests but must not claim appointments are booked until a real integration returns confirmation.
 - For clinics and care settings, conduct privacy/compliance review and configure no unnecessary recording or sensitive-data retention before handling callers.
