@@ -11,6 +11,7 @@ import { handleSiteMetrics } from "./site-metrics.mjs";
 import { handleOperations } from "./operations.mjs";
 import { runScheduled } from "./cron-heartbeat.mjs";
 import { handleOnboarding } from "./onboarding.mjs";
+import { handleReceptionist } from "./receptionist.mjs";
 import {processAutomationCron,unsubscribeReview,configureProIntegration,entitledGrowthClients,verifyNativeCron} from "./automation-hub.mjs";
 export interface ServerOptions { env(name:string):string|undefined; ip?:string; }
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
@@ -58,6 +59,7 @@ export async function handleServer(request: Request, options: ServerOptions): Pr
       return handleOperations(routed,{env,authorized:adminAuthorized(routed,env("CALVREN_ADMIN_TOKEN"))});
     if(path==="/api/metrics/event"||path==="/api/metrics/summary")
       return handleSiteMetrics(routed,{env,authorized:path==="/api/metrics/summary"&&adminAuthorized(routed,env("CALVREN_ADMIN_TOKEN"))});
+    if(path.startsWith("/api/receptionist/"))return handleReceptionist(routed,env);
     if(path.startsWith("/api/billing/"))return handleBilling(routed,{env,repository:deps.repository});
     if(path==="/api/onboarding"||path==="/api/onboarding/approve"||path.startsWith("/api/onboarding/admin"))return handleOnboarding(routed,env);
     if(path==="/api/demo-access"||path==="/api/demo-access/unsubscribe"){
