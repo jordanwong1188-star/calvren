@@ -7,7 +7,7 @@ const required = [
   { path: "/conversion-cta.css?v=20261117-dark-orange", fragments: ["#ad461f", ".button.button-intent"] },
   { path: "/receptionist.css?v=20261117-custom-quote", fragments: ['content:"✓"', "list-style:none", ".receptionist-teaser-price li::before", ".receptionist-price-card li::before", ".receptionist-money.is-custom-quote"] },
   { path: "/ai-receptionist.html", fragments: ["https://calvren.ca/media/calvren-social-preview-2026.jpg", "/receptionist.css?v=20261117-custom-quote", "AI receptionist", "Custom pricing", "Fewer missed opportunities", "Capture booking requests", "Contact for pricing", "/contact.html?workflow=ai-receptionist#project-form", "https://calvren.ca/ai-receptionist"], forbidden: ["CA$425", "CA$515", "CA$940", "/payment?plan=receptionist"] },
-  { path: "/payment.html", fragments: ["data-select-plan=\"starter\"", "data-select-plan=\"growth\"", "data-select-plan=\"pro\"", "Get a custom AI Receptionist quote"], forbidden: ["CA$425", "data-select-plan=\"receptionist\""] },
+  { path: "/payment.html", fragments: ["data-select-plan=\"starter\"", "data-select-plan=\"growth\"", "data-select-plan=\"pro\"", "CA$425 initially", "AI Receptionist is a separate, custom-quoted service", "Get a custom AI Receptionist quote"], forbidden: ["data-select-plan=\"receptionist\"", "AI receptionist at CA$425/month", "AI Receptionist CA$425/month"] },
   { path: "/shared.js?v=20261118-custom-quote", fragments: ["custom quote for Calvren’s AI receptionist", "AI receptionist custom quote request — Calvren"], forbidden: ["AI receptionist at CA$425/month"] },
   { path: "/sitemap.xml", fragments: ["https://calvren.ca/ai-receptionist"] }
 ];
