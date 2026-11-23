@@ -11,7 +11,7 @@ const source=await readFile(new URL("../server/automation-hub.mts",import.meta.u
 await writeFile(join(dir,"hub.mjs"),ts.transpileModule(source,{
   compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}
 }).outputText);
-const {handleAutomationHub,processAutomationCron,unsubscribeReview,verifyNativeCron}=
+const {handleAutomationHub,processAutomationCron,entitledGrowthClients,unsubscribeReview,verifyNativeCron}=
   await import(pathToFileURL(join(dir,"hub.mjs")).href);
 const uid="55555555-5555-4555-8555-555555555555",appId="66666666-6666-4666-8666-666666666666";
 const leadId="77777777-7777-4777-8777-777777777777",clientId="sample_live";
@@ -185,4 +185,58 @@ test("native signed Cron is validated by server-only boolean RPC",async()=>{
   assert.equal(await verifyNativeCron(req,f.env,"follow-ups",fetcher),true);
   assert.equal(count,1);
   assert.equal(await verifyNativeCron(req,f.env,"follow-ups",async()=>Response.json(false)),false);
+});
+
+test("live Stripe monthly prices grant only their matching approved automation tier",async()=>{
+  // These are Calvren's current verified production monthly Stripe Price IDs.
+  const cases=[
+    {id:"price_1UdENaQ9mewkKyl5MBpGJDZS",plan:"starter",growthEligible:false},
+    {id:"price_1UbeD6Q9mewkKyl5iEgpMMQm",plan:"growth",growthEligible:true},
+    {id:"price_1UbeD7Q9mewkKyl5szjSTpZ6",plan:"pro",growthEligible:true},
+    {id:"price_1UaAOfQ9mewkKyl5rXDk02Ff",plan:"growth",growthEligible:true},
+    {id:"price_1Ua3rFQ9mewkKyl5dIhzjarI",plan:"growth",growthEligible:true},
+    {id:"price_1UaAOiQ9mewkKyl5NubJPt0S",plan:"pro",growthEligible:true},
+    {id:"price_1Ua3rNQ9mewkKyl5TrGGeeQU",plan:"pro",growthEligible:true},
+    {id:"price_1UcywrQ9mewkKyl5NAYObAFI",plan:"receptionist",growthEligible:false},
+    {id:"price_an_unknown_subscription",plan:"unknown",growthEligible:false}
+  ];
+  const billing=await readFile(new URL("../server/billing.mts",import.meta.url),"utf8");
+  for(const {id,plan,growthEligible} of cases){
+    const f=fixture({plan:"growth"});
+    f.member.stripe_price_id=id;
+    const liveEnv=name=>name==="STRIPE_SECRET_KEY"?"rk_live_production_test":f.env(name);
+    const eligible=await entitledGrowthClients(liveEnv,f.fetcher);
+    assert.equal(eligible.has(clientId),growthEligible,plan+" "+id);
+    assert.ok(billing.includes(id)||plan==="unknown",
+      "Billing code must recognize the mapped production price "+id);
+  }
+});
+test("current live Growth and Pro prices authorize the daily scheduler without bypassing onboarding",async()=>{
+  for(const price of ["price_1UbeD6Q9mewkKyl5iEgpMMQm","price_1UbeD7Q9mewkKyl5szjSTpZ6"]){
+    const f=fixture({settings:{review_enabled:true}});
+    f.member.stripe_price_id=price;
+    const liveEnv=name=>name==="STRIPE_SECRET_KEY"?"sk_live_test_only":f.env(name);
+    const processed=await processAutomationCron(liveEnv,f.fetcher);
+    assert.equal(processed.review,1,price+" should process a consented review");
+    assert.equal(f.events.filter(x=>x.url==="https://api.resend.com/emails").length,1);
+    const inactive=fixture({live:false,settings:{review_enabled:true}});
+    inactive.member.stripe_price_id=price;
+    const inactiveEnv=name=>name==="STRIPE_SECRET_KEY"?"sk_live_test_only":inactive.env(name);
+    const blocked=await processAutomationCron(inactiveEnv,inactive.fetcher);
+    assert.equal(blocked.review,0,"Unapproved onboarding must block email");
+    assert.equal(inactive.events.some(x=>x.url==="https://api.resend.com/emails"),false);
+  }
+});
+test("inactive and expired subscriptions and unknown live Price IDs cannot unlock Growth/Pro",async()=>{
+  for(const mutation of [
+    m=>{m.subscription_status="canceled";},
+    m=>{m.current_period_end="2020-01-01T00:00:00Z";},
+    m=>{m.stripe_price_id="price_foo1234";}
+  ]){
+    const f=fixture();
+    f.member.stripe_price_id="price_1UbeD6Q9mewkKyl5iEgpMMQm";
+    mutation(f.member);
+    const liveEnv=name=>name==="STRIPE_SECRET_KEY"?"sk_live_test_only":f.env(name);
+    assert.equal((await entitledGrowthClients(liveEnv,f.fetcher)).has(clientId),false);
+  }
 });
