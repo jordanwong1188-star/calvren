@@ -29,17 +29,31 @@ async function query(env:Env,path:string,options:{method?:string;body?:unknown;i
 const qp=(table:string,fields:Record<string,string>)=>table+"?"+new URLSearchParams(fields);
 const active=(member:Member)=>["active","trialing"].includes(member.subscription_status)&&
   (!member.current_period_end||new Date(member.current_period_end).getTime()>Date.now());
+// Keep these verified live Stripe IDs in sync with server/billing.mts.
+// Include historical subscription IDs so existing subscribers retain their tier.
+// A receptionist-only subscription never grants Growth/Pro automation permissions.
+const LIVE_PLAN_PRICE_IDS={
+  starter:["price_1UdENaQ9mewkKyl5MBpGJDZS","price_1UQWVeQ9mewkKyl5kv85ccXb","price_1UbeD4Q9mewkKyl5J9C8cuMe"],
+  growth:["price_1UbeD6Q9mewkKyl5iEgpMMQm","price_1Ua3rFQ9mewkKyl5dIhzjarI","price_1UaAOfQ9mewkKyl5rXDk02Ff"],
+  pro:["price_1UbeD7Q9mewkKyl5szjSTpZ6","price_1Ua3rNQ9mewkKyl5TrGGeeQU","price_1UaAOiQ9mewkKyl5NubJPt0S"]
+} as const;
 function memberPlan(env:Env,member:Member):Plan{
   if(!active(member))return null;
+  const price=member.stripe_price_id;
+  if(typeof price!=="string"||!/^price_[A-Za-z0-9]+$/.test(price))return null;
   const key=env("STRIPE_SECRET_KEY")||"";
-  const live=/^(sk|rk)_live_/.test(key);
-  if(member.stripe_price_id===env("STRIPE_PRICE_ID"))return "starter";
-  if(live){
-    if(["price_1UaAOfQ9mewkKyl5rXDk02Ff","price_1Ua3rFQ9mewkKyl5dIhzjarI"].includes(member.stripe_price_id))return "growth";
-    if(["price_1UaAOiQ9mewkKyl5NubJPt0S","price_1Ua3rNQ9mewkKyl5TrGGeeQU"].includes(member.stripe_price_id))return "pro";
-  }else{
-    if(member.stripe_price_id===env("STRIPE_GROWTH_PRICE_ID"))return "growth";
-    if(member.stripe_price_id===env("STRIPE_PRO_PRICE_ID"))return "pro";
+  if(/^(sk|rk)_live_/.test(key)){
+    for(const plan of ["starter","growth","pro"] as const){
+      if((LIVE_PLAN_PRICE_IDS[plan] as readonly string[]).includes(price))return plan;
+    }
+    return null;
+  }
+  // Sandbox/test mode uses its own verified test-price environment variables.
+  for(const [plan,variable] of [
+    ["starter","STRIPE_PRICE_ID"],["growth","STRIPE_GROWTH_PRICE_ID"],["pro","STRIPE_PRO_PRICE_ID"]
+  ] as const){
+    const testPrice=env(variable);
+    if(testPrice&&/^price_[A-Za-z0-9]+$/.test(testPrice)&&price===testPrice)return plan;
   }
   return null;
 }

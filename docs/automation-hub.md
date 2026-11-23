@@ -1,11 +1,11 @@
-> **Current production information (November 2026):** Calvren runs at https://calvren.ca on Cloudflare Pages with Supabase Edge Functions. Standard monthly prices are Starter C$275, Growth C$499 and Pro C$775, plus C$349 one-time setup. Old figures and Netlify instructions below are historical; see [reliability guide](operational-reliability.md) for current setup.
+> **Current production information (November 2026):** Calvren runs at https://calvren.ca on Cloudflare Pages with Supabase Edge Functions. Standard monthly pricing and one-time setup: Starter C$275 + C$150, Growth C$499 + C$200, Pro C$775 + C$300. AI Receptionist is custom quoted. Old Netlify instructions are historical; see [reliability guide](operational-reliability.md).
 
 # Growth and Pro production automation hub
-Updated 2026-11-10.
+Updated 2026-11-22.
 
 ## What is implemented
 
-**Growth ($249/mo):**
+**Growth (C$499/mo):**
 - The original guarded AI lead response/booking workflow.
 - Scheduled lead follow-ups are authorized **only** for linked, active, approved live Growth/Pro clients.
 - A secure client dashboard switch for **neutral Google Business review invitations** and a validated Google review URL.
@@ -15,13 +15,35 @@ Updated 2026-11-10.
 - A monthly report email with new-lead, qualified-lead and booked-appointment totals; sent during days 1–7 for the previous UTC calendar month. If an account has over 1000 leads/appointments, automated sending pauses rather than sending an inaccurate partial report.
 - Per-client switches default to **off** until activated by an authorized, linked, live customer.
 
-**Pro ($499/mo):**
+**Pro (C$775/mo):**
 - All Growth features.
 - Tenant-isolated unified conversation inbox combining recorded website/SMS/email-channel lead messages, statuses and appointment activity.
 - Internal notes linked to a conversation and the authorized signed-in user.
 - Human-reviewed SMS replies through existing live Twilio numbers only if a lead has explicit SMS consent, has not opted out, the business is launched, the Twilio provider is configured, and the operator confirms the send. Rate limit 5 replies per lead/hour. Unexpected/ambiguous delivery never triggers an automatic retry.
 - Optional human-handoff notification emails via Resend.
 - Owner-approved signed outbound HTTPS webhooks for bookings or required human handoffs. Integration payloads only include tenant/lead IDs, status, time, and event (no contact name/email/phone). HMAC headers can be verified by the approved receiving system. Connector is disabled until both the owner-approved endpoint and signing secret exist.
+
+## Production Stripe subscription entitlements
+
+The automated follow-up, review, monthly-report and Pro integration jobs resolve a
+client's server-verified Stripe subscription price to its tier. Current **live**
+monthly price identifiers must match `server/billing.mts`:
+
+| Plan | Live monthly Stripe Price ID | Growth/Pro scheduled features |
+| --- | --- | --- |
+| Starter (C$275) | `price_1UdENaQ9mewkKyl5MBpGJDZS` | Not included |
+| Growth (C$499) | `price_1UbeD6Q9mewkKyl5iEgpMMQm` | Eligible after approval |
+| Pro (C$775) | `price_1UbeD7Q9mewkKyl5szjSTpZ6` | Eligible after approval |
+
+Existing historical Stripe price IDs in `server/billing.mts` remain recognized so
+legacy subscribers do not lose their purchased tier. New checkout sessions use only
+the current IDs. Receptionist-only and unknown price IDs must not grant Growth/Pro
+automation access. Test keys and sandbox prices are recognized only in test mode.
+
+**Still required for actual execution:** active paid membership, an approved live
+onboarding scope, linked active client, individually enabled modules, genuine
+lead/customer consent, and working connected SMS/email/calendar providers. The price
+mapping fix alone does not activate any customer or send messages.
 
 ## Setup requirements
 1. Apply the migration `supabase/migrations/202611100001_growth_pro_automation_hub.sql` in the existing Supabase project, and deploy the newest `calvren` function after the build passes.
