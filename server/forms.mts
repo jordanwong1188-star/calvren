@@ -7,11 +7,34 @@ class FormError extends Error { constructor(public status: number, message: stri
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const json = (data: unknown, status=200) => new Response(JSON.stringify(data), {status,headers:{"Content-Type":"application/json","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
 
+// Formspree is the existing audit-only fallback. Keep the recipient controlled by
+// its verified form settings, never by customer-supplied fields. A fallback
+// notification carries only the saved submission ID and private inbox link.
+async function notifyAuditFallback(formName: string, id: string, deps: FormDependencies): Promise<"formspree_accepted" | "failed"> {
+  if(formName!=="workflow-enquiry"&&formName!=="project-enquiry")return "failed";
+  try{
+    const response=await (deps.fetch??fetch)("https://formspree.io/f/xrperqkk",{
+      method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},
+      body:JSON.stringify({subject:"New Calvren free lead audit request",
+        "form-name":formName,submission_id:id,
+        message:"A new audit request is saved. Review all details in your private inbox: https://calvren.ca/admin.html"}),
+      signal:AbortSignal.timeout(2500),redirect:"error"
+    });
+    const receipt=await response.json().catch(()=>null);
+    const accepted=response.ok&&receipt?.ok===true;
+    console.log(JSON.stringify({event:"calvren_formspree_notification",id,status:response.status,accepted}));
+    return accepted?"formspree_accepted":"failed";
+  }catch{
+    console.warn(JSON.stringify({event:"calvren_formspree_notification_failed",id}));
+    return "failed";
+  }
+}
+
 // Send only after a new record has been durably stored. Email is a notification,
 // never the source of truth for an enquiry. The recipient cannot be set by a visitor.
 export async function notifyFormOwner(
   formName: string, id: string, data: Record<string, unknown>, deps: FormDependencies
-): Promise<"accepted" | "unavailable" | "failed"> {
+): Promise<"accepted" | "unavailable" | "failed" | "formspree_accepted"> {
   const env=deps.env;
   const apiKey=env?.("RESEND_API_KEY")?.trim();
   const from=env?.("NOTIFICATION_FROM_EMAIL")?.trim();
@@ -21,7 +44,7 @@ export async function notifyFormOwner(
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)){
     console.warn(JSON.stringify({event:"calvren_form_notification_not_configured",id,
       missing:(!apiKey?"RESEND_API_KEY ":"")+(!from?"NOTIFICATION_FROM_EMAIL ":"")}));
-    return "unavailable";
+    return formName==="client-insight"?"unavailable":await notifyAuditFallback(formName,id,deps);
   }
   const feedback=formName==="client-insight";
   const lines=[
@@ -61,9 +84,11 @@ export async function notifyFormOwner(
       headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json",
         "Idempotency-Key":"calvren-public-form-"+id},
       body:JSON.stringify({from,to:[recipient],reply_to:String(data.email),subject,text:lines.join("\n")}),
-      signal:AbortSignal.timeout(8000),redirect:"error"
+      signal:AbortSignal.timeout(3500),redirect:"error"
     });
     if(!response.ok)console.warn(JSON.stringify({event:"calvren_form_notification_provider_rejected",id,status:response.status}));
+    // Explicit rejection is safe to retry via the backup; do not duplicate an uncertain send.
+    if([401,403,422,429].includes(response.status)&&!feedback)return await notifyAuditFallback(formName,id,deps);
     return response.ok?"accepted":"failed";
   }catch{
     console.warn(JSON.stringify({event:"calvren_form_notification_request_failed",id}));
@@ -152,7 +177,7 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
     }
     // New submissions notify the owner exactly once, without charging for AI processing.
     // Resend's stable idempotency key additionally protects against network retries.
-    const notification=write.modified?(form.get("formspree-archived")==="yes"?"handled_by_formspree":await notifyFormOwner(name!,id,data,deps)):"duplicate";
+    const ownerNotification=write.modified?(form.get("formspree-archived")==="yes"?Promise.resolve("handled_by_formspree" as const):notifyFormOwner(name!,id,data,deps)):Promise.resolve("duplicate" as const);
     // Transactional acknowledgement, separate from the owner notification.
     // Only a newly stored enquiry or review may trigger one message.
     // Resend must be configured with a verified sender domain; otherwise save succeeds
@@ -169,6 +194,7 @@ export async function handlePublicForm(request: Request, deps: FormDependencies)
         acknowledgement=sent?"accepted":"unavailable";
       }catch{console.warn(JSON.stringify({event:"calvren_form_ack_retry_unavailable",id}));}
     }
+    const notification=await ownerNotification;
     console.log(JSON.stringify({event:"calvren_public_form_saved",form:name,id,
       notification,acknowledgement}));
     // The submission stays saved even if Resend is unavailable or delivery later fails.
